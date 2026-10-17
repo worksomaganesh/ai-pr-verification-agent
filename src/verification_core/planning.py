@@ -685,7 +685,7 @@ def validate_model_hypotheses(
             path not in allowed_paths for path in affected_files
         ):
             raise PlannerOutputError(
-                f"hypotheses[{index}].affected_files contains duplicates or paths outside the bounded diff."
+                f"hypotheses[{index}].affected_files contains duplicates or paths " "outside the bounded diff."
             )
 
         selector = raw["candidate_test_selector"]
