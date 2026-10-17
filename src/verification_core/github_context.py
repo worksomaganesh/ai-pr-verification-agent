@@ -8,9 +8,9 @@ network calls, or provider SDK are hidden inside the deterministic core.
 from __future__ import annotations
 
 import hashlib
-from pathlib import PurePosixPath
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from pathlib import PurePosixPath
 from typing import Any, Protocol
 
 from verification_core.domain.models import CommitIdentity
@@ -21,6 +21,7 @@ from verification_core.webhooks import PullRequestWebhookEvent
 POLICY_PATH = ".verification-policy.yml"
 DEFAULT_FILES_PER_PAGE = 100
 MAX_FILES_API_PAGES = 30
+_DEFAULT_DIFF_LIMITS = DiffLimits()
 
 
 class GitHubContextError(ValueError):
@@ -90,7 +91,7 @@ def assemble_pull_request_context(
     event: PullRequestWebhookEvent,
     client: GitHubReadClient,
     *,
-    diff_limits: DiffLimits = DiffLimits(),
+    diff_limits: DiffLimits = _DEFAULT_DIFF_LIMITS,
     files_per_page: int = DEFAULT_FILES_PER_PAGE,
     policy_path: str = POLICY_PATH,
 ) -> PullRequestContext:
