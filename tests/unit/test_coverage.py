@@ -238,3 +238,91 @@ def test_reconciliation_detects_outcome_mismatch_and_missing_coverage_case() -> 
             target_lines={"src/auth.py": {10}},
             target_branches={},
         )
+
+
+
+def test_manifest_rejects_missing_keys_and_invalid_path_variants() -> None:
+    missing = {"version": 1, "head_sha": SHA}
+    with pytest.raises(CoverageManifestError, match="missing key"):
+        parse_coverage_manifest(json.dumps(missing))
+
+    for unsafe_path in ("/absolute.py", "src\\\\auth.py", "-option.py", "module:stream.py", "x" * 301):
+        with pytest.raises(CoverageManifestError, match="safe repository-relative path|path string"):
+            parse_coverage_manifest(manifest_text(lines={unsafe_path: [1]}))
+
+
+def test_manifest_rejects_non_list_locations_and_too_many_files() -> None:
+    with pytest.raises(CoverageManifestError, match="must be a list"):
+        parse_coverage_manifest(manifest_text(lines={"src/auth.py": "10"}))
+
+    many_files = {f"src/module_{index}.py": [1] for index in range(1001)}
+    with pytest.raises(CoverageManifestError, match="exceeds 1000 file paths"):
+        parse_coverage_manifest(manifest_text(lines=many_files))
+
+
+def test_manifest_rejects_location_count_limits() -> None:
+    many_lines = list(range(1, 100_002))
+    with pytest.raises(CoverageManifestError, match="exceeds 100000 locations"):
+        parse_coverage_manifest(manifest_text(lines={"src/auth.py": many_lines}))
+
+    lines = list(range(1, 60_001))
+    branches = [f"{index}:0" for index in range(1, 40_002)]
+    with pytest.raises(CoverageManifestError, match="exceeds 100000 locations"):
+        parse_coverage_manifest(
+            manifest_text(lines={"src/auth.py": lines}, branches={"src/auth.py": branches})
+        )
+
+
+def test_manifest_rejects_too_many_tests_and_bad_test_object_keys() -> None:
+    oversized = json.dumps({"version": 1, "head_sha": SHA, "tests": [None] * 50_001})
+    with pytest.raises(CoverageManifestError, match="exceeds 50000"):
+        parse_coverage_manifest(oversized)
+
+    payload = json.loads(manifest_text())
+    del payload["tests"][0]["branches"]
+    with pytest.raises(CoverageManifestError, match="missing key"):
+        parse_coverage_manifest(json.dumps(payload))
+
+    payload = json.loads(manifest_text())
+    payload["tests"][0]["extra"] = "untrusted"
+    with pytest.raises(CoverageManifestError, match="unknown key"):
+        parse_coverage_manifest(json.dumps(payload))
+
+
+def test_reconciliation_rejects_invalid_targets_and_unpassed_outcome() -> None:
+    report = parse_junit(XML)
+    manifest = parse_coverage_manifest(manifest_text())
+    common = {
+        "junit_report": report,
+        "manifest": manifest,
+        "expected_head_sha": SHA,
+        "node_id": NODE,
+        "target_branches": {},
+    }
+    with pytest.raises(CoverageManifestError, match="safe repository-relative path"):
+        reconcile_test_coverage(
+            **common, target_lines={"../secret.py": {10}}  # type: ignore[arg-type]
+        )
+    with pytest.raises(CoverageManifestError, match="positive integers"):
+        reconcile_test_coverage(
+            **common, target_lines={"src/auth.py": {0}}  # type: ignore[arg-type]
+        )
+    with pytest.raises(CoverageManifestError, match="branch IDs"):
+        reconcile_test_coverage(
+            **common, target_lines={"src/auth.py": {10}},
+            target_branches={"src/auth.py": {"bad"}},  # type: ignore[typeddict-item]
+        )
+
+    failed_xml = (
+        '<testsuite tests="1" failures="1"><testcase classname="tests.test_auth" '
+        'name="test_cross_user_access"><failure>denied</failure></testcase></testsuite>'
+    )
+    failed = reconcile_test_coverage(
+        junit_report=parse_junit(failed_xml),
+        manifest=parse_coverage_manifest(manifest_text(outcome="failed")),
+        expected_head_sha=SHA,
+        node_id=NODE,
+        target_lines={"src/auth.py": {10, 11}},
+        target_branches={"src/auth.py": {"10:0", "10:1"}},
+    )
+    assert failed.sufficiency is EvidenceSufficiency.UNVERIFIED
