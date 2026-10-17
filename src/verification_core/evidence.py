@@ -81,7 +81,9 @@ def parse_junit(xml_text: str | bytes) -> JUnitReport:
     try:
         root = ElementTree.fromstring(raw)
     except Exception as exc:
-        raise EvidenceParseError("JUnit XML is malformed or contains forbidden XML features.") from exc
+        raise EvidenceParseError(
+            "JUnit XML is malformed or contains forbidden XML features."
+        ) from exc
     if root.tag not in {"testsuite", "testsuites"}:
         raise EvidenceParseError("JUnit root element must be testsuite or testsuites.")
 
@@ -138,7 +140,9 @@ def parse_junit(xml_text: str | bytes) -> JUnitReport:
     _root_count(root, "failures", failed)
     _root_count(root, "errors", errors)
     _root_count(root, "skipped", skipped)
-    return JUnitReport(total, total - failed - errors - skipped, failed, errors, skipped, tuple(cases))
+    return JUnitReport(
+        total, total - failed - errors - skipped, failed, errors, skipped, tuple(cases)
+    )
 
 
 def assess_evidence_sufficiency(

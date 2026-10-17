@@ -53,8 +53,7 @@ class _UniqueKeySafeLoader(yaml.SafeLoader):
         if not isinstance(node, MappingNode):
             raise PolicyValidationError("Expected a YAML mapping.")
         if any(
-            isinstance(key_node, ScalarNode)
-            and key_node.tag == "tag:yaml.org,2002:merge"
+            isinstance(key_node, ScalarNode) and key_node.tag == "tag:yaml.org,2002:merge"
             for key_node, _ in node.value
         ):
             raise PolicyValidationError("YAML merge keys are not supported.")
@@ -62,7 +61,9 @@ class _UniqueKeySafeLoader(yaml.SafeLoader):
         for key_node, value_node in node.value:
             key = self.construct_object(key_node, deep=deep)
             if not isinstance(key, str):
-                raise PolicyValidationError("All YAML mapping keys must be strings (string keys only).")
+                raise PolicyValidationError(
+                    "All YAML mapping keys must be strings (string keys only)."
+                )
             if key in mapping:
                 raise PolicyValidationError(f"Duplicate YAML key: {key!r}.")
             mapping[key] = self.construct_object(value_node, deep=deep)
@@ -140,16 +141,18 @@ def _mapping(value: object, field: str) -> dict[str, object]:
     return value
 
 
-def _exact_keys(
-    value: dict[str, object], *, field: str, required: set[str]
-) -> None:
+def _exact_keys(value: dict[str, object], *, field: str, required: set[str]) -> None:
     actual = set(value)
     missing = required - actual
     unknown = actual - required
     if missing:
-        raise PolicyValidationError(f"{field} is missing required key(s): {', '.join(sorted(missing))}.")
+        raise PolicyValidationError(
+            f"{field} is missing required key(s): {', '.join(sorted(missing))}."
+        )
     if unknown:
-        raise PolicyValidationError(f"{field} contains unknown key(s): {', '.join(sorted(unknown))}.")
+        raise PolicyValidationError(
+            f"{field} contains unknown key(s): {', '.join(sorted(unknown))}."
+        )
 
 
 def _string(value: object, field: str, *, max_length: int = 500) -> str:
@@ -206,7 +209,9 @@ def validate_test_selector(value: str) -> str:
     """Validate a deliberately narrow pytest node selector; never interpret shell syntax."""
     selector = _string(value, "selector", max_length=MAX_SELECTOR_LENGTH)
     if selector.startswith("-") or "\\" in selector or any(char.isspace() for char in selector):
-        raise PolicyValidationError("selector contains a forbidden option, backslash, or whitespace.")
+        raise PolicyValidationError(
+            "selector contains a forbidden option, backslash, or whitespace."
+        )
     pieces = selector.split("::")
     file_path = pieces[0]
     if not _SELECTOR_PATH_RE.fullmatch(file_path):
@@ -247,9 +252,7 @@ def _parse_severity_rules(value: object) -> tuple[SeverityRule, ...]:
         blocking = raw["blocking"]
         human_allowed = raw["human_approval_allowed"]
         if type(blocking) is not bool or type(human_allowed) is not bool:
-            raise PolicyValidationError(
-                f"severity_rules.{severity} values must be booleans."
-            )
+            raise PolicyValidationError(f"severity_rules.{severity} values must be booleans.")
         if severity in {"critical", "high"} and not blocking:
             raise PolicyValidationError(f"{severity} severity must remain blocking.")
         rules.append(
@@ -262,7 +265,9 @@ def _parse_severity_rules(value: object) -> tuple[SeverityRule, ...]:
     return tuple(rules)
 
 
-def _parse_obligations(value: object, allowed_profiles: tuple[str, ...]) -> tuple[ObligationRule, ...]:
+def _parse_obligations(
+    value: object, allowed_profiles: tuple[str, ...]
+) -> tuple[ObligationRule, ...]:
     if not isinstance(value, list) or not value:
         raise PolicyValidationError("obligations must be a non-empty list.")
     if len(value) > MAX_OBLIGATIONS:
@@ -289,7 +294,9 @@ def _parse_obligations(value: object, allowed_profiles: tuple[str, ...]) -> tupl
             raise PolicyValidationError(f"{field}.category must be lowercase snake_case.")
         severity = _string(raw["severity"], f"{field}.severity", max_length=16)
         if severity not in _SEVERITIES:
-            raise PolicyValidationError(f"{field}.severity must be one of {', '.join(_SEVERITIES)}.")
+            raise PolicyValidationError(
+                f"{field}.severity must be one of {', '.join(_SEVERITIES)}."
+            )
         claim = _string(raw["claim"], f"{field}.claim", max_length=MAX_CLAIM_LENGTH)
         profile = _string(raw["runner_profile"], f"{field}.runner_profile", max_length=64)
         if profile not in allowed_profiles:

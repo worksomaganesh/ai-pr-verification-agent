@@ -46,7 +46,9 @@ def test_checked_in_example_is_valid_and_immutable() -> None:
 
 def test_runner_registry_has_fixed_argv_without_shell() -> None:
     policy = validate_policy_text(valid_policy_text())
-    argv = command_for(policy, "pytest_targeted", "tests/test_authz.py::test_cross_user_access_returns_403")
+    argv = command_for(
+        policy, "pytest_targeted", "tests/test_authz.py::test_cross_user_access_returns_403"
+    )
     assert argv[:2] == RUNNER_PROFILES["pytest_targeted"].argv_prefix[:2]
     assert argv[-1] == "tests/test_authz.py::test_cross_user_access_returns_403"
     assert all(isinstance(arg, str) for arg in argv)
@@ -74,14 +76,35 @@ def test_full_runner_is_fixed_and_rejects_selectors() -> None:
         (replace_once(EXAMPLE, "version: 1", "version: true"), "integer 1"),
         (replace_once(EXAMPLE, "version: 1", "version: 2"), "integer 1"),
         (replace_once(EXAMPLE, "version: 1", "version: 1\nextra: yes"), "unknown key"),
-        (EXAMPLE.replace("trusted_workflows:\n  - .github/workflows/ci.yml\n", ""), "missing required key"),
-        (EXAMPLE.replace("runner_profiles:\n  - pytest_targeted", "runner_profiles:\n  - shell_exec"), "Unknown fixed runner profile"),
+        (
+            EXAMPLE.replace("trusted_workflows:\n  - .github/workflows/ci.yml\n", ""),
+            "missing required key",
+        ),
+        (
+            EXAMPLE.replace(
+                "runner_profiles:\n  - pytest_targeted", "runner_profiles:\n  - shell_exec"
+            ),
+            "Unknown fixed runner profile",
+        ),
         (EXAMPLE.replace(".github/workflows/ci.yml", "../ci.yml"), "trusted_workflows"),
         (EXAMPLE.replace("blocking: true", "blocking: false", 1), "must remain blocking"),
-        (EXAMPLE.replace("  - .verification-policy.yml", "  - safe.txt", 1), "omits mandatory protection"),
+        (
+            EXAMPLE.replace("  - .verification-policy.yml", "  - safe.txt", 1),
+            "omits mandatory protection",
+        ),
         (EXAMPLE.replace("severity: critical", "severity: urgent", 1), "severity must be one of"),
-        (EXAMPLE.replace("runner_profile: pytest_targeted", "runner_profile: not_enabled", 1), "not enabled"),
-        (EXAMPLE.replace("selector: tests/test_webhooks.py::test_duplicate_event_is_ignored", "selector: --help", 1), "selector"),
+        (
+            EXAMPLE.replace("runner_profile: pytest_targeted", "runner_profile: not_enabled", 1),
+            "not enabled",
+        ),
+        (
+            EXAMPLE.replace(
+                "selector: tests/test_webhooks.py::test_duplicate_event_is_ignored",
+                "selector: --help",
+                1,
+            ),
+            "selector",
+        ),
     ],
 )
 def test_invalid_policies_fail_closed(text: str, message: str) -> None:
@@ -96,9 +119,7 @@ def test_yaml_aliases_and_anchors_are_rejected() -> None:
 
 def test_yaml_merge_keys_and_aliases_are_rejected() -> None:
     with pytest.raises(PolicyValidationError, match="anchors and aliases"):
-        validate_policy_text(
-            "root: &base {version: 1}\npolicy:\n  <<: *base"
-        )
+        validate_policy_text("root: &base {version: 1}\npolicy:\n  <<: *base")
 
 
 def test_invalid_yaml_and_unknown_yaml_tags_are_rejected() -> None:
@@ -165,11 +186,15 @@ def test_non_string_keys_and_wrong_field_shapes_are_rejected() -> None:
     with pytest.raises(PolicyValidationError, match="string keys"):
         validate_policy_text("1: foo")
     with pytest.raises(PolicyValidationError, match="trusted_workflows must be a list"):
-        validate_policy_text(EXAMPLE.replace("trusted_workflows:\n  - .github/workflows/ci.yml", "trusted_workflows: nope"))
+        validate_policy_text(
+            EXAMPLE.replace(
+                "trusted_workflows:\n  - .github/workflows/ci.yml", "trusted_workflows: nope"
+            )
+        )
 
 
 def test_duplicate_obligation_id_is_rejected() -> None:
-    second = EXAMPLE[EXAMPLE.index("  - id: OBL-AUTH-01"):]
+    second = EXAMPLE[EXAMPLE.index("  - id: OBL-AUTH-01") :]
     duplicated = EXAMPLE + "\n" + second
     with pytest.raises(PolicyValidationError, match="Duplicate obligation id"):
         validate_policy_text(duplicated)
@@ -186,9 +211,11 @@ def test_invalid_selector_is_rejected_inside_policy() -> None:
 
 def test_policy_sensitive_paths_and_workflow_entries_require_unique_safe_paths() -> None:
     with pytest.raises(PolicyValidationError, match="must not contain duplicates"):
-        validate_policy_text(EXAMPLE.replace(
-            "trusted_workflows:\n  - .github/workflows/ci.yml",
-            "trusted_workflows:\n  - .github/workflows/ci.yml\n  - .github/workflows/ci.yml",
-        ))
+        validate_policy_text(
+            EXAMPLE.replace(
+                "trusted_workflows:\n  - .github/workflows/ci.yml",
+                "trusted_workflows:\n  - .github/workflows/ci.yml\n  - .github/workflows/ci.yml",
+            )
+        )
     with pytest.raises(PolicyValidationError, match="safe repository-relative path"):
         validate_policy_text(EXAMPLE.replace("  - package.json", "  - ../package.json"))

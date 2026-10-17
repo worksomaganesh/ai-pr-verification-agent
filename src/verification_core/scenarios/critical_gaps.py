@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from verification_core.domain.enums import AnalysisCompleteness, GitHubCheckConclusion, ObligationSource, Severity
+from verification_core.domain.enums import (
+    AnalysisCompleteness,
+    GitHubCheckConclusion,
+    ObligationSource,
+    Severity,
+)
 from verification_core.domain.models import CommitIdentity, VerificationObligation
 from verification_core.domain.state_machine import evaluate_verification_run
 

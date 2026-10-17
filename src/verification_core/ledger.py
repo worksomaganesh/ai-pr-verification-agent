@@ -11,7 +11,9 @@ from verification_core.security import scrub_secrets
 
 
 def _safe_cell(value: object) -> str:
-    return scrub_secrets(str(value)).replace("|", "\\|").replace("\r", " ").replace("\n", " ").strip()
+    return (
+        scrub_secrets(str(value)).replace("|", "\\|").replace("\r", " ").replace("\n", " ").strip()
+    )
 
 
 def render_evidence_ledger(
@@ -36,17 +38,22 @@ def render_evidence_ledger(
 
     items = sorted(tuple(obligations), key=lambda item: item.obligation_id)
     lines = [
-        "# Verification Evidence Ledger", "",
+        "# Verification Evidence Ledger",
+        "",
         f"- Repository: {_safe_cell(repository)}",
         f"- Head SHA: `{head_sha}`",
         f"- Workflow run ID: {workflow_run_id}",
         f"- Generated at (UTC): {generated_at.astimezone(timezone.utc).isoformat()}",
-        f"- GitHub conclusion candidate: **{_safe_cell(conclusion)}**", "",
-        "## Test report summary", "",
+        f"- GitHub conclusion candidate: **{_safe_cell(conclusion)}**",
+        "",
+        "## Test report summary",
+        "",
         "| Total | Passed | Failed | Errors | Skipped |",
         "| ---: | ---: | ---: | ---: | ---: |",
-        f"| {report.total_tests} | {report.passed} | {report.failed} | {report.errors} | {report.skipped} |", "",
-        "## Individual test evidence", "",
+        f"| {report.total_tests} | {report.passed} | {report.failed} | {report.errors} | {report.skipped} |",
+        "",
+        "## Individual test evidence",
+        "",
         "| Test node | Outcome | Duration (s) | Detail |",
         "| --- | --- | ---: | --- |",
     ]
@@ -56,9 +63,15 @@ def render_evidence_ledger(
             f"| {_safe_cell(case.node_id)} | {_safe_cell(case.outcome.value)} | "
             f"{duration} | {_safe_cell(case.detail or '')} |"
         )
-    lines.extend(["", "## Verification obligations", "",
-        "| Obligation | Severity | State | Evidence / governance |",
-        "| --- | --- | --- | --- |"])
+    lines.extend(
+        [
+            "",
+            "## Verification obligations",
+            "",
+            "| Obligation | Severity | State | Evidence / governance |",
+            "| --- | --- | --- | --- |",
+        ]
+    )
     for item in items:
         if item.status.value == "passed":
             governance = "Machine-verified evidence"
@@ -72,6 +85,12 @@ def render_evidence_ledger(
             f"| {_safe_cell(item.obligation_id)} | {_safe_cell(item.severity.value)} | "
             f"{_safe_cell(item.status.value)} | {_safe_cell(governance)} |"
         )
-    lines.extend(["", "> A passing test suite is not proof that every obligation was exercised. "
-        "Human approval and policy waivers are not machine-verified passes.", ""])
+    lines.extend(
+        [
+            "",
+            "> A passing test suite is not proof that every obligation was exercised. "
+            "Human approval and policy waivers are not machine-verified passes.",
+            "",
+        ]
+    )
     return "\n".join(lines)

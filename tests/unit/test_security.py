@@ -7,17 +7,20 @@ import pytest
 from verification_core.security import scrub_secrets
 
 
-@pytest.mark.parametrize("secret", [
-    "ghp_abcdefghijklmnopqrstuvwxyz0123456789",
-    "github_pat_abcdefghijklmnopqrstuvwxyz0123456789",
-    "AKIA1234567890ABCDEF",
-    "AIza1234567890abcdefghijklmnopqrstuvwxyz",
-    "sk-abcdefghijklmnopqrstuvwxyz0123456789",
-    "Bearer abcdefghijklmnopqrstuvwxyz123456",
-    "api_key=supersecretvalue",
-    "password: 'correcthorsebatterystaple'",
-    "-----BEGIN PRIVATE KEY-----\nprivate-material\n-----END PRIVATE KEY-----",
-])
+@pytest.mark.parametrize(
+    "secret",
+    [
+        "ghp_abcdefghijklmnopqrstuvwxyz0123456789",
+        "github_pat_abcdefghijklmnopqrstuvwxyz0123456789",
+        "AKIA1234567890ABCDEF",
+        "AIza1234567890abcdefghijklmnopqrstuvwxyz",
+        "sk-abcdefghijklmnopqrstuvwxyz0123456789",
+        "Bearer abcdefghijklmnopqrstuvwxyz123456",
+        "api_key=supersecretvalue",
+        "password: 'correcthorsebatterystaple'",
+        "-----BEGIN PRIVATE KEY-----\nprivate-material\n-----END PRIVATE KEY-----",
+    ],
+)
 def test_common_secret_formats_are_redacted(secret: str) -> None:
     result = scrub_secrets(secret)
     assert "[REDACTED]" in result
