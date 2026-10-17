@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+from typing import cast
 
 import pytest
 
@@ -227,10 +228,10 @@ def test_signature_type_and_limit_errors_fail_closed(
     body: object, header: object, secret: object, limit: object
 ) -> None:
     assert not verify_github_signature(
-        body,
-        header,
-        secret,
-        max_body_bytes=limit,  # type: ignore[arg-type]
+        cast(bytes, body),
+        cast(str | None, header),
+        cast(str, secret),
+        max_body_bytes=cast(int, limit),
     )
 
 
