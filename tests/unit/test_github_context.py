@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any
+from dataclasses import replace
+from typing import Any, cast
 
 import pytest
 
 from verification_core.github_context import (
     GitHubContextError,
+    PullRequestContext,
     assemble_pull_request_context,
 )
+from verification_core.planning import DiffLimits
 from verification_core.webhooks import PullRequestWebhookEvent
 
 BASE = "1" * 40
@@ -219,3 +222,69 @@ def test_excessive_pagination_fails_closed() -> None:
     client = FakeGitHub(pages=[[changed_file(f"src/{index}.py")] for index in range(30)])
     with pytest.raises(GitHubContextError, match="page limit"):
         assemble_pull_request_context(event(), client, files_per_page=1)
+
+
+@pytest.mark.parametrize("files_per_page", [0, 101, True])
+def test_invalid_page_size_fails_closed(files_per_page: int) -> None:
+    with pytest.raises(GitHubContextError, match="files_per_page"):
+        assemble_pull_request_context(event(), FakeGitHub(), files_per_page=files_per_page)
+
+
+def test_context_invariants_reject_wrong_policy_ref_and_incomplete_files() -> None:
+    context = assemble_pull_request_context(event(), FakeGitHub())
+    with pytest.raises(GitHubContextError, match="exact base SHA"):
+        replace(context, policy_source_ref=HEAD)
+    with pytest.raises(GitHubContextError, match="cannot be marked complete"):
+        replace(context, files_complete=False)
+    with pytest.raises(GitHubContextError, match="At least one"):
+        replace(context, pages_read=0)
+
+
+def test_non_mapping_pull_request_response_is_rejected() -> None:
+    class BadPullRequestClient(FakeGitHub):
+        def get_pull_request(self, repository: str, pr_number: int) -> Mapping[str, Any]:
+            return None  # type: ignore[return-value]
+
+    with pytest.raises(GitHubContextError, match="pull_request must be an object"):
+        assemble_pull_request_context(event(), BadPullRequestClient())
+
+
+def test_non_text_policy_response_is_rejected() -> None:
+    class BadPolicyClient(FakeGitHub):
+        def get_file_content(self, repository: str, path: str, ref: str) -> str | None:
+            return cast(str, b"not text")
+
+    with pytest.raises(GitHubContextError, match="decoded UTF-8 text"):
+        assemble_pull_request_context(event(), BadPolicyClient())
+
+
+def test_changed_file_count_limit_fails_closed() -> None:
+    client = FakeGitHub(
+        pages=[[changed_file("src/one.py"), changed_file("src/two.py")]]
+    )
+    limits = DiffLimits(
+        max_input_files=1,
+        max_files=1,
+        max_changed_lines_per_file=100,
+        max_patch_chars_per_file=100,
+        max_total_patch_chars=100,
+    )
+    with pytest.raises(GitHubContextError, match="input limit"):
+        assemble_pull_request_context(event(), client, diff_limits=limits)
+
+
+def test_empty_changed_file_inventory_fails_closed() -> None:
+    with pytest.raises(GitHubContextError, match="No changed files"):
+        assemble_pull_request_context(event(), FakeGitHub(pages=[[]]))
+
+
+def test_non_boolean_binary_metadata_is_rejected() -> None:
+    client = FakeGitHub(pages=[[{**changed_file(), "is_binary": "false"}]])
+    with pytest.raises(GitHubContextError, match="is_binary"):
+        assemble_pull_request_context(event(), client)
+
+
+def test_non_mapping_changed_file_record_is_rejected() -> None:
+    client = FakeGitHub(pages=[["not-an-object"]])  # type: ignore[list-item]
+    with pytest.raises(GitHubContextError, match="string keys"):
+        assemble_pull_request_context(event(), client)
