@@ -138,7 +138,6 @@ def test_closed_pull_request_is_ignored() -> None:
             {"repository": {"full_name": "attacker/repo"}},
             "base repository",
         ),
-        ("delivery-1", {"pull_request": {"base": {"sha": "not-a-sha"}}}, "base_sha"),
     ],
 )
 def test_malformed_supported_payload_is_rejected(
@@ -172,6 +171,21 @@ def test_mismatched_base_repository_is_rejected() -> None:
         (BASE, BASE),
     ],
 )
+def test_malformed_base_sha_is_rejected() -> None:
+    data = payload()
+    pull_request = data["pull_request"]
+    assert isinstance(pull_request, dict)
+    base = pull_request["base"]
+    assert isinstance(base, dict)
+    base["sha"] = "not-a-sha"
+    with pytest.raises(WebhookPayloadError, match="base_sha"):
+        parse_pull_request_webhook(
+            delivery_id="delivery-1",
+            event_name="pull_request",
+            payload=data,
+        )
+
+
 def test_invalid_or_equal_commit_shas_are_rejected(base_sha: str, head_sha: str) -> None:
     with pytest.raises(WebhookPayloadError, match="SHA|distinct"):
         parse_pull_request_webhook(
