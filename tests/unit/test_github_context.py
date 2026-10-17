@@ -151,9 +151,7 @@ def test_all_changed_file_pages_are_consumed() -> None:
 
 
 def test_duplicate_changed_paths_are_rejected() -> None:
-    client = FakeGitHub(
-        pages=[[changed_file("src/same.py"), changed_file("src/same.py")]]
-    )
+    client = FakeGitHub(pages=[[changed_file("src/same.py"), changed_file("src/same.py")]])
     with pytest.raises(GitHubContextError, match="Duplicate"):
         assemble_pull_request_context(event(), client)
 
@@ -168,9 +166,7 @@ def test_duplicate_changed_paths_are_rejected() -> None:
         ({**changed_file(), "filename": "../secret.py"}, "filename"),
     ],
 )
-def test_malformed_changed_file_record_is_rejected(
-    record: dict[str, object], message: str
-) -> None:
+def test_malformed_changed_file_record_is_rejected(record: dict[str, object], message: str) -> None:
     client = FakeGitHub(pages=[[record]])
     with pytest.raises((GitHubContextError, ValueError), match=message):
         assemble_pull_request_context(event(), client)
