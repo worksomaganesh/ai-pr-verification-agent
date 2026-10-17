@@ -100,8 +100,7 @@ class WorkflowProvenance:
     def matches_commit(self, commit: CommitIdentity) -> bool:
         """Return True iff the workflow executed against the exact PR base and head SHAs."""
         return (
-            self.workflow_head_sha == commit.head_sha
-            and self.workflow_base_sha == commit.base_sha
+            self.workflow_head_sha == commit.head_sha and self.workflow_base_sha == commit.base_sha
         )
 
     def is_authentic_and_trusted(self, commit: CommitIdentity) -> bool:
