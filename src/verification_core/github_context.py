@@ -8,6 +8,7 @@ network calls, or provider SDK are hidden inside the deterministic core.
 from __future__ import annotations
 
 import hashlib
+from pathlib import PurePosixPath
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Protocol
@@ -169,6 +170,16 @@ def assemble_pull_request_context(
         for index, record in enumerate(records):
             item = _mapping(record, f"changed_files[{page}:{index}]")
             filename = _required_string(item.get("filename"), "changed_file.filename")
+            path = PurePosixPath(filename)
+            if (
+                path.is_absolute()
+                or "\\" in filename
+                or any(part in {"", ".", ".."} for part in path.parts)
+                or filename.startswith("-")
+            ):
+                raise GitHubContextError(
+                    "changed_file.filename must be a normalized repository-relative path."
+                )
             if filename in seen_paths:
                 raise GitHubContextError(f"Duplicate changed-file path returned by API: {filename!r}.")
             seen_paths.add(filename)
@@ -178,6 +189,9 @@ def assemble_pull_request_context(
             patch = item.get("patch")
             if patch is not None and not isinstance(patch, str):
                 raise GitHubContextError("changed_file.patch must be text or absent.")
+            is_binary = item.get("is_binary", False)
+            if type(is_binary) is not bool:
+                raise GitHubContextError("changed_file.is_binary must be a boolean.")
             changed_files.append(
                 ChangedFileInput(
                     filename=filename,
@@ -185,7 +199,7 @@ def assemble_pull_request_context(
                     additions=additions,
                     deletions=deletions,
                     patch=patch,
-                    is_binary=bool(item.get("is_binary", False)),
+                    is_binary=is_binary,
                 )
             )
 
