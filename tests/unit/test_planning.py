@@ -6,6 +6,7 @@ from typing import Any
 
 import pytest
 
+import verification_core.planning as planning
 from verification_core.domain import (
     AnalysisCompleteness,
     CommitIdentity,
@@ -23,9 +24,6 @@ from verification_core.planning import (
     plan_verification,
     validate_model_hypotheses,
 )
-
-import verification_core.planning as planning
-
 
 BASE = "1" * 40
 HEAD = "2" * 40
