@@ -78,7 +78,7 @@ def test_full_runner_is_fixed_and_rejects_selectors() -> None:
         (EXAMPLE.replace("runner_profiles:\n  - pytest_targeted", "runner_profiles:\n  - shell_exec"), "Unknown fixed runner profile"),
         (EXAMPLE.replace(".github/workflows/ci.yml", "../ci.yml"), "trusted_workflows"),
         (EXAMPLE.replace("blocking: true", "blocking: false", 1), "must remain blocking"),
-        (EXAMPLE.replace("harness_sensitive_paths:\n", "harness_sensitive_paths:\n  - safe.txt\n", 1), "omits mandatory protection"),
+        (EXAMPLE.replace("  - .verification-policy.yml", "  - safe.txt", 1), "omits mandatory protection"),
         (EXAMPLE.replace("severity: critical", "severity: urgent", 1), "severity must be one of"),
         (EXAMPLE.replace("runner_profile: pytest_targeted", "runner_profile: not_enabled", 1), "not enabled"),
         (EXAMPLE.replace("selector: tests/test_webhooks.py::test_duplicate_event_is_ignored", "selector: --help", 1), "selector"),
