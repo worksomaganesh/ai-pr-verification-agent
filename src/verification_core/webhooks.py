@@ -53,7 +53,9 @@ class PullRequestWebhookEvent:
         if type(self.pr_number) is not int or self.pr_number < 1:
             raise WebhookPayloadError("pr_number must be a positive integer.")
         if not _GIT_SHA_RE.fullmatch(self.base_sha) or not _GIT_SHA_RE.fullmatch(self.head_sha):
-            raise WebhookPayloadError("base_sha and head_sha must be lowercase 40-character Git SHAs.")
+            raise WebhookPayloadError(
+                "base_sha and head_sha must be lowercase 40-character Git SHAs."
+            )
         if self.base_sha == self.head_sha:
             raise WebhookPayloadError("base_sha and head_sha must be distinct.")
         if not self.base_ref.strip() or not self.head_ref.strip():
@@ -132,9 +134,7 @@ def parse_pull_request_webhook(
         raise WebhookPayloadError("delivery_id has an invalid format.")
 
     repository = _mapping(top.get("repository"), "repository")
-    repository_full_name = _required_string(
-        repository.get("full_name"), "repository.full_name"
-    )
+    repository_full_name = _required_string(repository.get("full_name"), "repository.full_name")
     if not _REPOSITORY_RE.fullmatch(repository_full_name):
         raise WebhookPayloadError("repository.full_name must match owner/repository.")
 
