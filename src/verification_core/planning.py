@@ -27,13 +27,40 @@ from verification_core.security import scrub_secrets
 _CATEGORY_RE = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
 _HUNK_RE = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
 _SOURCE_SUFFIXES = frozenset(
-    {".c", ".cc", ".cpp", ".cs", ".go", ".java", ".js", ".jsx", ".mjs",
-     ".php", ".py", ".rb", ".rs", ".sql", ".swift", ".ts", ".tsx", ".vue"}
+    {
+        ".c",
+        ".cc",
+        ".cpp",
+        ".cs",
+        ".go",
+        ".java",
+        ".js",
+        ".jsx",
+        ".mjs",
+        ".php",
+        ".py",
+        ".rb",
+        ".rs",
+        ".sql",
+        ".swift",
+        ".ts",
+        ".tsx",
+        ".vue",
+    }
 )
 _DOCUMENT_SUFFIXES = frozenset({".md", ".mdx", ".rst", ".txt", ".adoc"})
 _LOCKFILE_NAMES = frozenset(
-    {"package-lock.json", "pnpm-lock.yaml", "yarn.lock", "poetry.lock", "uv.lock",
-     "pipfile.lock", "cargo.lock", "gemfile.lock", "composer.lock"}
+    {
+        "package-lock.json",
+        "pnpm-lock.yaml",
+        "yarn.lock",
+        "poetry.lock",
+        "uv.lock",
+        "pipfile.lock",
+        "cargo.lock",
+        "gemfile.lock",
+        "composer.lock",
+    }
 )
 _DEFAULT_HARNESS_PATHS = (
     ".verification-policy.yml",
@@ -371,7 +398,9 @@ def analyze_changed_files(
 
     if len(prioritized) > limits.max_files:
         omitted = len(prioritized) - limits.max_files
-        issues.append(f"File limit exceeded; {omitted} lower-priority file(s) were not deeply analyzed.")
+        issues.append(
+            f"File limit exceeded; {omitted} lower-priority file(s) were not deeply analyzed."
+        )
         saw_truncation = True
 
     for item in prioritized[: limits.max_files]:
@@ -467,10 +496,9 @@ def _risk_rules_for_path(path: str, harness_sensitive: bool) -> tuple[_RiskRule,
 
     if harness_sensitive:
         rules.append(_RISK_RULES[0])
-    if (
-        any(part in {"migration", "migrations", "schema", "db_migrate"} for part in parts)
-        or name.endswith(".sql")
-    ):
+    if any(
+        part in {"migration", "migrations", "schema", "db_migrate"} for part in parts
+    ) or name.endswith(".sql"):
         rules.append(_RISK_RULES[1])
     if "webhook" in lower or "webhooks" in parts or "events" in parts and "webhook" in lower:
         rules.append(_RISK_RULES[2])
@@ -479,9 +507,15 @@ def _risk_rules_for_path(path: str, harness_sensitive: bool) -> tuple[_RiskRule,
         for part in parts
     ) or name.startswith(("auth", "permission", "access_control")):
         rules.append(_RISK_RULES[3])
-    if any(token in lower for token in ("billing", "payment", "checkout", "subscription", "invoice")):
+    if any(
+        token in lower for token in ("billing", "payment", "checkout", "subscription", "invoice")
+    ):
         rules.append(_RISK_RULES[4])
-    if name in _LOCKFILE_NAMES or name.startswith(("requirements", "constraints")) and name.endswith(".txt"):
+    if (
+        name in _LOCKFILE_NAMES
+        or name.startswith(("requirements", "constraints"))
+        and name.endswith(".txt")
+    ):
         rules.append(_RISK_RULES[5])
 
     if not rules and PurePosixPath(path).suffix.lower() in _SOURCE_SUFFIXES:
@@ -525,10 +559,7 @@ def _candidate_selector(
     affected_path: str,
     inventory: Sequence[TestInventoryItem],
 ) -> str | None:
-    scored = [
-        (_selector_score(category, affected_path, item), item.selector)
-        for item in inventory
-    ]
+    scored = [(_selector_score(category, affected_path, item), item.selector) for item in inventory]
     positive = sorted(
         ((score, selector) for score, selector in scored if score > 0),
         key=lambda item: (-item[0], item[1]),
@@ -578,7 +609,11 @@ def deterministic_obligations(
                 )
             )
 
-    return tuple(sorted(obligations, key=lambda item: (item.category, item.affected_files, item.obligation_id)))
+    return tuple(
+        sorted(
+            obligations, key=lambda item: (item.category, item.affected_files, item.obligation_id)
+        )
+    )
 
 
 def validate_model_hypotheses(
@@ -592,7 +627,9 @@ def validate_model_hypotheses(
     if type(max_hypotheses) is not int or max_hypotheses < 1:
         raise ValueError("max_hypotheses must be a positive integer.")
     if not isinstance(payload, dict) or set(payload) != {"hypotheses"}:
-        raise PlannerOutputError("Model response must be an object with exactly one 'hypotheses' key.")
+        raise PlannerOutputError(
+            "Model response must be an object with exactly one 'hypotheses' key."
+        )
     raw_hypotheses = payload["hypotheses"]
     if not isinstance(raw_hypotheses, list):
         raise PlannerOutputError("'hypotheses' must be a list.")
@@ -631,10 +668,14 @@ def validate_model_hypotheses(
         claim = claim.strip()
 
         affected = raw["affected_files"]
-        if not isinstance(affected, list) or not affected or any(
-            not isinstance(path, str) for path in affected
+        if (
+            not isinstance(affected, list)
+            or not affected
+            or any(not isinstance(path, str) for path in affected)
         ):
-            raise PlannerOutputError(f"hypotheses[{index}].affected_files must be a non-empty string list.")
+            raise PlannerOutputError(
+                f"hypotheses[{index}].affected_files must be a non-empty string list."
+            )
         affected_files = tuple(sorted(set(affected)))
         if len(affected_files) != len(affected) or any(
             path not in allowed_paths for path in affected_files
@@ -674,7 +715,9 @@ def validate_model_hypotheses(
 
 def _hypothesis_obligation(hypothesis: RiskHypothesis) -> VerificationObligation:
     return VerificationObligation.propose(
-        obligation_id=_obligation_id(hypothesis.category, hypothesis.affected_files, hypothesis.claim),
+        obligation_id=_obligation_id(
+            hypothesis.category, hypothesis.affected_files, hypothesis.claim
+        ),
         category=hypothesis.category,
         description=hypothesis.claim,
         severity=hypothesis.severity,
