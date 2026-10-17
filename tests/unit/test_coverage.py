@@ -93,7 +93,7 @@ def test_manifest_rejects_version_sha_and_unknown_keys() -> None:
 def test_manifest_rejects_types_empty_input_nul_and_oversize() -> None:
     for value in (None, 7):
         with pytest.raises(CoverageManifestError, match="text or bytes"):
-            parse_coverage_manifest(value)  # type: ignore[arg-type]
+            parse_coverage_manifest(value)
     with pytest.raises(CoverageManifestError, match="NUL"):
         parse_coverage_manifest(b"{}\x00")
     with pytest.raises(CoverageManifestError, match="exceeds"):
