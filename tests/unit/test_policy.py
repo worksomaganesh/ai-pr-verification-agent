@@ -219,3 +219,123 @@ def test_policy_sensitive_paths_and_workflow_entries_require_unique_safe_paths()
         )
     with pytest.raises(PolicyValidationError, match="safe repository-relative path"):
         validate_policy_text(EXAMPLE.replace("  - package.json", "  - ../package.json"))
+
+
+
+def test_policy_rejects_empty_lists_and_wrong_root_shape() -> None:
+    with pytest.raises(PolicyValidationError, match="must not be empty"):
+        validate_policy_text(EXAMPLE.replace(
+            "trusted_workflows:\\n  - .github/workflows/ci.yml",
+            "trusted_workflows: []",
+        ))
+    with pytest.raises(PolicyValidationError, match="policy must be a mapping"):
+        validate_policy_text("[]")
+
+
+def test_policy_rejects_non_string_list_items_and_trailing_slashes() -> None:
+    with pytest.raises(PolicyValidationError, match="must be a string"):
+        validate_policy_text(EXAMPLE.replace(
+            "  - .github/workflows/ci.yml",
+            "  - 42",
+        ))
+    with pytest.raises(PolicyValidationError, match="must not end with"):
+        validate_policy_text(EXAMPLE.replace(
+            ".github/workflows/ci.yml",
+            ".github/workflows/",
+        ))
+
+
+def test_policy_rejects_oversized_policy_lists() -> None:
+    prefix = EXAMPLE[: EXAMPLE.index("harness_sensitive_paths:")]
+    suffix = EXAMPLE[EXAMPLE.index("obligations:") :]
+    paths = "".join(f"  - safe-{index}.txt\\n" for index in range(101))
+    with pytest.raises(PolicyValidationError, match="at most 100 items"):
+        validate_policy_text(prefix + "harness_sensitive_paths:\\n" + paths + suffix)
+
+    prefix = EXAMPLE[: EXAMPLE.index("obligations:")]
+    obligations = "".join(f"  - id: OBL-X{index}\\n" for index in range(501))
+    with pytest.raises(PolicyValidationError, match="at most 500 items"):
+        validate_policy_text(prefix + "obligations:\\n" + obligations)
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "message"),
+    [
+        ("id: OBL-WHK-01", "id: bad-id", "must match OBL"),
+        ("category: webhook_idempotency", "category: BadCategory", "lowercase snake_case"),
+        ("claim: Duplicate webhook event IDs must not process the same event twice.",
+         'claim: ""', "must not be empty"),
+        ("severity: critical", "severity: urgent", "severity must be one of"),
+        ("blocking: true", 'blocking: "true"', "values must be booleans"),
+    ],
+)
+def test_policy_rejects_invalid_obligation_and_rule_fields(
+    old: str, new: str, message: str
+) -> None:
+    with pytest.raises(PolicyValidationError, match=message):
+        validate_policy_text(EXAMPLE.replace(old, new, 1))
+
+
+def test_policy_rejects_oversized_claim_and_selector() -> None:
+    long_claim = "claim: " + ("x" * 2001)
+    text = EXAMPLE.replace(
+        "claim: Duplicate webhook event IDs must not process the same event twice.",
+        long_claim,
+        1,
+    )
+    with pytest.raises(PolicyValidationError, match="exceeds the 2000-character limit"):
+        validate_policy_text(text)
+
+    long_selector = "selector: tests/test_authz.py::" + ("A" * 230)
+    text = EXAMPLE.replace(
+        "selector: tests/test_authz.py::test_cross_user_access_returns_403",
+        long_selector,
+        1,
+    )
+    with pytest.raises(PolicyValidationError, match="exceeds the 240-character limit"):
+        validate_policy_text(text)
+
+
+@pytest.mark.parametrize(
+    "unsafe_path",
+    ["/etc/passwd", "safe\\\\path", "-option", "name:stream"],
+)
+def test_policy_rejects_unsafe_sensitive_paths(unsafe_path: str) -> None:
+    with pytest.raises(PolicyValidationError, match="safe repository-relative path"):
+        validate_policy_text(EXAMPLE.replace("  - package.json", f"  - {unsafe_path}"))
+
+
+def test_policy_rejects_profile_that_cannot_run_targeted_selectors() -> None:
+    text = EXAMPLE.replace(
+        "runner_profiles:\\n  - pytest_targeted",
+        "runner_profiles:\\n  - pytest_targeted\\n  - pytest_full",
+    ).replace("runner_profile: pytest_targeted", "runner_profile: pytest_full", 1)
+    with pytest.raises(PolicyValidationError, match="does not accept per-test selectors"):
+        validate_policy_text(text)
+
+
+def test_policy_rejects_empty_obligations_and_unknown_severity_lookup() -> None:
+    with pytest.raises(PolicyValidationError, match="non-empty list"):
+        validate_policy_text(EXAMPLE.replace(
+            EXAMPLE[EXAMPLE.index("obligations:"):],
+            "obligations: []\\n",
+        ))
+    policy = validate_policy_text(EXAMPLE)
+    with pytest.raises(PolicyValidationError, match="No severity rule configured"):
+        policy.severity_rule("urgent")
+
+
+def test_safe_loader_defensively_rejects_non_mapping_node_and_merge_key() -> None:
+    from yaml.nodes import ScalarNode
+
+    from verification_core.policy import _UniqueKeySafeLoader
+
+    loader = _UniqueKeySafeLoader("value")
+    try:
+        with pytest.raises(PolicyValidationError, match="Expected a YAML mapping"):
+            loader.construct_mapping(ScalarNode(tag="tag:yaml.org,2002:str", value="value"))
+    finally:
+        loader.dispose()
+
+    with pytest.raises(PolicyValidationError, match="merge keys"):
+        validate_policy_text("root: {<<: {version: 1}}")
