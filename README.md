@@ -12,9 +12,9 @@ The system is designed to answer:
 
 ## Current status
 
-This repository currently contains the Phase 1A deterministic domain core: immutable domain records, explicit obligation states, a deterministic state machine and Check Run conclusion evaluator, plus unit and Hypothesis property-based tests.
+Phase 1A (deterministic domain core) is complete: immutable domain records, explicit obligation states, guarded transitions, deterministic Check Run conclusion evaluation, unit tests, and a Hypothesis false-green invariant test configured for 5,000 generated examples. CI validates formatting, lint, strict typing, tests, and a 95% minimum coverage threshold.
 
-The full Phase 1 milestone is not complete. Policy parsing and fixed runner profiles, safe JUnit ingestion, per-test coverage reconciliation, secret scrubbing, deterministic ledger rendering, adversarial parser fixtures, and the full running scenario still need implementation. Passing Phase 1A CI alone must not be represented as completion of the full product.
+The full Phase 1 milestone is still in progress. Policy parsing and fixed runner profiles, safe JUnit ingestion, per-test coverage reconciliation, secret scrubbing, deterministic ledger rendering, adversarial parser fixtures, and the standalone running-scenario fixture remain Phase 1B work. Do not represent Phase 1A completion as completion of the full product.
 
 ## Security principles
 
@@ -42,8 +42,8 @@ CI runs these gates on pushes to main and pull requests targeting main.
 
 | Phase | Goal | Status |
 | --- | --- | --- |
-| 1A | Deterministic domain models and state machine | In progress; CI validation underway |
-| 1B | Policy validator, runner allowlist, evidence parsers, ledger, adversarial scenario | Not complete |
+| 1A | Deterministic domain models and state machine | Complete; CI green, 5,000-example property test, ≥95% coverage |
+| 1B | Policy validator, runner allowlist, evidence parsers, ledger, adversarial scenario | Next; not complete |
 | 2 | Diff analysis, planning, persistence, webhook and Check Run service | Not started |
 | 3 | Platform-anchored passive CI artifact ingestion and reconciliation | Not started |
 | 4 | Opt-in dispatch, additional adapters, human governance hooks | Not started |

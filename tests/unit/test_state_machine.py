@@ -719,7 +719,7 @@ def _build_obligation_from_spec(
     raise AssertionError(f"Unhandled status: {target_status}")
 
 
-@settings(max_examples=500, deadline=None)
+@settings(max_examples=5000, deadline=None)
 @given(
     specs=st.lists(OBLIGATION_SPEC_STRATEGY, min_size=1, max_size=12),
     strict_mode=st.booleans(),
