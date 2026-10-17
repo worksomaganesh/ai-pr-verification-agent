@@ -12,8 +12,8 @@ VALID = (
     '<testcase classname="tests.test_auth" name="test_good" time="0.1" />\n'
     '<testcase classname="tests.test_auth" name="test_bad" time="0.2">'
     '<failure message="token=ghp_abcdefghijklmnopqrstuvwxyz0123456789">failed</failure>'
-    '</testcase>\n'
+    "</testcase>\n"
     '<testcase classname="tests.test_auth" name="test_skip">'
     '<skipped message="not ready" /></testcase>\n'
-    '</testsuite>'
+    "</testsuite>"
 )
