@@ -167,7 +167,7 @@ def test_mismatched_base_repository_is_rejected() -> None:
     ("base_sha", "head_sha"),
     [
         ("x" * 40, HEAD),
-        (BASE.upper(), HEAD),
+        ("A" * 40, HEAD),
         (BASE, "not-a-sha"),
         (BASE, BASE),
     ],
