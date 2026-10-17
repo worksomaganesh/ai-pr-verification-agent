@@ -6,7 +6,6 @@ import zipfile
 from pathlib import Path
 
 import pytest
-
 from extract_phase_1a import PHASE_1A_FILES, extract_and_bundle
 
 
@@ -33,7 +32,7 @@ def test_existing_zip_is_refused_before_extracting_files(tmp_path: Path) -> None
     archive = tmp_path / "bootstrap.zip"
     archive.write_bytes(b"keep existing archive")
 
-    with pytest.raises(FileExistsError, match="bootstrap.zip"):
+    with pytest.raises(FileExistsError, match=r"bootstrap\.zip"):
         extract_and_bundle(tmp_path, "bootstrap.zip")
 
     assert archive.read_bytes() == b"keep existing archive"
