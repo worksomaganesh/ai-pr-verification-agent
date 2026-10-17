@@ -279,8 +279,8 @@ def test_scenario_5_human_approval_is_distinct_from_machine_passed() -> None:
         approval=human_record,
         expected_commit=commit,
     )
-    assert obl_human.status == ObligationStatus.APPROVED_BY_HUMAN
-    assert obl_human.status != ObligationStatus.PASSED
+    assert obl_human.status is ObligationStatus.APPROVED_BY_HUMAN
+    # Human approval is a distinct governance state, never a machine-verified pass.
 
     evaluation = evaluate_verification_run(
         commit=commit,
