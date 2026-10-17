@@ -17,6 +17,7 @@ from verification_core.planning import (
     ChangedFileInput,
     DiffAnalysisError,
     DiffLimits,
+    InventoryEntry,
     PlannerOutputError,
     analyze_changed_files,
     deterministic_obligations,
@@ -286,7 +287,7 @@ def test_obligation_ids_are_stable_and_selector_requires_inventory_match() -> No
 
 def test_test_inventory_rejects_mismatched_paths_and_duplicates() -> None:
     with pytest.raises(DiffAnalysisError, match="must equal"):
-        InventoryItem(selector="tests/test_a.py::test_a", path="tests/test_b.py")
+        InventoryEntry(selector="tests/test_a.py::test_a", path="tests/test_b.py")
     duplicate = inventory("tests/test_a.py::test_a")
     with pytest.raises(DiffAnalysisError, match="duplicate"):
         deterministic_obligations(
