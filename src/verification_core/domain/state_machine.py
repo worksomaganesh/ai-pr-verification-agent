@@ -187,10 +187,7 @@ def reconcile_obligation_evidence(
         )
 
     # 3. Handle malformed or empty test reports
-    if (
-        evidence.total_tests_in_report == 0
-        or evidence.sufficiency == EvidenceSufficiency.MALFORMED
-    ):
+    if evidence.total_tests_in_report == 0 or evidence.sufficiency == EvidenceSufficiency.MALFORMED:
         validate_transition(obligation.status, ObligationStatus.INCONCLUSIVE)
         return replace(
             obligation,
@@ -206,8 +203,7 @@ def reconcile_obligation_evidence(
             obligation,
             status=ObligationStatus.FAILED,
             evidence=evidence,
-            status_reason=evidence.failure_summary
-            or f"Test execution {evidence.outcome.value}.",
+            status_reason=evidence.failure_summary or f"Test execution {evidence.outcome.value}.",
         )
 
     if evidence.outcome == ExecutionOutcome.SKIPPED:
@@ -272,10 +268,7 @@ def apply_human_approval(
             "Policy forbids human waiver/approval for CRITICAL obligations."
         )
 
-    if (
-        obligation.severity == Severity.HIGH
-        and not policy_config.allow_human_approval_for_high
-    ):
+    if obligation.severity == Severity.HIGH and not policy_config.allow_human_approval_for_high:
         raise InvalidStateTransitionError(
             "Policy forbids human waiver/approval for HIGH obligations."
         )
@@ -360,8 +353,7 @@ def _verify_obligation_commit_binding(
             obligation.severity == Severity.CRITICAL
             and not policy_config.allow_human_approval_for_critical
         ) or (
-            obligation.severity == Severity.HIGH
-            and not policy_config.allow_human_approval_for_high
+            obligation.severity == Severity.HIGH and not policy_config.allow_human_approval_for_high
         ):
             raise DomainValidationError(
                 f"Obligation {obligation.obligation_id!r} carries human approval disallowed "
@@ -442,9 +434,7 @@ def evaluate_verification_run(
         if effective_superseded_sha is not None:
             validate_git_sha(effective_superseded_sha, "superseded_by_sha")
             if effective_superseded_sha == commit.head_sha:
-                raise DomainValidationError(
-                    "superseded_by_sha must differ from commit.head_sha."
-                )
+                raise DomainValidationError("superseded_by_sha must differ from commit.head_sha.")
             stale_obligations = tuple(
                 mark_obligation_stale(o, superseded_by_sha=effective_superseded_sha)
                 for o in obligations
@@ -567,10 +557,7 @@ def evaluate_verification_run(
         )
 
     # Priority 4: Incomplete/Truncated Context, Analyzer Error, or Unsupported Critical Changes
-    if (
-        analysis_completeness != AnalysisCompleteness.COMPLETE
-        or has_unsupported_critical_changes
-    ):
+    if analysis_completeness != AnalysisCompleteness.COMPLETE or has_unsupported_critical_changes:
         conclusion = (
             GitHubCheckConclusion.FAILURE
             if policy_config.strict_blocking_mode
