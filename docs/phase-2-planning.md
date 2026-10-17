@@ -55,21 +55,29 @@ A candidate selector is only selected from a caller-supplied test inventory and 
 
 `VerificationModelPort` is provider-agnostic. A Gemini adapter may be added later behind this interface, but the model response is always untrusted data. Schema validation restricts the response to bounded hypotheses, changed-file paths, and known test selectors. No model is called by the deterministic core, and no model response is evidence of test execution.
 
+## Phase II implementation update
+
+The next slice now adds two adapter-neutral boundaries:
+
+- `verification_core.webhooks` validates `X-Hub-Signature-256` against the exact raw request bytes using HMAC-SHA256 and constant-time comparison, and parses only `opened`, `reopened`, and `synchronize` pull-request events. It returns a stable delivery idempotency key, but intentionally does not pretend that an in-memory key prevents retries; durable deduplication belongs in the service/persistence layer.
+- `verification_core.github_context` defines a narrow read-only `GitHubReadClient` protocol and assembles an immutable PR context. It re-reads PR metadata to reject stale base/head SHAs, loads `.verification-policy.yml` only at the exact `base_sha`, hashes the raw policy text, validates it with the Phase I validator, and consumes changed-file pages with strict shape, path, count, and duplicate checks. Missing/invalid policy, stale PR metadata, and incomplete pagination fail closed.
+
+These are interfaces and pure orchestration over an injected client, not a live GitHub HTTP client. The concrete installation-token transport, HTTP timeouts/retries/rate limits, durable delivery ledger, webhook server, database, and Check Run publisher remain future work. `GitHubReadClient` implementations must enforce authentication and bounded response bodies.
+
 ## Remaining Phase II work
 
-1. Review and merge this planning foundation after CI passes.
-2. Add a deterministic diff-to-obligation evaluation corpus with expected risk categories and false-negative review.
-3. Add a pure, strict PR-context/event model and idempotency-key contract.
-4. Implement a minimal GitHub API adapter with explicit read-only context collection and bounded pagination; policy must be fetched at `base_sha`.
-5. Add webhook signature verification and delivery deduplication only when the HTTP service is introduced.
-6. Add persistence only after the domain/event contracts are stable.
-7. Publish Check Runs through `checks: write` only after the adapter validates exact base/head identity and uses the Phase I conclusion engine.
-8. Run CI on the exact merge candidate and document verified results.
+1. Add and review a deterministic diff-to-obligation evaluation corpus with expected risk categories and false-negative analysis.
+2. Implement a concrete read-only GitHub REST client with installation-token authentication, bounded timeouts/retries, pagination, and response-size limits.
+3. Add a minimal webhook service with constant-time signature verification and durable `X-GitHub-Delivery` deduplication.
+4. Add persistence only after domain/event contracts are stable.
+5. Publish Check Runs through `checks: write` only after exact-SHA context validation and the Phase I conclusion engine are wired together.
+6. Add adversarial mocked end-to-end tests for races, pagination, invalid payloads, API failures, and duplicate deliveries.
+7. Run CI on the exact merge candidate and document verified results.
 
 ## Not claimed yet
 
 - The planner has not been evaluated on a representative production PR corpus.
 - Path-based rules can miss risks hidden in ordinary filenames or over-classify harmless changes.
 - Static line ranges do not prove semantic behavior.
-- The current module does not fetch GitHub data, verify webhook signatures, authenticate artifacts, persist state, call Gemini, or publish Check Runs.
+- The webhook signature function and adapter-neutral context assembly are implemented, but no concrete GitHub HTTP transport, installation-token lifecycle, durable delivery ledger, artifact authentication, persistence, Gemini API adapter, or Check Run publisher exists yet.
 - Phase II is not complete merely because this initial foundation is merged.

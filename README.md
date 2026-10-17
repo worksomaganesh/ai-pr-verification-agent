@@ -47,8 +47,8 @@ CI runs formatting, lint, strict typing, and tests with a 95% coverage floor.
 | Phase | Goal | Status |
 | --- | --- | --- |
 | 1A | Deterministic domain models and state machine | Implemented; previously green with 5,000-example property test |
-| 1B | Policy validator, runner allowlist, evidence parsers, ledger, adversarial scenario | Implementation committed; release gate awaiting exact-commit CI verification |
-| 2 | Diff analysis, planning, persistence, webhook and Check Run service | In progress — bounded diff analyzer and deterministic/hybrid planner foundation on `phase-2-planning-foundation`; API, webhook, persistence, and publisher remain pending |
+| 1B | Policy validator, runner allowlist, evidence parsers, ledger, adversarial scenario | Release gate passed on the Phase I release-hardening tree; Phase II CI continues to run the expanded suite |
+| 2 | Diff analysis, planning, persistence, webhook and Check Run service | In progress — bounded planner plus webhook signature/event contracts and exact-SHA read-only context assembly; live HTTP transport, durable deduplication, persistence, and Check Run publisher remain pending |
 | 3 | Platform-anchored passive CI artifact ingestion and reconciliation | Not started |
 | 4 | Opt-in dispatch, additional adapters, human governance hooks | Not started |
 
