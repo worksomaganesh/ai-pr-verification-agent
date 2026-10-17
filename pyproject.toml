@@ -10,7 +10,9 @@ readme = "docs/verification-semantics.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
 authors = [{ name = "Doddi Yashwanth Soma Ganesh" }]
-dependencies = []
+dependencies = [
+    "PyYAML>=6.0.2",
+]
 
 [project.optional-dependencies]
 dev = [
@@ -19,6 +21,7 @@ dev = [
     "pytest>=8.2.0",
     "pytest-cov>=5.0.0",
     "ruff>=0.5.0",
+    "types-PyYAML>=6.0.12",
 ]
 
 [tool.setuptools.packages.find]

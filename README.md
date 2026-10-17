@@ -14,7 +14,9 @@ The system is designed to answer:
 
 Phase 1A (deterministic domain core) is complete: immutable domain records, explicit obligation states, guarded transitions, deterministic Check Run conclusion evaluation, unit tests, and a Hypothesis false-green invariant test configured for 5,000 generated examples. CI validates formatting, lint, strict typing, tests, and a 95% minimum coverage threshold.
 
-The full Phase 1 milestone is still in progress. Policy parsing and fixed runner profiles, safe JUnit ingestion, per-test coverage reconciliation, secret scrubbing, deterministic ledger rendering, adversarial parser fixtures, and the standalone running-scenario fixture remain Phase 1B work. Do not represent Phase 1A completion as completion of the full product.
+Phase 1B has started with a strict policy parser and verifier-owned runner profiles. The parser rejects duplicate YAML keys, aliases/anchors, YAML merge keys, unknown fields, unsafe workflow paths, weakened critical/high severity blocking, missing harness-protection paths, and unsafe pytest selectors. The policy can select only predefined argv templates; it cannot provide a command or shell fragment. The checked-in example is covered by unit/security tests.
+
+**Phase 1B is not complete.** Safe JUnit ingestion, per-test coverage/evidence reconciliation, secret scrubbing, deterministic ledger rendering, provenance reconciliation, and the full adversarial running-scenario fixture remain outstanding. A valid policy is not evidence authenticity: the caller must retrieve the effective policy from the trusted base commit.
 
 ## Security principles
 
@@ -43,9 +45,9 @@ CI runs these gates on pushes to main and pull requests targeting main.
 | Phase | Goal | Status |
 | --- | --- | --- |
 | 1A | Deterministic domain models and state machine | Complete; CI green, 5,000-example property test, ≥95% coverage |
-| 1B | Policy validator, runner allowlist, evidence parsers, ledger, adversarial scenario | Next; not complete |
+| 1B | Policy validator, runner allowlist, evidence parsers, ledger, adversarial scenario | In progress; policy parser and fixed argv profiles implemented; evidence components next |
 | 2 | Diff analysis, planning, persistence, webhook and Check Run service | Not started |
 | 3 | Platform-anchored passive CI artifact ingestion and reconciliation | Not started |
 | 4 | Opt-in dispatch, additional adapters, human governance hooks | Not started |
 
-See docs/verification-semantics.md for the current state-machine contract and docs/phase-0-architecture.md for trust boundaries and design constraints.
+See [docs/verification-semantics.md](docs/verification-semantics.md) for state-machine semantics and [docs/phase-0-architecture.md](docs/phase-0-architecture.md) for trust boundaries and design constraints.
