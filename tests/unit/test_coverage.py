@@ -253,7 +253,7 @@ def test_manifest_rejects_missing_keys_and_invalid_path_variants() -> None:
         "x" * 301,
     ):
         with pytest.raises(
-            CoverageManifestError, match="safe repository-relative path|path string"
+            CoverageManifestError, match=r"safe repository-relative path|path string"
         ):
             parse_coverage_manifest(manifest_text(lines={unsafe_path: [1]}))
 
