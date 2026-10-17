@@ -221,28 +221,33 @@ def test_policy_sensitive_paths_and_workflow_entries_require_unique_safe_paths()
         validate_policy_text(EXAMPLE.replace("  - package.json", "  - ../package.json"))
 
 
-
 def test_policy_rejects_empty_lists_and_wrong_root_shape() -> None:
     with pytest.raises(PolicyValidationError, match="must not be empty"):
-        validate_policy_text(EXAMPLE.replace(
-            "trusted_workflows:\n  - .github/workflows/ci.yml",
-            "trusted_workflows: []",
-        ))
+        validate_policy_text(
+            EXAMPLE.replace(
+                "trusted_workflows:\n  - .github/workflows/ci.yml",
+                "trusted_workflows: []",
+            )
+        )
     with pytest.raises(PolicyValidationError, match="policy must be a mapping"):
         validate_policy_text("[]")
 
 
 def test_policy_rejects_non_string_list_items_and_trailing_slashes() -> None:
     with pytest.raises(PolicyValidationError, match="must be a string"):
-        validate_policy_text(EXAMPLE.replace(
-            "  - .github/workflows/ci.yml",
-            "  - 42",
-        ))
+        validate_policy_text(
+            EXAMPLE.replace(
+                "  - .github/workflows/ci.yml",
+                "  - 42",
+            )
+        )
     with pytest.raises(PolicyValidationError, match="must not end with"):
-        validate_policy_text(EXAMPLE.replace(
-            ".github/workflows/ci.yml",
-            ".github/workflows/",
-        ))
+        validate_policy_text(
+            EXAMPLE.replace(
+                ".github/workflows/ci.yml",
+                ".github/workflows/",
+            )
+        )
 
 
 def test_policy_rejects_oversized_policy_lists() -> None:
@@ -263,8 +268,11 @@ def test_policy_rejects_oversized_policy_lists() -> None:
     [
         ("id: OBL-WHK-01", "id: bad-id", "must match OBL"),
         ("category: webhook_idempotency", "category: BadCategory", "lowercase snake_case"),
-        ("claim: Duplicate webhook event IDs must not process the same event twice.",
-         'claim: ""', "must not be empty"),
+        (
+            "claim: Duplicate webhook event IDs must not process the same event twice.",
+            'claim: ""',
+            "must not be empty",
+        ),
         ("severity: critical", "severity: urgent", "severity must be one of"),
         ("blocking: true", 'blocking: "true"', "values must be booleans"),
     ],
@@ -316,10 +324,12 @@ def test_policy_rejects_profile_that_cannot_run_targeted_selectors() -> None:
 
 def test_policy_rejects_empty_obligations_and_unknown_severity_lookup() -> None:
     with pytest.raises(PolicyValidationError, match="non-empty list"):
-        validate_policy_text(EXAMPLE.replace(
-            EXAMPLE[EXAMPLE.index("obligations:"):],
-            "obligations: []\n",
-        ))
+        validate_policy_text(
+            EXAMPLE.replace(
+                EXAMPLE[EXAMPLE.index("obligations:") :],
+                "obligations: []\n",
+            )
+        )
     policy = validate_policy_text(EXAMPLE)
     with pytest.raises(PolicyValidationError, match="No severity rule configured"):
         policy.severity_rule("urgent")
