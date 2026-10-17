@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import re
 import sys
+from collections.abc import Hashable
+from typing import Any
 from dataclasses import dataclass
 from pathlib import PurePosixPath
 
@@ -49,7 +51,7 @@ class PolicyValidationError(ValueError):
 class _UniqueKeySafeLoader(yaml.SafeLoader):
     """Safe YAML loader that rejects duplicate, non-string, and merge mapping keys."""
 
-    def construct_mapping(self, node: Node, deep: bool = False) -> dict[str, object]:
+    def construct_mapping(self, node: Node, deep: bool = False) -> dict[Hashable, Any]:
         if not isinstance(node, MappingNode):
             raise PolicyValidationError("Expected a YAML mapping.")
         if any(
@@ -57,7 +59,7 @@ class _UniqueKeySafeLoader(yaml.SafeLoader):
             for key_node, _ in node.value
         ):
             raise PolicyValidationError("YAML merge keys are not supported.")
-        mapping: dict[str, object] = {}
+        mapping: dict[Hashable, Any] = {}
         for key_node, value_node in node.value:
             key = self.construct_object(key_node, deep=deep)
             if not isinstance(key, str):
