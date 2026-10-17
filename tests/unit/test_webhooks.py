@@ -8,6 +8,7 @@ import hmac
 import pytest
 
 from verification_core.webhooks import (
+    PullRequestWebhookEvent,
     WebhookPayloadError,
     parse_pull_request_webhook,
     verify_github_signature,
@@ -257,8 +258,6 @@ def test_event_record_rejects_invalid_identity_fields(
     }
     values.update(kwargs)
     with pytest.raises(WebhookPayloadError, match=message):
-        from verification_core.webhooks import PullRequestWebhookEvent
-
         PullRequestWebhookEvent(**values)  # type: ignore[arg-type]
 
 
