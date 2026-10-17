@@ -48,7 +48,6 @@ _SOURCE_SUFFIXES = frozenset(
         ".vue",
     }
 )
-_DOCUMENT_SUFFIXES = frozenset({".md", ".mdx", ".rst", ".txt", ".adoc"})
 _LOCKFILE_NAMES = frozenset(
     {
         "package-lock.json",
@@ -62,7 +61,6 @@ _LOCKFILE_NAMES = frozenset(
         "composer.lock",
     }
 )
-_DEFAULT_DIFF_LIMITS = DiffLimits()
 _DEFAULT_HARNESS_PATHS = (
     ".verification-policy.yml",
     ".github/workflows/",
@@ -105,6 +103,9 @@ class DiffLimits:
             raise ValueError("max_files cannot exceed max_input_files.")
         if self.max_patch_chars_per_file > self.max_total_patch_chars:
             raise ValueError("Per-file patch limit cannot exceed the total patch limit.")
+
+
+_DEFAULT_DIFF_LIMITS = DiffLimits()
 
 
 @dataclass(frozen=True, slots=True)
@@ -172,7 +173,7 @@ class DiffAnalysis:
 
 
 @dataclass(frozen=True, slots=True)
-class TestInventoryItem:
+class InventoryEntry:
     """A repository test selector confirmed to exist in the bounded test inventory."""
 
     selector: str
@@ -203,7 +204,7 @@ class PlannerContext:
     """Bounded in-memory context offered to an optional model adapter."""
 
     analysis: DiffAnalysis
-    test_inventory: tuple[TestInventoryItem, ...]
+    test_inventory: tuple[InventoryEntry, ...]
 
 
 class VerificationModelPort(Protocol):
@@ -533,7 +534,7 @@ def _risk_rules_for_path(path: str, harness_sensitive: bool) -> tuple[_RiskRule,
 def _selector_score(
     category: str,
     affected_path: str,
-    item: TestInventoryItem,
+    item: InventoryEntry,
 ) -> int:
     """Score only known test selectors; the result never authorizes execution by itself."""
     source_stem = PurePosixPath(affected_path).stem.lower()
@@ -558,7 +559,7 @@ def _selector_score(
 def _candidate_selector(
     category: str,
     affected_path: str,
-    inventory: Sequence[TestInventoryItem],
+    inventory: Sequence[InventoryEntry],
 ) -> str | None:
     scored = [(_selector_score(category, affected_path, item), item.selector) for item in inventory]
     positive = sorted(
@@ -573,7 +574,7 @@ def _obligation_id(category: str, paths: Sequence[str], claim: str) -> str:
     return f"OBL-{category.upper()}-{digest.upper()}"
 
 
-def _validate_inventory(inventory: Sequence[TestInventoryItem]) -> tuple[TestInventoryItem, ...]:
+def _validate_inventory(inventory: Sequence[InventoryEntry]) -> tuple[InventoryEntry, ...]:
     items = tuple(inventory)
     selectors = [item.selector for item in items]
     if len(set(selectors)) != len(selectors):
@@ -584,7 +585,7 @@ def _validate_inventory(inventory: Sequence[TestInventoryItem]) -> tuple[TestInv
 def deterministic_obligations(
     analysis: DiffAnalysis,
     *,
-    test_inventory: Sequence[TestInventoryItem] = (),
+    test_inventory: Sequence[InventoryEntry] = (),
 ) -> tuple[VerificationObligation, ...]:
     """Generate stable path-risk obligations; no obligation starts as verified."""
     inventory = _validate_inventory(test_inventory)
@@ -621,7 +622,7 @@ def validate_model_hypotheses(
     payload: object,
     *,
     analysis: DiffAnalysis,
-    test_inventory: Sequence[TestInventoryItem],
+    test_inventory: Sequence[InventoryEntry],
     max_hypotheses: int = 100,
 ) -> tuple[RiskHypothesis, ...]:
     """Strictly validate model output and constrain paths/selectors to known PR context."""
@@ -733,7 +734,7 @@ def _hypothesis_obligation(hypothesis: RiskHypothesis) -> VerificationObligation
 def plan_verification(
     analysis: DiffAnalysis,
     *,
-    test_inventory: Sequence[TestInventoryItem] = (),
+    test_inventory: Sequence[InventoryEntry] = (),
     model: VerificationModelPort | None = None,
     max_hypotheses: int = 100,
 ) -> PlanningResult:
