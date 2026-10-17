@@ -529,7 +529,10 @@ def _candidate_selector(
         (_selector_score(category, affected_path, item), item.selector)
         for item in inventory
     ]
-    positive = sorted((score, selector) for score, selector in scored if score > 0)
+    positive = sorted(
+        ((score, selector) for score, selector in scored if score > 0),
+        key=lambda item: (-item[0], item[1]),
+    )
     return positive[0][1] if positive else None
 
 
