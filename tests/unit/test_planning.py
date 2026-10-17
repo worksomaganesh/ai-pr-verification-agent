@@ -18,12 +18,12 @@ from verification_core.planning import (
     DiffAnalysisError,
     DiffLimits,
     PlannerOutputError,
-    TestInventoryItem as InventoryItem,
     analyze_changed_files,
     deterministic_obligations,
     plan_verification,
     validate_model_hypotheses,
 )
+from verification_core.planning import TestInventoryItem as InventoryItem
 
 
 BASE = "1" * 40
