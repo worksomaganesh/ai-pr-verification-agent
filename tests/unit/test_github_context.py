@@ -216,6 +216,6 @@ def test_non_sequence_page_is_rejected() -> None:
 
 
 def test_excessive_pagination_fails_closed() -> None:
-    client = FakeGitHub(pages=[[changed_file()] for _ in range(30)])
+    client = FakeGitHub(pages=[[changed_file(f"src/{index}.py")] for index in range(30)])
     with pytest.raises(GitHubContextError, match="page limit"):
         assemble_pull_request_context(event(), client, files_per_page=1)
