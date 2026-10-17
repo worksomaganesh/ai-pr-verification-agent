@@ -514,11 +514,8 @@ def _risk_rules_for_path(path: str, harness_sensitive: bool) -> tuple[_RiskRule,
         token in lower for token in ("billing", "payment", "checkout", "subscription", "invoice")
     ):
         rules.append(_RISK_RULES[4])
-    if (
-        name in _LOCKFILE_NAMES
-        or (
-            name.startswith(("requirements", "constraints")) and name.endswith(".txt")
-        )
+    if name in _LOCKFILE_NAMES or (
+        name.startswith(("requirements", "constraints")) and name.endswith(".txt")
     ):
         rules.append(_RISK_RULES[5])
 
@@ -685,7 +682,8 @@ def validate_model_hypotheses(
             path not in allowed_paths for path in affected_files
         ):
             raise PlannerOutputError(
-                f"hypotheses[{index}].affected_files contains duplicates or paths " "outside the bounded diff."
+                f"hypotheses[{index}].affected_files contains duplicates or paths "
+                "outside the bounded diff."
             )
 
         selector = raw["candidate_test_selector"]
