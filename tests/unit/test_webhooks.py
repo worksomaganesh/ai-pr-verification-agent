@@ -69,9 +69,7 @@ def test_valid_signature_uses_raw_body() -> None:
 def test_invalid_signature_inputs_fail_closed(
     body: bytes, header: str | None, secret: str, limit: int
 ) -> None:
-    assert not verify_github_signature(
-        body, header, secret, max_body_bytes=limit
-    )
+    assert not verify_github_signature(body, header, secret, max_body_bytes=limit)
 
 
 def test_signature_is_case_tolerant_only_for_hex_digest() -> None:
