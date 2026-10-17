@@ -64,7 +64,8 @@ def file(
 
 def inventory(*selectors: str) -> tuple[_InventoryEntry, ...]:
     return tuple(
-        _InventoryEntry(selector=selector, path=selector.split("::", 1)[0]) for selector in selectors
+        _InventoryEntry(selector=selector, path=selector.split("::", 1)[0])
+        for selector in selectors
     )
 
 
