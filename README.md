@@ -18,7 +18,7 @@ Phase 1B implementation now includes:
 - common secret scrubbing and stable Markdown evidence-ledger rendering;
 - an adversarial scenario proving 140 unrelated passing tests cannot hide missing critical webhook-idempotency and cross-user-authorization obligations.
 
-**Release status: implementation is committed; the complete Phase 1 release gate is not declared passed until CI runs on the exact commit and every gate is green.** Callers must obtain workflow/job/step/artifact/head-SHA metadata out-of-band from GitHub's control plane and load policy from the trusted base commit.
+**Phase 1 release gate: passed on the validated release-hardening tree.** GitHub Actions passed formatting, Ruff lint, strict mypy, and **167 tests with 97.30% coverage** (95% minimum). The CI-hardening changes are merged to `main` via [PR #1](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/1). This validates the zero-infrastructure Phase 1 core; it does not claim Phase 2 GitHub API integration or production deployment is complete. Callers must obtain workflow/job/step/artifact/head-SHA metadata out-of-band from GitHub's control plane and load policy from the trusted base commit.
 
 ## Security principles
 
