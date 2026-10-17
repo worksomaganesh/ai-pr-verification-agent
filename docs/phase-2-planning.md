@@ -79,5 +79,5 @@ These are interfaces and pure orchestration over an injected client, not a live 
 - The planner has not been evaluated on a representative production PR corpus.
 - Path-based rules can miss risks hidden in ordinary filenames or over-classify harmless changes.
 - Static line ranges do not prove semantic behavior.
-- The current module does not fetch GitHub data, verify webhook signatures, authenticate artifacts, persist state, call Gemini, or publish Check Runs.
+- The webhook signature function and adapter-neutral context assembly are implemented, but no concrete GitHub HTTP transport, installation-token lifecycle, durable delivery ledger, artifact authentication, persistence, Gemini API adapter, or Check Run publisher exists yet.
 - Phase II is not complete merely because this initial foundation is merged.
