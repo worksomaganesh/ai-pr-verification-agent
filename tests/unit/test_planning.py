@@ -431,7 +431,8 @@ def test_model_planner_augments_deterministic_rules_but_cannot_set_status() -> N
     assert result.planner_mode == "hybrid"
     assert model.calls == 1
     assert {item.category for item in result.obligations} == {
-        "tenant_authorization", "cross_tenant_boundary"
+        "tenant_authorization",
+        "cross_tenant_boundary",
     }
     assert all(item.status is ObligationStatus.PROPOSED for item in result.obligations)
     assert all(
