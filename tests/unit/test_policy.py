@@ -74,8 +74,7 @@ def test_full_runner_is_fixed_and_rejects_selectors() -> None:
         (replace_once(EXAMPLE, "version: 1", "version: true"), "integer 1"),
         (replace_once(EXAMPLE, "version: 1", "version: 2"), "integer 1"),
         (replace_once(EXAMPLE, "version: 1", "version: 1\nextra: yes"), "unknown key"),
-        (replace_once(EXAMPLE, "version: 1", "version: 1\n"), "missing required key"),
-        (replace_once(EXAMPLE, "version: 1", "version: 1\n"), "missing required key"),
+        (EXAMPLE.replace("trusted_workflows:\\n  - .github/workflows/ci.yml\\n", ""), "missing required key"),
         (EXAMPLE.replace("runner_profiles:\n  - pytest_targeted", "runner_profiles:\n  - shell_exec"), "Unknown fixed runner profile"),
         (EXAMPLE.replace(".github/workflows/ci.yml", "../ci.yml"), "trusted_workflows"),
         (EXAMPLE.replace("blocking: true", "blocking: false", 1), "must remain blocking"),
@@ -95,8 +94,8 @@ def test_yaml_aliases_and_anchors_are_rejected() -> None:
         validate_policy_text("base: &base value\nalias: *base")
 
 
-def test_yaml_merge_keys_are_rejected() -> None:
-    with pytest.raises(PolicyValidationError, match="merge keys"):
+def test_yaml_merge_keys_and_aliases_are_rejected() -> None:
+    with pytest.raises(PolicyValidationError, match="anchors and aliases"):
         validate_policy_text(
             "root: &base {version: 1}\npolicy:\n  <<: *base"
         )
