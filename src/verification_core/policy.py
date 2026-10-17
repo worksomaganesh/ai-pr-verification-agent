@@ -10,9 +10,9 @@ from __future__ import annotations
 import re
 import sys
 from collections.abc import Hashable
-from typing import Any
 from dataclasses import dataclass
 from pathlib import PurePosixPath
+from typing import Any
 
 import yaml
 from yaml.nodes import MappingNode, Node, ScalarNode
