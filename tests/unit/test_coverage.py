@@ -292,26 +292,26 @@ def test_manifest_rejects_too_many_tests_and_bad_test_object_keys() -> None:
 def test_reconciliation_rejects_invalid_targets_and_unpassed_outcome() -> None:
     report = parse_junit(XML)
     manifest = parse_coverage_manifest(manifest_text())
-    common = {
-        "junit_report": report,
-        "manifest": manifest,
-        "expected_head_sha": SHA,
-        "node_id": NODE,
-        "target_branches": {},
-    }
+
+    def reconcile(
+        target_lines: dict[str, set[int]],
+        target_branches: dict[str, set[str]],
+    ):
+        return reconcile_test_coverage(
+            junit_report=report,
+            manifest=manifest,
+            expected_head_sha=SHA,
+            node_id=NODE,
+            target_lines=target_lines,
+            target_branches=target_branches,
+        )
+
     with pytest.raises(CoverageManifestError, match="safe repository-relative path"):
-        reconcile_test_coverage(
-            **common, target_lines={"../secret.py": {10}}  # type: ignore[arg-type]
-        )
+        reconcile({"../secret.py": {10}}, {})
     with pytest.raises(CoverageManifestError, match="positive integers"):
-        reconcile_test_coverage(
-            **common, target_lines={"src/auth.py": {0}}  # type: ignore[arg-type]
-        )
+        reconcile({"src/auth.py": {0}}, {})
     with pytest.raises(CoverageManifestError, match="branch IDs"):
-        reconcile_test_coverage(
-            **common, target_lines={"src/auth.py": {10}},
-            target_branches={"src/auth.py": {"bad"}},  # type: ignore[typeddict-item]
-        )
+        reconcile({"src/auth.py": {10}}, {"src/auth.py": {"bad"}})
 
     failed_xml = (
         '<testsuite tests="1" failures="1"><testcase classname="tests.test_auth" '
