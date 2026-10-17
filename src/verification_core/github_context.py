@@ -74,12 +74,6 @@ def _is_file_page(value: object) -> TypeGuard[Sequence[Mapping[str, Any]]]:
     return isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray))
 
 
-def _positive_int(value: object, field: str) -> int:
-    if type(value) is not int or value < 1:
-        raise GitHubContextError(f"{field} must be a positive integer.")
-    return value
-
-
 def _nonnegative_int(value: object, field: str) -> int:
     if type(value) is not int or value < 0:
         raise GitHubContextError(f"{field} must be a non-negative integer.")
