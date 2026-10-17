@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -14,7 +14,7 @@ from verification_core.ledger import render_evidence_ledger
 REPORT = parse_junit(
     '<testsuite tests="1"><testcase classname="tests.test_safe" name="test_safe"/></testsuite>'
 )
-STAMP = datetime(2026, 10, 17, 12, 0, tzinfo=timezone.utc)
+STAMP = datetime(2026, 10, 17, 12, 0, tzinfo=UTC)
 SHA = "2" * 40
 
 

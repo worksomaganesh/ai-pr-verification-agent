@@ -342,7 +342,7 @@ def validate_policy_text(text: str) -> VerificationPolicy:
         for token in yaml.scan(text):
             if isinstance(token, (AliasToken, AnchorToken)):
                 raise PolicyValidationError("YAML anchors and aliases are not supported.")
-        document: object = yaml.load(text, Loader=_UniqueKeySafeLoader)
+        document: object = yaml.load(text, Loader=_UniqueKeySafeLoader)  # noqa: S506
     except yaml.YAMLError as exc:
         raise PolicyValidationError(f"Invalid policy YAML: {exc}") from exc
 
@@ -412,7 +412,7 @@ def command_for(
     if profile.accepts_selector:
         if selector is None:
             raise PolicyValidationError(f"Runner profile {profile_name!r} requires a selector.")
-        return profile.argv_prefix + (validate_test_selector(selector),)
+        return (*profile.argv_prefix, validate_test_selector(selector))
     if selector is not None:
         raise PolicyValidationError(f"Runner profile {profile_name!r} does not accept a selector.")
     return profile.argv_prefix

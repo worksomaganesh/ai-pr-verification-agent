@@ -134,7 +134,7 @@ def test_invalid_yaml_and_unknown_yaml_tags_are_rejected() -> None:
     [
         "--help",
         "../tests/test_authz.py::test_case",
-        "/tmp/test_authz.py::test_case",
+        "/absolute/test_authz.py::test_case",
         "tests/../test_authz.py::test_case",
         "tests\\test_authz.py::test_case",
         "tests/test_authz.py -k test_case",

@@ -7,7 +7,8 @@ import re
 _MAX_SCRUB_INPUT = 2 * 1024 * 1024
 _PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(
-        r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"
+        r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----[\s\S]*?"
+        r"-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"
     ),
     re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}\b"),
     re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}\b"),

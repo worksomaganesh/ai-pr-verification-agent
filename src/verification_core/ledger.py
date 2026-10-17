@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from verification_core.domain.models import VerificationObligation
 from verification_core.evidence import JUnitReport
@@ -36,21 +36,22 @@ def render_evidence_ledger(
     if generated_at.tzinfo is None or generated_at.utcoffset() is None:
         raise ValueError("generated_at must be timezone-aware")
 
-    items = sorted(tuple(obligations), key=lambda item: item.obligation_id)
+    items = sorted(obligations, key=lambda item: item.obligation_id)
     lines = [
         "# Verification Evidence Ledger",
         "",
         f"- Repository: {_safe_cell(repository)}",
         f"- Head SHA: `{head_sha}`",
         f"- Workflow run ID: {workflow_run_id}",
-        f"- Generated at (UTC): {generated_at.astimezone(timezone.utc).isoformat()}",
+        f"- Generated at (UTC): {generated_at.astimezone(UTC).isoformat()}",
         f"- GitHub conclusion candidate: **{_safe_cell(conclusion)}**",
         "",
         "## Test report summary",
         "",
         "| Total | Passed | Failed | Errors | Skipped |",
         "| ---: | ---: | ---: | ---: | ---: |",
-        f"| {report.total_tests} | {report.passed} | {report.failed} | {report.errors} | {report.skipped} |",
+        f"| {report.total_tests} | {report.passed} | {report.failed} | "
+        f"{report.errors} | {report.skipped} |",
         "",
         "## Individual test evidence",
         "",
