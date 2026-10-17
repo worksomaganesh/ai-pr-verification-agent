@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import FrozenInstanceError
 from typing import Any
 
 import pytest
@@ -19,7 +18,7 @@ from verification_core.planning import (
     DiffAnalysisError,
     DiffLimits,
     PlannerOutputError,
-    TestInventoryItem,
+    TestInventoryItem as InventoryItem,
     analyze_changed_files,
     deterministic_obligations,
     plan_verification,
@@ -61,9 +60,9 @@ def file(
     )
 
 
-def inventory(*selectors: str) -> tuple[TestInventoryItem, ...]:
+def inventory(*selectors: str) -> tuple[InventoryItem, ...]:
     return tuple(
-        TestInventoryItem(selector=selector, path=selector.split("::", 1)[0])
+        InventoryItem(selector=selector, path=selector.split("::", 1)[0])
         for selector in selectors
     )
 
@@ -247,7 +246,7 @@ def test_obligation_ids_are_stable_and_selector_requires_inventory_match() -> No
 
 def test_test_inventory_rejects_mismatched_paths_and_duplicates() -> None:
     with pytest.raises(DiffAnalysisError, match="must equal"):
-        TestInventoryItem(selector="tests/test_a.py::test_a", path="tests/test_b.py")
+        InventoryItem(selector="tests/test_a.py::test_a", path="tests/test_b.py")
     duplicate = inventory("tests/test_a.py::test_a")
     with pytest.raises(DiffAnalysisError, match="duplicate"):
         deterministic_obligations(
