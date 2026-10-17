@@ -26,7 +26,6 @@ from verification_core.planning import (
 )
 
 
-
 BASE = "1" * 40
 HEAD = "2" * 40
 POLICY = "a" * 64
