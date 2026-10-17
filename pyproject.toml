@@ -11,7 +11,8 @@ requires-python = ">=3.12"
 license = { text = "MIT" }
 authors = [{ name = "Doddi Yashwanth Soma Ganesh" }]
 dependencies = [
-    "PyYAML>=6.0.2",\n    "defusedxml>=0.7.1",
+    "PyYAML>=6.0.2",
+    "defusedxml>=0.7.1",
 ]
 
 [project.optional-dependencies]
