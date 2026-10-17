@@ -36,10 +36,7 @@ class CoverageCase:
     def lines_for(self, path: str) -> frozenset[int]:
         """Return executed line numbers for one repository-relative path."""
         return frozenset(
-            line
-            for file_path, values in self.lines_by_file
-            if file_path == path
-            for line in values
+            line for file_path, values in self.lines_by_file if file_path == path for line in values
         )
 
     def branches_for(self, path: str) -> frozenset[str]:
@@ -94,13 +91,9 @@ def _exact_keys(value: dict[str, object], expected: set[str], field: str) -> Non
     missing = expected - set(value)
     unknown = set(value) - expected
     if missing:
-        raise CoverageManifestError(
-            f"{field} is missing key(s): {', '.join(sorted(missing))}."
-        )
+        raise CoverageManifestError(f"{field} is missing key(s): {', '.join(sorted(missing))}.")
     if unknown:
-        raise CoverageManifestError(
-            f"{field} has unknown key(s): {', '.join(sorted(unknown))}."
-        )
+        raise CoverageManifestError(f"{field} has unknown key(s): {', '.join(sorted(unknown))}.")
 
 
 def _safe_path(value: object, field: str) -> str:
@@ -218,9 +211,7 @@ def parse_coverage_manifest(text: str | bytes) -> CoverageManifest:
         )
         node_id = item["node_id"]
         if not isinstance(node_id, str) or not node_id.strip() or len(node_id) > 500:
-            raise CoverageManifestError(
-                f"{field}.node_id must be non-empty and at most 500 chars."
-            )
+            raise CoverageManifestError(f"{field}.node_id must be non-empty and at most 500 chars.")
         if node_id in seen_node_ids:
             raise CoverageManifestError(f"Duplicate test node ID: {node_id!r}.")
         seen_node_ids.add(node_id)
@@ -233,9 +224,7 @@ def parse_coverage_manifest(text: str | bytes) -> CoverageManifest:
             ) from exc
         assertion_verified = item["behavioral_assertion_verified"]
         if type(assertion_verified) is not bool:
-            raise CoverageManifestError(
-                f"{field}.behavioral_assertion_verified must be a boolean."
-            )
+            raise CoverageManifestError(f"{field}.behavioral_assertion_verified must be a boolean.")
         lines = _path_locations(item["lines"], f"{field}.lines", branches=False)
         branches = _path_locations(item["branches"], f"{field}.branches", branches=True)
         if sum(len(values) for _, values in lines + branches) > MAX_LOCATIONS_PER_TEST:
@@ -267,9 +256,7 @@ def reconcile_test_coverage(
 ) -> ReconciledTestEvidence:
     """Reconcile one JUnit result with per-test coverage for the exact expected commit."""
     if not _SHA_RE.fullmatch(expected_head_sha):
-        raise CoverageManifestError(
-            "expected_head_sha must be a lowercase 40-character Git SHA."
-        )
+        raise CoverageManifestError("expected_head_sha must be a lowercase 40-character Git SHA.")
     if manifest.head_sha != expected_head_sha:
         raise CoverageManifestError("Coverage manifest head SHA does not match expected commit.")
     junit_case = next((case for case in junit_report.cases if case.node_id == node_id), None)
@@ -295,8 +282,7 @@ def reconcile_test_coverage(
     for path, branches in target_branches.items():
         _safe_path(path, "target branch path")
         if any(
-            not isinstance(branch, str) or not _BRANCH_RE.fullmatch(branch)
-            for branch in branches
+            not isinstance(branch, str) or not _BRANCH_RE.fullmatch(branch) for branch in branches
         ):
             raise CoverageManifestError("target branch IDs must use 'line:branch-index' notation.")
 
@@ -308,9 +294,7 @@ def reconcile_test_coverage(
         for path, required in required_lines.items()
         if required
     )
-    all_required_branches = {
-        branch for values in required_branches.values() for branch in values
-    }
+    all_required_branches = {branch for values in required_branches.values() for branch in values}
     branches_exercised = not all_required_branches or all(
         required <= coverage_case.branches_for(path)
         for path, required in required_branches.items()
