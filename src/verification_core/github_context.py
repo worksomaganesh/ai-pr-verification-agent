@@ -11,7 +11,7 @@ import hashlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import PurePosixPath
-from typing import Any, Protocol
+from typing import Any, Protocol, TypeGuard
 
 from verification_core.domain.models import CommitIdentity
 from verification_core.planning import ChangedFileInput, DiffLimits
@@ -67,6 +67,11 @@ def _mapping(value: object, field: str) -> Mapping[str, Any]:
     if not isinstance(value, Mapping) or any(not isinstance(k, str) for k in value):
         raise GitHubContextError(f"{field} must be an object with string keys.")
     return value
+
+
+def _is_file_page(value: object) -> TypeGuard[Sequence[Mapping[str, Any]]]:
+    """Reject text-like sequences even if a broken client violates its protocol."""
+    return isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray))
 
 
 def _positive_int(value: object, field: str) -> int:
@@ -159,7 +164,7 @@ def assemble_pull_request_context(
             page=page,
             per_page=files_per_page,
         )
-        if not isinstance(records, Sequence) or isinstance(records, (str, bytes, bytearray)):
+        if not _is_file_page(records):
             raise GitHubContextError("Changed-file API page must be a sequence of file objects.")
         pages_read += 1
         total_api_records += len(records)
