@@ -1,0 +1,45 @@
+# Example only. The verifier must load the effective policy from the protected base SHA,
+# never from the pull request head. The planned validator permits only named runner profiles.
+version: 1
+
+trusted_workflows:
+  - .github/workflows/ci.yml
+
+runner_profiles:
+  - pytest_targeted
+
+severity_rules:
+  critical:
+    blocking: true
+    human_approval_allowed: true
+  high:
+    blocking: true
+    human_approval_allowed: true
+  medium:
+    blocking: false
+    human_approval_allowed: true
+  low:
+    blocking: false
+    human_approval_allowed: true
+
+harness_sensitive_paths:
+  - .verification-policy.yml
+  - .github/workflows/
+  - conftest.py
+  - pytest.ini
+  - pyproject.toml
+  - package.json
+
+obligations:
+  - id: OBL-WHK-01
+    category: webhook_idempotency
+    severity: critical
+    claim: Duplicate webhook event IDs must not process the same event twice.
+    runner_profile: pytest_targeted
+    selector: tests/test_webhooks.py::test_duplicate_event_is_ignored
+  - id: OBL-AUTH-01
+    category: authorization
+    severity: critical
+    claim: A user cannot read another user's subscription.
+    runner_profile: pytest_targeted
+    selector: tests/test_authz.py::test_cross_user_access_returns_403
