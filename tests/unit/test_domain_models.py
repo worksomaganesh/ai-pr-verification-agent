@@ -347,7 +347,7 @@ def test_human_approval_and_run_evaluation_guards() -> None:
             internal_outcome=InternalRunOutcome.VERIFIED_SUCCESS,
             github_conclusion=GitHubCheckConclusion.CANCELLED,
             is_stale=True,
-            superseded_by_sha= None,
+            superseded_by_sha=None,
             analysis_completeness=AnalysisCompleteness.COMPLETE,
             obligations=(),
             machine_verified_ids=(),
