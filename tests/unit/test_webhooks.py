@@ -198,7 +198,7 @@ def test_boolean_is_not_accepted_as_pr_number() -> None:
         parse_pull_request_webhook(
             delivery_id="delivery-1",
             event_name="pull_request",
-            payload=payload(number=True),  # type: ignore[arg-type]
+            payload=payload(number=True),
         )
 
 
