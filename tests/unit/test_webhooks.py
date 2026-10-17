@@ -227,7 +227,10 @@ def test_signature_type_and_limit_errors_fail_closed(
     body: object, header: object, secret: object, limit: object
 ) -> None:
     assert not verify_github_signature(
-        body, header, secret, max_body_bytes=limit  # type: ignore[arg-type]
+        body,
+        header,
+        secret,
+        max_body_bytes=limit,  # type: ignore[arg-type]
     )
 
 
