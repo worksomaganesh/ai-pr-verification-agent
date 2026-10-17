@@ -2,21 +2,23 @@
 
 Evidence-backed verification for pull requests — not another generic AI code reviewer.
 
-The system is designed to answer:
-1. What behavior could this change affect?
-2. Which verification obligations follow from that risk?
-3. What evidence was actually produced for the exact commit?
-4. What remains unverified, weakly evidenced, or explicitly accepted by a human?
+The system answers: what behavior could change, which obligations follow from that risk, what evidence exists for the exact commit, and what remains unverified or explicitly accepted by a human.
 
 **Core safety rule: no evidence, no machine-verified pass.** A model may propose risk hypotheses, but it cannot mark an obligation as passed or decide the final conclusion.
 
 ## Current status
 
-Phase 1A (deterministic domain core) is complete: immutable domain records, explicit obligation states, guarded transitions, deterministic Check Run conclusion evaluation, unit tests, and a Hypothesis false-green invariant test configured for 5,000 generated examples. CI validates formatting, lint, strict typing, tests, and a 95% minimum coverage threshold.
+Phase 1A's deterministic domain core is implemented: immutable domain records, explicit obligation states, guarded transitions, deterministic Check Run conclusion evaluation, and a 5,000-example Hypothesis false-green invariant test.
 
-Phase 1B has started with a strict policy parser and verifier-owned runner profiles. The parser rejects duplicate YAML keys, aliases/anchors, YAML merge keys, unknown fields, unsafe workflow paths, weakened critical/high severity blocking, missing harness-protection paths, and unsafe pytest selectors. The policy can select only predefined argv templates; it cannot provide a command or shell fragment. The checked-in example is covered by unit/security tests.
+Phase 1B implementation now includes:
+- strict policy YAML validation with duplicate-key, alias/anchor, merge-key, unknown-field, path, severity, and selector rejection;
+- verifier-owned fixed argv runner profiles (no user-supplied shell commands);
+- bounded JUnit XML parsing with DTD/entity protection, size/count limits, and aggregate reconciliation;
+- deterministic evidence sufficiency filters for malformed, contradictory, coverage-miss, weak, and sufficient evidence;
+- common secret scrubbing and stable Markdown evidence-ledger rendering;
+- an adversarial scenario proving 140 unrelated passing tests cannot hide missing critical webhook-idempotency and cross-user-authorization obligations.
 
-**Phase 1B is not complete.** Safe JUnit ingestion, per-test coverage/evidence reconciliation, secret scrubbing, deterministic ledger rendering, provenance reconciliation, and the full adversarial running-scenario fixture remain outstanding. A valid policy is not evidence authenticity: the caller must retrieve the effective policy from the trusted base commit.
+**Release status: implementation is committed; the complete Phase 1 release gate is not declared passed until CI runs on the exact commit and every gate is green.** Callers must obtain workflow/job/step/artifact/head-SHA metadata out-of-band from GitHub's control plane and load policy from the trusted base commit.
 
 ## Security principles
 
@@ -26,7 +28,7 @@ Phase 1B has started with a strict policy parser and verifier-owned runner profi
 - Untrusted PR code, artifact fields, and LLM output are data, never authority.
 - Human approvals and policy waivers are distinct from machine-verified results.
 - Missing, malformed, stale, or weak evidence for critical/high-risk obligations must never become success or neutral.
-- The local core needs no GitHub permissions; passive CI consumption is the intended default integration model.
+- The Phase 1 core requires no GitHub permissions and makes no network calls.
 
 ## Development
 
@@ -36,18 +38,18 @@ Requires Python 3.12+.
     ruff format --check src tests
     ruff check src tests
     mypy --strict src tests
-    pytest --cov=src/verification_core --cov-report=term-missing
+    pytest --cov=src/verification_core --cov-report=term-missing --cov-report=xml
 
-CI runs these gates on pushes to main and pull requests targeting main.
+CI runs formatting, lint, strict typing, and tests with a 95% coverage floor.
 
 ## Roadmap
 
 | Phase | Goal | Status |
 | --- | --- | --- |
-| 1A | Deterministic domain models and state machine | Complete; CI green, 5,000-example property test, ≥95% coverage |
-| 1B | Policy validator, runner allowlist, evidence parsers, ledger, adversarial scenario | In progress; policy parser and fixed argv profiles implemented; evidence components next |
+| 1A | Deterministic domain models and state machine | Implemented; previously green with 5,000-example property test |
+| 1B | Policy validator, runner allowlist, evidence parsers, ledger, adversarial scenario | Implementation committed; release gate awaiting exact-commit CI verification |
 | 2 | Diff analysis, planning, persistence, webhook and Check Run service | Not started |
 | 3 | Platform-anchored passive CI artifact ingestion and reconciliation | Not started |
 | 4 | Opt-in dispatch, additional adapters, human governance hooks | Not started |
 
-See [docs/verification-semantics.md](docs/verification-semantics.md) for state-machine semantics and [docs/phase-0-architecture.md](docs/phase-0-architecture.md) for trust boundaries and design constraints.
+See [docs/verification-semantics.md](docs/verification-semantics.md), [docs/phase-0-architecture.md](docs/phase-0-architecture.md), and [docs/phase-1-release-gate.md](docs/phase-1-release-gate.md).

@@ -74,7 +74,7 @@ def test_full_runner_is_fixed_and_rejects_selectors() -> None:
         (replace_once(EXAMPLE, "version: 1", "version: true"), "integer 1"),
         (replace_once(EXAMPLE, "version: 1", "version: 2"), "integer 1"),
         (replace_once(EXAMPLE, "version: 1", "version: 1\nextra: yes"), "unknown key"),
-        (EXAMPLE.replace("trusted_workflows:\\n  - .github/workflows/ci.yml\\n", ""), "missing required key"),
+        (EXAMPLE.replace("trusted_workflows:\n  - .github/workflows/ci.yml\n", ""), "missing required key"),
         (EXAMPLE.replace("runner_profiles:\n  - pytest_targeted", "runner_profiles:\n  - shell_exec"), "Unknown fixed runner profile"),
         (EXAMPLE.replace(".github/workflows/ci.yml", "../ci.yml"), "trusted_workflows"),
         (EXAMPLE.replace("blocking: true", "blocking: false", 1), "must remain blocking"),
