@@ -240,14 +240,21 @@ def test_reconciliation_detects_outcome_mismatch_and_missing_coverage_case() -> 
         )
 
 
-
 def test_manifest_rejects_missing_keys_and_invalid_path_variants() -> None:
     missing = {"version": 1, "head_sha": SHA}
     with pytest.raises(CoverageManifestError, match="missing key"):
         parse_coverage_manifest(json.dumps(missing))
 
-    for unsafe_path in ("/absolute.py", "src\\\\auth.py", "-option.py", "module:stream.py", "x" * 301):
-        with pytest.raises(CoverageManifestError, match="safe repository-relative path|path string"):
+    for unsafe_path in (
+        "/absolute.py",
+        "src\\\\auth.py",
+        "-option.py",
+        "module:stream.py",
+        "x" * 301,
+    ):
+        with pytest.raises(
+            CoverageManifestError, match="safe repository-relative path|path string"
+        ):
             parse_coverage_manifest(manifest_text(lines={unsafe_path: [1]}))
 
 
