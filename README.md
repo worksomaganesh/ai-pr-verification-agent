@@ -48,8 +48,8 @@ CI runs formatting, lint, strict typing, and tests with a 95% coverage floor.
 | --- | --- | --- |
 | 1A | Deterministic domain models and state machine | Implemented; previously green with 5,000-example property test |
 | 1B | Policy validator, runner allowlist, evidence parsers, ledger, adversarial scenario | Implementation committed; release gate awaiting exact-commit CI verification |
-| 2 | Diff analysis, planning, persistence, webhook and Check Run service | Not started |
+| 2 | Diff analysis, planning, persistence, webhook and Check Run service | In progress — bounded diff analyzer and deterministic/hybrid planner foundation on `phase-2-planning-foundation`; API, webhook, persistence, and publisher remain pending |
 | 3 | Platform-anchored passive CI artifact ingestion and reconciliation | Not started |
 | 4 | Opt-in dispatch, additional adapters, human governance hooks | Not started |
 
-See [docs/verification-semantics.md](docs/verification-semantics.md), [docs/phase-0-architecture.md](docs/phase-0-architecture.md), and [docs/phase-1-release-gate.md](docs/phase-1-release-gate.md).
+See [docs/verification-semantics.md](docs/verification-semantics.md), [docs/phase-0-architecture.md](docs/phase-0-architecture.md), [docs/phase-1-release-gate.md](docs/phase-1-release-gate.md), and [docs/phase-2-planning.md](docs/phase-2-planning.md).
