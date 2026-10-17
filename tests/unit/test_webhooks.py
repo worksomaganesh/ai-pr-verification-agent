@@ -210,3 +210,88 @@ def test_event_parser_does_not_authenticate_by_itself() -> None:
         payload=payload(),
     )
     assert event is not None
+
+
+@pytest.mark.parametrize(
+    ("body", "header", "secret", "limit"),
+    [
+        (None, "sha256=" + "0" * 64, WEBHOOK_KEY, 100),
+        (b"body", None, WEBHOOK_KEY, 100),
+        (b"body", signature(b"body"), None, 100),
+        (b"body", signature(b"body"), WEBHOOK_KEY, 0),
+        (b"body", signature(b"body"), WEBHOOK_KEY, True),
+    ],
+)
+def test_signature_type_and_limit_errors_fail_closed(
+    body: object, header: object, secret: object, limit: object
+) -> None:
+    assert not verify_github_signature(
+        body, header, secret, max_body_bytes=limit  # type: ignore[arg-type]
+    )
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    [
+        ({"delivery_id": "bad id"}, "delivery_id"),
+        ({"action": "closed"}, "action"),
+        ({"repository_full_name": "not-a-repo"}, "repository_full_name"),
+        ({"pr_number": True}, "pr_number"),
+        ({"base_sha": "A" * 40}, "base_sha"),
+        ({"head_sha": BASE}, "distinct"),
+        ({"base_ref": ""}, "base_ref"),
+    ],
+)
+def test_event_record_rejects_invalid_identity_fields(
+    kwargs: dict[str, object], message: str
+) -> None:
+    values: dict[str, object] = {
+        "delivery_id": "delivery-1",
+        "action": "opened",
+        "repository_full_name": "acme/service",
+        "pr_number": 1,
+        "base_sha": BASE,
+        "head_sha": HEAD,
+        "base_ref": "main",
+        "head_ref": "feature",
+    }
+    values.update(kwargs)
+    with pytest.raises(WebhookPayloadError, match=message):
+        from verification_core.webhooks import PullRequestWebhookEvent
+
+        PullRequestWebhookEvent(**values)  # type: ignore[arg-type]
+
+
+def test_nul_in_required_payload_string_is_rejected() -> None:
+    data = payload()
+    repository = data["repository"]
+    assert isinstance(repository, dict)
+    repository["full_name"] = "acme/service\x00"
+    with pytest.raises(WebhookPayloadError, match="NUL"):
+        parse_pull_request_webhook(
+            delivery_id="delivery-1",
+            event_name="pull_request",
+            payload=data,
+        )
+
+
+def test_invalid_repository_name_in_payload_is_rejected() -> None:
+    with pytest.raises(WebhookPayloadError, match="owner/repository"):
+        parse_pull_request_webhook(
+            delivery_id="delivery-1",
+            event_name="pull_request",
+            payload=payload(repository_name="not-a-repository"),
+        )
+
+
+def test_non_string_action_is_ignored() -> None:
+    data = payload()
+    data["action"] = 7
+    assert (
+        parse_pull_request_webhook(
+            delivery_id="delivery-1",
+            event_name="pull_request",
+            payload=data,
+        )
+        is None
+    )
