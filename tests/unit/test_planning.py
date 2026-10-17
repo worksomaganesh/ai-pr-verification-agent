@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+import verification_core.planning as planning
 
 from verification_core.domain import (
     AnalysisCompleteness,
@@ -24,7 +25,6 @@ from verification_core.planning import (
     validate_model_hypotheses,
 )
 
-from verification_core.planning import InventoryEntry as _InventoryEntry
 
 
 BASE = "1" * 40
@@ -62,9 +62,9 @@ def file(
     )
 
 
-def inventory(*selectors: str) -> tuple[_InventoryEntry, ...]:
+def inventory(*selectors: str) -> tuple[planning.InventoryEntry, ...]:
     return tuple(
-        _InventoryEntry(selector=selector, path=selector.split("::", 1)[0])
+        planning.InventoryEntry(selector=selector, path=selector.split("::", 1)[0])
         for selector in selectors
     )
 
@@ -289,7 +289,7 @@ def test_obligation_ids_are_stable_and_selector_requires_inventory_match() -> No
 
 def test_test_inventory_rejects_mismatched_paths_and_duplicates() -> None:
     with pytest.raises(DiffAnalysisError, match="must equal"):
-        _InventoryEntry(selector="tests/test_a.py::test_a", path="tests/test_b.py")
+        planning.InventoryEntry(selector="tests/test_a.py::test_a", path="tests/test_b.py")
     duplicate = inventory("tests/test_a.py::test_a")
     with pytest.raises(DiffAnalysisError, match="duplicate"):
         deterministic_obligations(
