@@ -119,12 +119,10 @@ def assemble_pull_request_context(
     state = pr.get("state")
     if state != "open":
         raise GitHubContextError("Pull request is no longer open.")
-    if (
-        base_sha != event.base_sha
-        or head_sha != event.head_sha
-        or base_ref != event.base_ref
-    ):
-        raise GitHubContextError("Pull request commits changed after webhook delivery; event is stale.")
+    if base_sha != event.base_sha or head_sha != event.head_sha or base_ref != event.base_ref:
+        raise GitHubContextError(
+            "Pull request commits changed after webhook delivery; event is stale."
+        )
     if head_sha == base_sha:
         raise GitHubContextError("Base and head commits must be distinct.")
 
@@ -165,7 +163,9 @@ def assemble_pull_request_context(
         pages_read += 1
         total_api_records += len(records)
         if total_api_records > diff_limits.max_input_files:
-            raise GitHubContextError("Changed-file API response exceeds the configured input limit.")
+            raise GitHubContextError(
+                "Changed-file API response exceeds the configured input limit."
+            )
 
         for index, record in enumerate(records):
             item = _mapping(record, f"changed_files[{page}:{index}]")
@@ -181,7 +181,9 @@ def assemble_pull_request_context(
                     "changed_file.filename must be a normalized repository-relative path."
                 )
             if filename in seen_paths:
-                raise GitHubContextError(f"Duplicate changed-file path returned by API: {filename!r}.")
+                raise GitHubContextError(
+                    f"Duplicate changed-file path returned by API: {filename!r}."
+                )
             seen_paths.add(filename)
             status = _required_string(item.get("status"), "changed_file.status")
             additions = _nonnegative_int(item.get("additions"), "changed_file.additions")
