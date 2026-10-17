@@ -62,6 +62,7 @@ _LOCKFILE_NAMES = frozenset(
         "composer.lock",
     }
 )
+_DEFAULT_DIFF_LIMITS = DiffLimits()
 _DEFAULT_HARNESS_PATHS = (
     ".verification-policy.yml",
     ".github/workflows/",
@@ -236,7 +237,10 @@ _RISK_RULES: tuple[_RiskRule, ...] = (
     _RiskRule(
         "governance_config_tamper",
         Severity.CRITICAL,
-        "Verification policy, workflow, or test-harness configuration changed and requires trusted-policy review.",
+        (
+            "Verification policy, workflow, or test-harness configuration changed and "
+            "requires trusted-policy review."
+        ),
     ),
     _RiskRule(
         "database_migration",
@@ -261,7 +265,10 @@ _RISK_RULES: tuple[_RiskRule, ...] = (
     _RiskRule(
         "dependency_integrity",
         Severity.HIGH,
-        "Dependency changes must be reviewed and verified for unintended supply-chain or runtime impact.",
+        (
+            "Dependency changes must be reviewed and verified for unintended supply-chain "
+            "or runtime impact."
+        ),
     ),
 )
 _CATEGORY_TEST_TERMS: dict[str, tuple[str, ...]] = {
@@ -335,11 +342,7 @@ def _line_ranges(patch: str) -> tuple[tuple[tuple[int, int], ...], bool]:
         elif new_line > 0 and line.startswith("+"):
             added_lines.append(new_line)
             new_line += 1
-        elif new_line > 0 and line.startswith("---"):
-            continue
-        elif new_line > 0 and line.startswith("-"):
-            continue
-        elif new_line > 0 and line.startswith("\\"):
+        elif new_line > 0 and (line.startswith("-") or line.startswith("\\")):
             continue
         elif new_line > 0 and line.startswith(" "):
             new_line += 1
@@ -364,7 +367,7 @@ def analyze_changed_files(
     commit: CommitIdentity,
     changed_files: Sequence[ChangedFileInput],
     policy: VerificationPolicy | None = None,
-    limits: DiffLimits = DiffLimits(),
+    limits: DiffLimits = _DEFAULT_DIFF_LIMITS,
 ) -> DiffAnalysis:
     """Analyze a bounded changed-file list without trusting patch contents.
 
@@ -500,7 +503,7 @@ def _risk_rules_for_path(path: str, harness_sensitive: bool) -> tuple[_RiskRule,
         part in {"migration", "migrations", "schema", "db_migrate"} for part in parts
     ) or name.endswith(".sql"):
         rules.append(_RISK_RULES[1])
-    if "webhook" in lower or "webhooks" in parts or "events" in parts and "webhook" in lower:
+    if "webhook" in lower or "webhooks" in parts or ("events" in parts and "webhook" in lower):
         rules.append(_RISK_RULES[2])
     if any(
         part in {"auth", "authz", "authorization", "permissions", "access_control"}
@@ -513,8 +516,9 @@ def _risk_rules_for_path(path: str, harness_sensitive: bool) -> tuple[_RiskRule,
         rules.append(_RISK_RULES[4])
     if (
         name in _LOCKFILE_NAMES
-        or name.startswith(("requirements", "constraints"))
-        and name.endswith(".txt")
+        or (
+            name.startswith(("requirements", "constraints")) and name.endswith(".txt")
+        )
     ):
         rules.append(_RISK_RULES[5])
 
@@ -688,7 +692,8 @@ def validate_model_hypotheses(
         if selector is not None:
             if not isinstance(selector, str) or selector not in allowed_selectors:
                 raise PlannerOutputError(
-                    f"hypotheses[{index}].candidate_test_selector must match the existing test inventory."
+                    f"hypotheses[{index}].candidate_test_selector must match the "
+                    "existing test inventory."
                 )
             try:
                 validate_test_selector(selector)
@@ -777,7 +782,7 @@ def plan_verification(
             obligations=deterministic,
             planner_mode="deterministic_fallback",
             degradation_reason=reason,
-            issues=analysis.issues + (reason,),
+            issues=(*analysis.issues, reason),
         )
 
     combined = tuple(
