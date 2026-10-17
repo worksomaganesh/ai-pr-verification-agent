@@ -160,15 +160,6 @@ def test_mismatched_base_repository_is_rejected() -> None:
         )
 
 
-@pytest.mark.parametrize(
-    ("base_sha", "head_sha"),
-    [
-        ("x" * 40, HEAD),
-        ("A" * 40, HEAD),
-        (BASE, "not-a-sha"),
-        (BASE, BASE),
-    ],
-)
 def test_malformed_base_sha_is_rejected() -> None:
     data = payload()
     pull_request = data["pull_request"]
@@ -184,6 +175,15 @@ def test_malformed_base_sha_is_rejected() -> None:
         )
 
 
+@pytest.mark.parametrize(
+    ("base_sha", "head_sha"),
+    [
+        ("x" * 40, HEAD),
+        ("A" * 40, HEAD),
+        (BASE, "not-a-sha"),
+        (BASE, BASE),
+    ],
+)
 def test_invalid_or_equal_commit_shas_are_rejected(base_sha: str, head_sha: str) -> None:
     with pytest.raises(WebhookPayloadError, match=r"SHA|distinct"):
         parse_pull_request_webhook(
