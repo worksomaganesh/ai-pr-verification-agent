@@ -13,12 +13,12 @@ from verification_core.webhooks import (
     verify_github_signature,
 )
 
-SECRET = "test-webhook-secret"
+WEBHOOK_KEY = "test-webhook-secret"
 BASE = "1" * 40
 HEAD = "2" * 40
 
 
-def signature(body: bytes, secret: str = SECRET) -> str:
+def signature(body: bytes, secret: str = WEBHOOK_KEY) -> str:
     digest = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
     return f"sha256={digest}"
 
@@ -51,18 +51,18 @@ def payload(
 
 def test_valid_signature_uses_raw_body() -> None:
     body = b'{"action":"opened","number":12}'
-    assert verify_github_signature(body, signature(body), SECRET)
+    assert verify_github_signature(body, signature(body), WEBHOOK_KEY)
 
 
 @pytest.mark.parametrize(
     ("body", "header", "secret", "limit"),
     [
-        (b"body", None, SECRET, 100),
-        (b"body", "sha256=bad", SECRET, 100),
-        (b"body", signature(b"other"), SECRET, 100),
+        (b"body", None, WEBHOOK_KEY, 100),
+        (b"body", "sha256=bad", WEBHOOK_KEY, 100),
+        (b"body", signature(b"other"), WEBHOOK_KEY, 100),
         (b"body", signature(b"body"), "wrong-secret", 100),
-        (b"body", signature(b"body").upper(), SECRET, 100),
-        (b"body-too-large", signature(b"body-too-large"), SECRET, 3),
+        (b"body", signature(b"body").upper(), WEBHOOK_KEY, 100),
+        (b"body-too-large", signature(b"body-too-large"), WEBHOOK_KEY, 3),
         (b"body", signature(b"body"), "", 100),
     ],
 )
@@ -75,7 +75,7 @@ def test_invalid_signature_inputs_fail_closed(
 def test_signature_is_case_tolerant_only_for_hex_digest() -> None:
     body = b"payload"
     header = signature(body)
-    assert verify_github_signature(body, header.upper().replace("SHA256=", "sha256="), SECRET)
+    assert verify_github_signature(body, header.upper().replace("SHA256=", "sha256="), WEBHOOK_KEY)
 
 
 def test_event_extracts_exact_commit_identity_and_idempotency_key() -> None:
@@ -185,7 +185,7 @@ def test_malformed_base_sha_is_rejected() -> None:
 
 
 def test_invalid_or_equal_commit_shas_are_rejected(base_sha: str, head_sha: str) -> None:
-    with pytest.raises(WebhookPayloadError, match="SHA|distinct"):
+    with pytest.raises(WebhookPayloadError, match=r"SHA|distinct"):
         parse_pull_request_webhook(
             delivery_id="delivery-1",
             event_name="pull_request",
