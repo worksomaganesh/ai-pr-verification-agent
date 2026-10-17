@@ -261,7 +261,7 @@ def test_manifest_rejects_missing_keys_and_invalid_path_variants() -> None:
 
 def test_manifest_rejects_non_list_locations_and_too_many_files() -> None:
     with pytest.raises(CoverageManifestError, match="must be a list"):
-        parse_coverage_manifest(manifest_text(lines={"src/auth.py": "10"}))  # type: ignore[arg-type]
+        parse_coverage_manifest(manifest_text(lines={"src/auth.py": "10"}))  # type: ignore[dict-item]
 
     many_files = {f"src/module_{index}.py": [1] for index in range(1001)}
     with pytest.raises(CoverageManifestError, match="exceeds 1000 file paths"):
