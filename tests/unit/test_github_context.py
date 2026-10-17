@@ -15,7 +15,39 @@ from verification_core.webhooks import PullRequestWebhookEvent
 
 BASE = "1" * 40
 HEAD = "2" * 40
-POLICY = "version: 1\ntrusted_workflows:\n  - .github/workflows/ci.yml\nrunner_profiles:\n  - pytest_targeted\nseverity_rules:\n  critical:\n    blocking: true\n    human_approval_allowed: true\n  high:\n    blocking: true\n    human_approval_allowed: true\n  medium:\n    blocking: false\n    human_approval_allowed: true\n  low:\n    blocking: false\n    human_approval_allowed: true\nharness_sensitive_paths:\n  - .verification-policy.yml\n  - .github/workflows/\n  - conftest.py\n  - pytest.ini\n  - pyproject.toml\n  - package.json\nobligations:\n  - id: OBL-AUTH-01\n    category: authorization\n    severity: critical\n    claim: A user cannot read another user's subscription.\n    runner_profile: pytest_targeted\n    selector: tests/test_authz.py::test_cross_user_access_returns_403\n"
+POLICY = """version: 1
+trusted_workflows:
+  - .github/workflows/ci.yml
+runner_profiles:
+  - pytest_targeted
+severity_rules:
+  critical:
+    blocking: true
+    human_approval_allowed: true
+  high:
+    blocking: true
+    human_approval_allowed: true
+  medium:
+    blocking: false
+    human_approval_allowed: true
+  low:
+    blocking: false
+    human_approval_allowed: true
+harness_sensitive_paths:
+  - .verification-policy.yml
+  - .github/workflows/
+  - conftest.py
+  - pytest.ini
+  - pyproject.toml
+  - package.json
+obligations:
+  - id: OBL-AUTH-01
+    category: authorization
+    severity: critical
+    claim: A user cannot read another user's subscription.
+    runner_profile: pytest_targeted
+    selector: tests/test_authz.py::test_cross_user_access_returns_403
+"""
 
 
 def event() -> PullRequestWebhookEvent:
@@ -122,7 +154,7 @@ def test_stale_or_closed_pr_fails_closed(kwargs: dict[str, Any], message: str) -
 
 
 def test_missing_policy_is_not_replaced_with_defaults() -> None:
-    with pytest.raises(GitHubContextError, match="no .verification-policy.yml"):
+    with pytest.raises(GitHubContextError, match=r"no \.verification-policy\.yml"):
         assemble_pull_request_context(event(), FakeGitHub(policy_text=None))
 
 
