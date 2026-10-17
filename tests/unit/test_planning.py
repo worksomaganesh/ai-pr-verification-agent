@@ -23,7 +23,6 @@ from verification_core.planning import (
     plan_verification,
     validate_model_hypotheses,
 )
-from verification_core.planning import TestInventoryItem as InventoryItem
 
 
 BASE = "1" * 40
@@ -61,9 +60,9 @@ def file(
     )
 
 
-def inventory(*selectors: str) -> tuple[InventoryItem, ...]:
+def inventory(*selectors: str) -> tuple[InventoryEntry, ...]:
     return tuple(
-        InventoryItem(selector=selector, path=selector.split("::", 1)[0]) for selector in selectors
+        InventoryEntry(selector=selector, path=selector.split("::", 1)[0]) for selector in selectors
     )
 
 
