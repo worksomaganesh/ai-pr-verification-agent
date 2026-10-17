@@ -7,6 +7,7 @@ import re
 from collections.abc import Hashable
 from dataclasses import dataclass
 from pathlib import PurePosixPath
+from typing import cast
 
 from verification_core.domain.enums import EvidenceSufficiency, ExecutionOutcome
 from verification_core.evidence import JUnitReport, assess_evidence_sufficiency
@@ -234,10 +235,10 @@ def parse_coverage_manifest(text: str | bytes) -> CoverageManifest:
                 node_id=node_id,
                 outcome=outcome,
                 lines_by_file=tuple(
-                    (path, tuple(int(value) for value in values)) for path, values in lines
+                    (path, tuple(cast(int, value) for value in values)) for path, values in lines
                 ),
                 branches_by_file=tuple(
-                    (path, tuple(str(value) for value in values)) for path, values in branches
+                    (path, tuple(cast(str, value) for value in values)) for path, values in branches
                 ),
                 behavioral_assertion_verified=assertion_verified,
             )
