@@ -23,6 +23,13 @@ Phase 1 is complete only when all requirements below are implemented, tested, an
 - [x] Deterministic Markdown ledger separates machine verification from human approval and policy waiver.
 - [x] Adversarial scenario: 140 unrelated passes plus missing critical webhook and cross-user authorization obligations yields `action_required`.
 
+## CI and bootstrap safety
+- [x] CI uses `contents: read` only and disables persisted checkout credentials.
+- [x] Formatting is check-only; CI never commits formatter output or pushes to `main`.
+- [x] The legacy Phase 1A extractor preflights all destinations and refuses conflicting overwrites unless explicitly opted in.
+- [x] ZIP output name is restricted to a filename, preventing path traversal outside the target directory.
+- [x] Regression tests cover preflight behavior, existing archives, clean extraction, and explicit overwrite opt-in.
+
 ## Required verification commands
 
 ```bash

@@ -8,6 +8,7 @@ import pytest
 
 from verification_core.coverage import (
     CoverageManifestError,
+    ReconciledTestEvidence,
     parse_coverage_manifest,
     reconcile_test_coverage,
 )
@@ -253,14 +254,14 @@ def test_manifest_rejects_missing_keys_and_invalid_path_variants() -> None:
         "x" * 301,
     ):
         with pytest.raises(
-            CoverageManifestError, match="safe repository-relative path|path string"
+            CoverageManifestError, match=r"safe repository-relative path|path string"
         ):
             parse_coverage_manifest(manifest_text(lines={unsafe_path: [1]}))
 
 
 def test_manifest_rejects_non_list_locations_and_too_many_files() -> None:
     with pytest.raises(CoverageManifestError, match="must be a list"):
-        parse_coverage_manifest(manifest_text(lines={"src/auth.py": "10"}))
+        parse_coverage_manifest(manifest_text(lines={"src/auth.py": "10"}))  # type: ignore[dict-item]
 
     many_files = {f"src/module_{index}.py": [1] for index in range(1001)}
     with pytest.raises(CoverageManifestError, match="exceeds 1000 file paths"):
@@ -303,7 +304,7 @@ def test_reconciliation_rejects_invalid_targets_and_unpassed_outcome() -> None:
     def reconcile(
         target_lines: dict[str, set[int]],
         target_branches: dict[str, set[str]],
-    ):
+    ) -> ReconciledTestEvidence:
         return reconcile_test_coverage(
             junit_report=report,
             manifest=manifest,

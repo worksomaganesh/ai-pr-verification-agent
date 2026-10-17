@@ -1,4 +1,4 @@
-name: Phase 1A CI
+name: Phase 1 CI
 
 on:
   push:
@@ -8,10 +8,10 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: phase-1a-${{ github.workflow }}-${{ github.ref }}
+  group: phase-1-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -22,6 +22,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -30,20 +32,12 @@ jobs:
           cache: pip
 
       - name: Install project and development tools
-        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
-
-      - name: Check formatting
-        run: ruff format src tests
-
-      - name: Commit formatter output temporarily for repository verification
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add src tests
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'Format coverage manifest edge-case tests'
-          git push origin HEAD:main
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Check formatting without changing files
+        run: ruff format --check src tests
 
       - name: Lint
         run: ruff check src tests
