@@ -2534,10 +2534,35 @@ def extract_and_bundle(
     target_dir: Path,
     zip_name: str,
     create_zip: bool = True,
+    overwrite: bool = False,
 ) -> None:
+    """Extract the legacy Phase 1A bootstrap without silently clobbering newer work."""
     target_dir = target_dir.resolve()
-    target_dir.mkdir(parents=True, exist_ok=True)
+    if not zip_name or Path(zip_name).name != zip_name:
+        raise ValueError("zip_name must be a filename, not a path.")
 
+    # Preflight every destination before writing anything. This script contains an
+    # older Phase 1A snapshot and must not silently replace the current Phase 1B files.
+    conflicts: list[str] = []
+    for rel_path, content in PHASE_1A_FILES.items():
+        dest_path = target_dir / rel_path
+        if dest_path.exists() and dest_path.read_bytes() != content.encode("utf-8"):
+            conflicts.append(rel_path)
+
+    zip_path = target_dir / zip_name
+    if create_zip and zip_path.exists() and not overwrite:
+        conflicts.append(zip_name)
+
+    if conflicts and not overwrite:
+        listed = "\n".join(f"  - {name}" for name in conflicts)
+        raise FileExistsError(
+            "Refusing to overwrite existing project files. This extractor contains a "
+            "legacy Phase 1A snapshot. Choose a clean --target-dir or pass "
+            "--force-overwrite only if replacing these files is intentional.\n"
+            f"Conflicting paths:\n{listed}"
+        )
+
+    target_dir.mkdir(parents=True, exist_ok=True)
     print(f"Extracting Phase 1A files into: {target_dir}\n")
     print(f"{'File Path':<48} | {'Size (B)':>8} | {'SHA-256 (first 12)'}")
     print("-" * 80)
@@ -2546,12 +2571,12 @@ def extract_and_bundle(
         dest_path = target_dir / rel_path
         dest_path.parent.mkdir(parents=True, exist_ok=True)
         encoded = content.encode("utf-8")
-        dest_path.write_bytes(encoded)
+        if not dest_path.exists() or dest_path.read_bytes() != encoded:
+            dest_path.write_bytes(encoded)
         digest = hashlib.sha256(encoded).hexdigest()[:12]
         print(f"{rel_path:<48} | {len(encoded):>8} | {digest}")
 
     if create_zip:
-        zip_path = target_dir / zip_name
         with zipfile.ZipFile(zip_path, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
             for rel_path, content in PHASE_1A_FILES.items():
                 zf.writestr(rel_path, content.encode("utf-8"))
@@ -2588,11 +2613,17 @@ def main() -> None:
         action="store_true",
         help="Extract files and folders only without creating the .zip archive.",
     )
+    parser.add_argument(
+        "--force-overwrite",
+        action="store_true",
+        help="Explicitly allow overwriting conflicting files from the legacy Phase 1A snapshot.",
+    )
     args = parser.parse_args()
     extract_and_bundle(
         target_dir=args.target_dir,
         zip_name=args.zip_name,
         create_zip=not args.no_zip,
+        overwrite=args.force_overwrite,
     )
 
 
