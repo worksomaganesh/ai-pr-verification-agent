@@ -87,9 +87,7 @@ def test_manifest_rejects_version_sha_and_unknown_keys() -> None:
     with pytest.raises(CoverageManifestError, match="head_sha"):
         parse_coverage_manifest(manifest_text(head_sha="BAD"))
     with pytest.raises(CoverageManifestError, match="unknown key"):
-        parse_coverage_manifest(
-            manifest_text().replace('"version": 1', '"version": 1, "extra": 2')
-        )
+        parse_coverage_manifest(manifest_text().replace('"version": 1', '"version": 1, "extra": 2'))
 
 
 def test_manifest_rejects_types_empty_input_nul_and_oversize() -> None:
