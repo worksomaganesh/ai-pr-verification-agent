@@ -116,7 +116,7 @@ def test_context_binds_policy_and_files_to_exact_base_and_head() -> None:
         ({"state": "closed"}, "no longer open"),
     ],
 )
-def test_stale_or_closed_pr_fails_closed(kwargs: dict[str, object], message: str) -> None:
+def test_stale_or_closed_pr_fails_closed(kwargs: dict[str, Any], message: str) -> None:
     with pytest.raises(GitHubContextError, match=message):
         assemble_pull_request_context(event(), FakeGitHub(**kwargs))
 
