@@ -10,7 +10,6 @@ import pytest
 
 from verification_core.github_context import (
     GitHubContextError,
-    PullRequestContext,
     assemble_pull_request_context,
 )
 from verification_core.planning import DiffLimits
