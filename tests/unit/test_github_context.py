@@ -258,9 +258,7 @@ def test_non_text_policy_response_is_rejected() -> None:
 
 
 def test_changed_file_count_limit_fails_closed() -> None:
-    client = FakeGitHub(
-        pages=[[changed_file("src/one.py"), changed_file("src/two.py")]]
-    )
+    client = FakeGitHub(pages=[[changed_file("src/one.py"), changed_file("src/two.py")]])
     limits = DiffLimits(
         max_input_files=1,
         max_files=1,
