@@ -732,8 +732,7 @@ def test_property_no_unverified_critical_or_high_obligation_ever_yields_success_
 ) -> None:
     commit = make_commit()
     obligations = [
-        _build_obligation_from_spec(i, sev, status, commit)
-        for i, (sev, status) in enumerate(specs)
+        _build_obligation_from_spec(i, sev, status, commit) for i, (sev, status) in enumerate(specs)
     ]
     policy = ConclusionPolicyConfig(strict_blocking_mode=strict_mode)
 
