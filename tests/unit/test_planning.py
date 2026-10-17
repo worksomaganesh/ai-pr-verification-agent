@@ -47,7 +47,8 @@ def file(
     status: str = "modified",
     additions: int = 2,
     deletions: int = 1,
-    patch: str | None = "@@ -10,2 +10,3 @@\n context\n+new_value = 1\n+return new_value\n old_value = 0",
+    patch: str
+    | None = "@@ -10,2 +10,3 @@\n context\n+new_value = 1\n+return new_value\n old_value = 0",
     binary: bool = False,
 ) -> ChangedFileInput:
     return ChangedFileInput(
@@ -62,8 +63,7 @@ def file(
 
 def inventory(*selectors: str) -> tuple[InventoryItem, ...]:
     return tuple(
-        InventoryItem(selector=selector, path=selector.split("::", 1)[0])
-        for selector in selectors
+        InventoryItem(selector=selector, path=selector.split("::", 1)[0]) for selector in selectors
     )
 
 
@@ -94,8 +94,12 @@ def test_diff_analysis_sorts_paths_deterministically() -> None:
         commit=commit(),
         changed_files=[
             file("src/z.py"),
-            file(".github/workflows/ci.yml", additions=1, deletions=0,
-                 patch="@@ -1 +1,2 @@\n+run: untrusted"),
+            file(
+                ".github/workflows/ci.yml",
+                additions=1,
+                deletions=0,
+                patch="@@ -1 +1,2 @@\n+run: untrusted",
+            ),
             file("src/authz.py"),
         ],
     )
@@ -108,8 +112,16 @@ def test_diff_analysis_sorts_paths_deterministically() -> None:
 
 @pytest.mark.parametrize(
     "path",
-    ["../secret.py", "/etc/passwd", "src//thing.py", "src/./thing.py", "src\\thing.py",
-     "-option.py", "C:/temp.py", "src/\x00evil.py"],
+    [
+        "../secret.py",
+        "/etc/passwd",
+        "src//thing.py",
+        "src/./thing.py",
+        "src\\thing.py",
+        "-option.py",
+        "C:/temp.py",
+        "src/\x00evil.py",
+    ],
 )
 def test_diff_analysis_rejects_unsafe_paths(path: str) -> None:
     with pytest.raises(DiffAnalysisError):
@@ -125,23 +137,40 @@ def test_invalid_status_and_counts_are_rejected() -> None:
     with pytest.raises(DiffAnalysisError, match="status"):
         file(status="unknown")
     with pytest.raises(DiffAnalysisError, match="additions"):
-        ChangedFileInput(filename="src/a.py", status="modified", additions=-1, deletions=0, patch="")
+        ChangedFileInput(
+            filename="src/a.py", status="modified", additions=-1, deletions=0, patch=""
+        )
 
 
 def test_input_file_limit_is_a_hard_error() -> None:
-    limits = DiffLimits(max_input_files=2, max_files=2, max_changed_lines_per_file=10,
-                        max_patch_chars_per_file=100, max_total_patch_chars=100)
+    limits = DiffLimits(
+        max_input_files=2,
+        max_files=2,
+        max_changed_lines_per_file=10,
+        max_patch_chars_per_file=100,
+        max_total_patch_chars=100,
+    )
     with pytest.raises(DiffAnalysisError, match="Input has"):
-        analyze_changed_files(commit=commit(), changed_files=[file("a.py"), file("b.py"), file("c.py")],
-                              limits=limits)
+        analyze_changed_files(
+            commit=commit(), changed_files=[file("a.py"), file("b.py"), file("c.py")], limits=limits
+        )
 
 
 def test_file_count_limit_marks_analysis_truncated_and_prioritizes_harness() -> None:
-    limits = DiffLimits(max_input_files=10, max_files=2, max_changed_lines_per_file=10,
-                        max_patch_chars_per_file=100, max_total_patch_chars=100)
+    limits = DiffLimits(
+        max_input_files=10,
+        max_files=2,
+        max_changed_lines_per_file=10,
+        max_patch_chars_per_file=100,
+        max_total_patch_chars=100,
+    )
     result = analyze_changed_files(
         commit=commit(),
-        changed_files=[file("docs/readme.md"), file("src/app.py"), file(".github/workflows/ci.yml")],
+        changed_files=[
+            file("docs/readme.md"),
+            file("src/app.py"),
+            file(".github/workflows/ci.yml"),
+        ],
         limits=limits,
     )
     assert result.completeness is AnalysisCompleteness.TRUNCATED
@@ -157,14 +186,24 @@ def test_missing_patch_marks_analysis_incomplete() -> None:
 
 
 def test_changed_line_and_per_file_patch_limits_fail_closed() -> None:
-    limits = DiffLimits(max_input_files=5, max_files=5, max_changed_lines_per_file=1,
-                        max_patch_chars_per_file=100, max_total_patch_chars=100)
+    limits = DiffLimits(
+        max_input_files=5,
+        max_files=5,
+        max_changed_lines_per_file=1,
+        max_patch_chars_per_file=100,
+        max_total_patch_chars=100,
+    )
     result = analyze_changed_files(commit=commit(), changed_files=[file()], limits=limits)
     assert result.completeness is AnalysisCompleteness.TRUNCATED
     assert result.files[0].patch_excerpt is None
 
-    limits2 = DiffLimits(max_input_files=5, max_files=5, max_changed_lines_per_file=10,
-                         max_patch_chars_per_file=10, max_total_patch_chars=20)
+    limits2 = DiffLimits(
+        max_input_files=5,
+        max_files=5,
+        max_changed_lines_per_file=10,
+        max_patch_chars_per_file=10,
+        max_total_patch_chars=20,
+    )
     result2 = analyze_changed_files(commit=commit(), changed_files=[file()], limits=limits2)
     assert result2.completeness is AnalysisCompleteness.TRUNCATED
 
@@ -233,7 +272,9 @@ def test_harness_migration_auth_webhook_billing_and_dependency_rules() -> None:
 def test_obligation_ids_are_stable_and_selector_requires_inventory_match() -> None:
     changed = [file("src/webhooks.py")]
     first = deterministic_obligations(analyze_changed_files(commit=commit(), changed_files=changed))
-    second = deterministic_obligations(analyze_changed_files(commit=commit(), changed_files=changed))
+    second = deterministic_obligations(
+        analyze_changed_files(commit=commit(), changed_files=changed)
+    )
     assert [item.obligation_id for item in first] == [item.obligation_id for item in second]
     assert first[0].candidate_test_id is None
 
@@ -259,22 +300,32 @@ def test_model_hypotheses_must_reference_changed_paths_and_existing_selectors() 
     analysis = analyze_changed_files(commit=commit(), changed_files=[file("src/authz.py")])
     inv = inventory("tests/test_authz.py::test_cross_user_access")
     valid = {
-        "hypotheses": [{
-            "category": "cross_tenant_boundary",
-            "severity": "critical",
-            "claim": "Cross-tenant access must be denied.",
-            "affected_files": ["src/authz.py"],
-            "candidate_test_selector": inv[0].selector,
-        }]
+        "hypotheses": [
+            {
+                "category": "cross_tenant_boundary",
+                "severity": "critical",
+                "claim": "Cross-tenant access must be denied.",
+                "affected_files": ["src/authz.py"],
+                "candidate_test_selector": inv[0].selector,
+            }
+        ]
     }
     parsed = validate_model_hypotheses(valid, analysis=analysis, test_inventory=inv)
     assert parsed[0].severity is Severity.CRITICAL
 
-    invalid_path = {**valid, "hypotheses": [{**valid["hypotheses"][0], "affected_files": ["src/other.py"]}]}
+    invalid_path = {
+        **valid,
+        "hypotheses": [{**valid["hypotheses"][0], "affected_files": ["src/other.py"]}],
+    }
     with pytest.raises(PlannerOutputError, match="outside"):
         validate_model_hypotheses(invalid_path, analysis=analysis, test_inventory=inv)
 
-    invalid_selector = {**valid, "hypotheses": [{**valid["hypotheses"][0], "candidate_test_selector": "tests/test_other.py::test_x"}]}
+    invalid_selector = {
+        **valid,
+        "hypotheses": [
+            {**valid["hypotheses"][0], "candidate_test_selector": "tests/test_other.py::test_x"}
+        ],
+    }
     with pytest.raises(PlannerOutputError, match="inventory"):
         validate_model_hypotheses(invalid_selector, analysis=analysis, test_inventory=inv)
 
@@ -286,16 +337,51 @@ def test_model_hypotheses_must_reference_changed_paths_and_existing_selectors() 
         {},
         {"hypotheses": "not-a-list"},
         {"hypotheses": [{"category": "x"}]},
-        {"hypotheses": [{"category": "x", "severity": "critical", "claim": "x",
-                         "affected_files": ["src/service.py"], "candidate_test_selector": None,
-                         "status": "passed"}]},
-        {"hypotheses": [{"category": "x", "severity": "critical", "claim": "x",
-                         "affected_files": ["src/service.py", "src/service.py"],
-                         "candidate_test_selector": None}]},
-        {"hypotheses": [{"category": "x", "severity": "critical", "claim": "x",
-                         "affected_files": [], "candidate_test_selector": None}]},
-        {"hypotheses": [{"category": "x", "severity": "unknown", "claim": "x",
-                         "affected_files": ["src/service.py"], "candidate_test_selector": None}]},
+        {
+            "hypotheses": [
+                {
+                    "category": "x",
+                    "severity": "critical",
+                    "claim": "x",
+                    "affected_files": ["src/service.py"],
+                    "candidate_test_selector": None,
+                    "status": "passed",
+                }
+            ]
+        },
+        {
+            "hypotheses": [
+                {
+                    "category": "x",
+                    "severity": "critical",
+                    "claim": "x",
+                    "affected_files": ["src/service.py", "src/service.py"],
+                    "candidate_test_selector": None,
+                }
+            ]
+        },
+        {
+            "hypotheses": [
+                {
+                    "category": "x",
+                    "severity": "critical",
+                    "claim": "x",
+                    "affected_files": [],
+                    "candidate_test_selector": None,
+                }
+            ]
+        },
+        {
+            "hypotheses": [
+                {
+                    "category": "x",
+                    "severity": "unknown",
+                    "claim": "x",
+                    "affected_files": ["src/service.py"],
+                    "candidate_test_selector": None,
+                }
+            ]
+        },
     ],
 )
 def test_model_schema_rejects_malformed_or_untrusted_payloads(payload: object) -> None:
@@ -308,8 +394,18 @@ def test_model_hypothesis_count_is_bounded() -> None:
     analysis = analyze_changed_files(commit=commit(), changed_files=[file()])
     with pytest.raises(PlannerOutputError, match="more than"):
         validate_model_hypotheses(
-            {"hypotheses": [{"category": "x", "severity": "low", "claim": "x",
-                             "affected_files": ["src/service.py"], "candidate_test_selector": None}] * 2},
+            {
+                "hypotheses": [
+                    {
+                        "category": "x",
+                        "severity": "low",
+                        "claim": "x",
+                        "affected_files": ["src/service.py"],
+                        "candidate_test_selector": None,
+                    }
+                ]
+                * 2
+            },
             analysis=analysis,
             test_inventory=(),
             max_hypotheses=1,
@@ -318,13 +414,19 @@ def test_model_hypothesis_count_is_bounded() -> None:
 
 def test_model_planner_augments_deterministic_rules_but_cannot_set_status() -> None:
     analysis = analyze_changed_files(commit=commit(), changed_files=[file("src/authz.py")])
-    model = FakeModel({"hypotheses": [{
-        "category": "cross_tenant_boundary",
-        "severity": "critical",
-        "claim": "Cross-tenant access must be denied.",
-        "affected_files": ["src/authz.py"],
-        "candidate_test_selector": None,
-    }]})
+    model = FakeModel(
+        {
+            "hypotheses": [
+                {
+                    "category": "cross_tenant_boundary",
+                    "severity": "critical",
+                    "claim": "Cross-tenant access must be denied.",
+                    "affected_files": ["src/authz.py"],
+                    "candidate_test_selector": None,
+                }
+            ]
+        }
+    )
     result = plan_verification(analysis, model=model)
     assert result.planner_mode == "hybrid"
     assert model.calls == 1
@@ -332,8 +434,10 @@ def test_model_planner_augments_deterministic_rules_but_cannot_set_status() -> N
         "tenant_authorization", "cross_tenant_boundary"
     }
     assert all(item.status is ObligationStatus.PROPOSED for item in result.obligations)
-    assert all(item.source in {ObligationSource.DETERMINISTIC_POLICY, ObligationSource.LLM_HYPOTHESIS}
-               for item in result.obligations)
+    assert all(
+        item.source in {ObligationSource.DETERMINISTIC_POLICY, ObligationSource.LLM_HYPOTHESIS}
+        for item in result.obligations
+    )
 
 
 def test_model_failure_falls_back_without_losing_deterministic_obligations() -> None:
