@@ -225,7 +225,7 @@ def test_policy_sensitive_paths_and_workflow_entries_require_unique_safe_paths()
 def test_policy_rejects_empty_lists_and_wrong_root_shape() -> None:
     with pytest.raises(PolicyValidationError, match="must not be empty"):
         validate_policy_text(EXAMPLE.replace(
-            "trusted_workflows:\\n  - .github/workflows/ci.yml",
+            "trusted_workflows:\n  - .github/workflows/ci.yml",
             "trusted_workflows: []",
         ))
     with pytest.raises(PolicyValidationError, match="policy must be a mapping"):
@@ -248,14 +248,14 @@ def test_policy_rejects_non_string_list_items_and_trailing_slashes() -> None:
 def test_policy_rejects_oversized_policy_lists() -> None:
     prefix = EXAMPLE[: EXAMPLE.index("harness_sensitive_paths:")]
     suffix = EXAMPLE[EXAMPLE.index("obligations:") :]
-    paths = "".join(f"  - safe-{index}.txt\\n" for index in range(101))
+    paths = "".join(f"  - safe-{index}.txt\n" for index in range(101))
     with pytest.raises(PolicyValidationError, match="at most 100 items"):
-        validate_policy_text(prefix + "harness_sensitive_paths:\\n" + paths + suffix)
+        validate_policy_text(prefix + "harness_sensitive_paths:\n" + paths + suffix)
 
     prefix = EXAMPLE[: EXAMPLE.index("obligations:")]
-    obligations = "".join(f"  - id: OBL-X{index}\\n" for index in range(501))
+    obligations = "".join(f"  - id: OBL-X{index}\n" for index in range(501))
     with pytest.raises(PolicyValidationError, match="at most 500 items"):
-        validate_policy_text(prefix + "obligations:\\n" + obligations)
+        validate_policy_text(prefix + "obligations:\n" + obligations)
 
 
 @pytest.mark.parametrize(
@@ -307,8 +307,8 @@ def test_policy_rejects_unsafe_sensitive_paths(unsafe_path: str) -> None:
 
 def test_policy_rejects_profile_that_cannot_run_targeted_selectors() -> None:
     text = EXAMPLE.replace(
-        "runner_profiles:\\n  - pytest_targeted",
-        "runner_profiles:\\n  - pytest_targeted\\n  - pytest_full",
+        "runner_profiles:\n  - pytest_targeted",
+        "runner_profiles:\n  - pytest_targeted\n  - pytest_full",
     ).replace("runner_profile: pytest_targeted", "runner_profile: pytest_full", 1)
     with pytest.raises(PolicyValidationError, match="does not accept per-test selectors"):
         validate_policy_text(text)
@@ -318,7 +318,7 @@ def test_policy_rejects_empty_obligations_and_unknown_severity_lookup() -> None:
     with pytest.raises(PolicyValidationError, match="non-empty list"):
         validate_policy_text(EXAMPLE.replace(
             EXAMPLE[EXAMPLE.index("obligations:"):],
-            "obligations: []\\n",
+            "obligations: []\n",
         ))
     policy = validate_policy_text(EXAMPLE)
     with pytest.raises(PolicyValidationError, match="No severity rule configured"):
