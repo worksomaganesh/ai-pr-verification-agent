@@ -62,7 +62,7 @@ class _UniqueKeySafeLoader(yaml.SafeLoader):
         for key_node, value_node in node.value:
             key = self.construct_object(key_node, deep=deep)
             if not isinstance(key, str):
-                raise PolicyValidationError("All YAML mapping keys must be strings.")
+                raise PolicyValidationError("All YAML mapping keys must be strings (string keys only).")
             if key in mapping:
                 raise PolicyValidationError(f"Duplicate YAML key: {key!r}.")
             mapping[key] = self.construct_object(value_node, deep=deep)

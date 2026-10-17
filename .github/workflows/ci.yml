@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: phase-1a-${{ github.workflow }}-${{ github.ref }}
@@ -34,6 +34,16 @@ jobs:
 
       - name: Check formatting
         run: ruff format src tests
+
+      - name: Commit formatter output temporarily for repository verification
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src tests
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Apply Ruff formatting to Phase 1B implementation'
+          git push origin HEAD:main
 
       - name: Upload formatter output for repository verification
         uses: actions/upload-artifact@v4
