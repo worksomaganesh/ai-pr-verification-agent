@@ -27,6 +27,8 @@ from verification_core.domain.models import (
     validate_git_sha,
 )
 
+_DEFAULT_POLICY_CONFIG = ConclusionPolicyConfig()
+
 ALLOWED_OBLIGATION_TRANSITIONS: dict[ObligationStatus, frozenset[ObligationStatus]] = {
     ObligationStatus.PROPOSED: frozenset(
         {
@@ -249,7 +251,7 @@ def apply_human_approval(
     *,
     approval: HumanApprovalRecord,
     expected_commit: CommitIdentity,
-    policy_config: ConclusionPolicyConfig = ConclusionPolicyConfig(),
+    policy_config: ConclusionPolicyConfig = _DEFAULT_POLICY_CONFIG,
 ) -> VerificationObligation:
     """Apply an explicit, SHA-bound human approval to an unverified obligation."""
     validate_transition(obligation.status, ObligationStatus.APPROVED_BY_HUMAN)
@@ -413,7 +415,7 @@ def evaluate_verification_run(
     commit: CommitIdentity,
     obligations: Sequence[VerificationObligation],
     analysis_completeness: AnalysisCompleteness = AnalysisCompleteness.COMPLETE,
-    policy_config: ConclusionPolicyConfig = ConclusionPolicyConfig(),
+    policy_config: ConclusionPolicyConfig = _DEFAULT_POLICY_CONFIG,
     policy_valid: bool = True,
     has_unsupported_critical_changes: bool = False,
     superseded_by_sha: str | None = None,

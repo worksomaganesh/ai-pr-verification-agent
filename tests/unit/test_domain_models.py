@@ -223,7 +223,7 @@ def test_execution_evidence_forbids_sufficient_without_all_behavioral_criteria()
             total_tests_in_report=0,
         )
 
-    with pytest.raises(DomainValidationError, match="requires ExecutionOutcome.PASSED"):
+    with pytest.raises(DomainValidationError, match=r"requires ExecutionOutcome\.PASSED"):
         ExecutionEvidence(
             test_node_id="tests/test_authz.py::test_forbidden",
             outcome=ExecutionOutcome.FAILED,
