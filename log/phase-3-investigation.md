@@ -131,3 +131,10 @@ safe `.outcome` access, one test helper lacked a return annotation, and several 
 `**dict[str, object]` against a fully typed keyword-only API. The fix uses inferred concrete JUnit
 case values and explicit keyword arguments in tests. These are actual type-safety improvements, not
 type-ignore suppressions; the next run must confirm.
+
+
+## Formatter correction after typing edits
+
+CI run #39143886828 exposed one formatting-only issue: the annotated `ingest` helper signature was
+split over three lines, while Ruff formats it on one line. The exact one-line form is now restored.
+No test or type result is inferred from this formatter failure.

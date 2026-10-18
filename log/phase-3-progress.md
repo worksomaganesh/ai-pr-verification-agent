@@ -257,3 +257,11 @@ This commit replaces the overly broad map with a type-inferred mapping of JUnit 
 helper's return type, and expands shared test argument dictionaries into explicit typed keyword calls.
 These changes improve the code's type contract instead of weakening mypy. The next CI run must verify
 them; no phase progress increase is assigned yet.
+
+
+## Formatter correction — 2026-10-18
+
+The first strict-mypy fix was correct in intent but the next CI run, [#39143886828](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39143886828),
+stopped earlier at formatting: Ruff requires the newly annotated `ingest` helper signature to remain
+on one line. The exact formatter diff was applied without changing behavior. This is a formatting-only
+correction; Phase III progress remains unchanged until the full gates run.

@@ -106,9 +106,7 @@ def jobs() -> list[dict[str, object]]:
     ]
 
 
-def ingest(
-    payload: bytes | None = None, **overrides: object
-) -> AuthenticatedEvidenceArtifact:
+def ingest(payload: bytes | None = None, **overrides: object) -> AuthenticatedEvidenceArtifact:
     data = payload or archive()
     args: dict[str, object] = {
         "commit": identity(),
