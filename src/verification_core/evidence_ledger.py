@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 import time
 from typing import Any
@@ -23,6 +24,7 @@ from sqlalchemy import (
     UniqueConstraint,
     create_engine,
     select,
+    update,
 )
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -68,6 +70,7 @@ _EVIDENCE = Table(
         "pr_number",
         "base_sha",
         "head_sha",
+        "policy_sha256",
         "workflow_run_id",
         "workflow_attempt",
         "artifact_id",
@@ -159,8 +162,8 @@ class SQLAlchemyEvidenceLedger:
         inventory_digest = hashlib.sha256(inventory.encode("utf-8")).hexdigest()
         key = self._identity_key(commit, evidence)
         timestamp = time.time() if now is None else now
-        if not isinstance(timestamp, (int, float)) or timestamp < 0:
-            raise ValueError("now must be a non-negative timestamp")
+        if type(timestamp) not in (int, float) or not math.isfinite(timestamp) or timestamp < 0:
+            raise ValueError("now must be a finite non-negative timestamp")
         values: dict[str, Any] = {
             "record_key": key,
             "repository_full_name": commit.repo_full_name,
@@ -272,9 +275,12 @@ class SQLAlchemyEvidenceLedger:
                     raise EvidenceLedgerConflict(
                         "Reconciliation is immutable once a terminal decision is recorded."
                     )
-                connection.execute(
-                    _EVIDENCE.update()
-                    .where(_EVIDENCE.c.record_key == record_key)
+                result = connection.execute(
+                    update(_EVIDENCE)
+                    .where(
+                        _EVIDENCE.c.record_key == record_key,
+                        _EVIDENCE.c.reconciliation_status == "INCONCLUSIVE",
+                    )
                     .values(
                         reconciliation_status=status,
                         reconciliation_reason=reason,
@@ -282,6 +288,10 @@ class SQLAlchemyEvidenceLedger:
                         updated_at=timestamp,
                     )
                 )
+                if result.rowcount != 1:
+                    raise EvidenceLedgerConflict(
+                        "Reconciliation was concurrently updated; reload before retrying."
+                    )
         except (DeliveryStoreError, EvidenceLedgerConflict):
             raise
         except SQLAlchemyError:
