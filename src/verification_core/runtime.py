@@ -41,9 +41,7 @@ def create_processor_from_environment(
     app_id_text = environment.get("GITHUB_APP_ID", "")
     if not app_id_text.isdigit() or int(app_id_text) < 1:
         raise RuntimeError("GITHUB_APP_ID must be a positive integer.")
-    database_path = environment.get(
-        "VERIFICATION_DATABASE_PATH", "verification-events.sqlite3"
-    )
+    database_path = environment.get("VERIFICATION_DATABASE_PATH", "verification-events.sqlite3")
     store = SQLiteDeliveryStore(database_path)
     authenticator = GitHubAppAuthenticator(
         int(app_id_text),
@@ -62,8 +60,6 @@ def create_webhook_app_from_environment(environ: dict[str, str] | None = None):
     """Create the ASGI ingress app with the configured durable SQLite store."""
     environment = os.environ if environ is None else environ
     return create_app_from_environment(
-        database_path=environment.get(
-            "VERIFICATION_DATABASE_PATH", "verification-events.sqlite3"
-        ),
+        database_path=environment.get("VERIFICATION_DATABASE_PATH", "verification-events.sqlite3"),
         environ=environment,
     )
