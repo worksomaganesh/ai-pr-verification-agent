@@ -19,6 +19,8 @@ Install the project and integration dependencies:
 
     python -m pip install -e ".[integration]"
 
+The integration extra includes SQLAlchemy and the psycopg driver for PostgreSQL run/obligation persistence.
+
 Configure the GitHub App with:
 - Repository permissions: **Contents: read**, **Pull requests: read**, **Checks: write**.
 - Webhook subscription: **Pull requests**.
@@ -38,9 +40,10 @@ In a separate process, configure the worker:
     export GITHUB_APP_ID='123456'
     export GITHUB_APP_PRIVATE_KEY_PATH='/run/secrets/github-app-private-key.pem'
     export VERIFICATION_DATABASE_PATH='./var/verification-events.sqlite3'
+    export VERIFICATION_RUNS_DATABASE_URL='postgresql+psycopg://user:password@db-host:5432/verification'
     python -m verification_core worker --poll-seconds 1
 
-The ingress and worker must point to the same database file and host. Do not commit secrets or the database file. Terminate the process normally so the worker can close resources.
+The ingress and worker must point to the same SQLite queue database file and host. If VERIFICATION_RUNS_DATABASE_URL is configured, the worker additionally writes run/obligation records to PostgreSQL; the ingress queue remains SQLite and is still a single-host component. Do not commit secrets or the database file. Terminate the process normally so the worker can close resources.
 
 Optional model planning:
 
@@ -57,7 +60,7 @@ For a local health check, request GET /healthz. Configure the public GitHub webh
 - Repeated delivery IDs with identical event metadata return a duplicate acknowledgement. Reuse with different event metadata is rejected by the store.
 - The worker claims one event with a lease. Expired leases are recoverable, failures use bounded exponential backoff, and attempts are capped.
 - Check Run publication is retried with the same external_id. If publication succeeds but marking the delivery complete fails, a retry should update the same check.
-- SQLite uses WAL and full synchronous mode. This reference implementation assumes one host and a small worker count; it is not a distributed queue or a horizontal-scaling design.
+- The SQLite delivery queue uses WAL and full synchronous mode. PostgreSQL can hold the durable run/obligation ledger, but the delivery queue still assumes one host and a small worker count; this is not yet a horizontally scaled queue design.
 
 ## Honest result semantics
 
