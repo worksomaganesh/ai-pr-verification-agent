@@ -127,9 +127,7 @@ def ingest_pull_request_run(
         jobs = actions.list_workflow_run_jobs(commit.repo_full_name, workflow_run_id)
         artifacts = actions.list_workflow_run_artifacts(commit.repo_full_name, workflow_run_id)
         matching = [
-            artifact
-            for artifact in artifacts
-            if artifact.get("name") == expected_artifact_name
+            artifact for artifact in artifacts if artifact.get("name") == expected_artifact_name
         ]
         if len(matching) != 1:
             raise EvidenceIngestionServiceError(
