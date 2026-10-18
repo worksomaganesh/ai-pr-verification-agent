@@ -194,8 +194,12 @@ def test_processor_uses_deterministic_fallback_when_model_factory_fails(
     fake_client = FakeRESTClient()
     monkeypatch.setattr(phase_two, "GitHubRESTClient", lambda _token: fake_client)
 
+    class BrokenModel:
+        def propose_hypotheses(self, _context: Any) -> object:
+            raise RuntimeError("provider unavailable")
+
     def broken_model_factory() -> Any:
-        raise RuntimeError("provider unavailable")
+        return BrokenModel()
 
     processor = phase_two.PhaseTwoProcessor(
         store=store,
