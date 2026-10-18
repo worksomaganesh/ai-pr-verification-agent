@@ -23,7 +23,6 @@ import jwt
 
 from verification_core.github_context import (
     MAX_FILES_API_PAGES,
-    GitHubContextError,
     GitHubReadClient,
 )
 from verification_core.planning import InventoryEntry
