@@ -155,3 +155,19 @@ in the captured log. Type checking, tests, and coverage were skipped.
 **Not yet verified:** The corrected import block and all later CI gates must pass on the next exact SHA.
 
 **Progress remains 62% complete / 38% remaining.**
+
+
+## Validation iteration — 2026-10-18 (no percentage increase)
+
+**Correction:** The latest CI run on `c1acc4e` still reported Ruff `I001` for the evidence-ledger
+test import block. The preceding attempt had not resolved the linter's ordering expectation. This
+commit moves the ledger import ahead of the evidence import to match the ordering explicitly inferred
+from the failing lint diff.
+
+**Failing run:** [#39128785726](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39128785726)  
+**Verified from log:** Formatting passed; Ruff lint failed with one `I001`; strict typing, tests, and
+coverage were skipped.  
+**Not yet verified:** The changed import order and subsequent CI gates have not yet passed on this SHA.
+
+**Progress remains 62% complete / 38% remaining.** This is a lint-only correction, not a substantive
+Phase III milestone.
