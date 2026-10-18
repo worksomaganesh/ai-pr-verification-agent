@@ -40,7 +40,9 @@ def sign(body: bytes) -> str:
     return f"sha256={digest}"
 
 
-def headers(body: bytes, *, event_name: str = "pull_request", delivery: str = "delivery-7") -> dict[str, str]:
+def headers(
+    body: bytes, *, event_name: str = "pull_request", delivery: str = "delivery-7"
+) -> dict[str, str]:
     return {
         "content-type": "application/json",
         "x-hub-signature-256": sign(body),
