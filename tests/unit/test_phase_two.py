@@ -14,6 +14,7 @@ from verification_core.planning import InventoryEntry
 from verification_core.webhooks import PullRequestWebhookEvent
 
 BASE = "1" * 40
+SAMPLE_TOKEN_VALUE = "sample-installation-value"
 HEAD = "2" * 40
 POLICY = """version: 1
 trusted_workflows:
@@ -72,7 +73,7 @@ class FakeAuthenticator:
         from datetime import UTC, datetime, timedelta
 
         return InstallationToken(
-            token="ghs-test-token",
+            token=SAMPLE_TOKEN_VALUE,
             expires_at=datetime.now(UTC) + timedelta(minutes=10),
         )
 
