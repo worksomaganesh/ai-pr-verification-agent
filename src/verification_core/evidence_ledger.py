@@ -112,9 +112,7 @@ class SQLAlchemyEvidenceLedger:
             raise ValueError(f"{field} must be a lowercase SHA-256 digest")
 
     @staticmethod
-    def _identity_key(
-        commit: CommitIdentity, evidence: AuthenticatedEvidenceArtifact
-    ) -> str:
+    def _identity_key(commit: CommitIdentity, evidence: AuthenticatedEvidenceArtifact) -> str:
         identity = [
             commit.repo_full_name, commit.pr_number, commit.base_sha, commit.head_sha,
             commit.policy_sha256, evidence.workflow_run_id, evidence.workflow_attempt,
