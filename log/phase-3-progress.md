@@ -187,3 +187,17 @@ so the history explains why the attempted fix did not resolve CI. This is a lint
 but Ruff is still the first failed gate. Strict type checking, tests, and coverage have not yet run
 successfully on the combined branch head. The next task is to confirm this import fix in CI and then
 address any newly surfaced gates.
+
+
+## Validation iteration — 2026-10-18 (no percentage increase)
+
+**Run:** [#39129403271](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39129403271)  
+**Observed:** Formatting passed; Ruff still failed with `I001` in the same test import block. The log
+showed the block now had the evidence import before the evidence-ledger import, but still failed.
+The earlier run's explicit Ruff fix had requested the inverse ordering. This commit restores that
+order to follow Ruff's actual auto-fix output rather than the ambiguous visual ordering assumption.
+
+**Progress remains 62% / 38% remaining.** This is still a lint-only fix. No tests or type checks have
+passed on this branch slice yet. If Ruff fails again, stop flipping import order blindly: inspect the
+complete tool configuration and use the exact `ruff check --fix` output or add an explicit import
+sorting configuration only if justified.
