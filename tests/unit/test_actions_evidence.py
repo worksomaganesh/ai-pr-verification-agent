@@ -315,7 +315,6 @@ def test_phase_three_service_rejects_pr_head_moving_during_ingestion() -> None:
         )
 
 
-
 def test_phase_three_service_persists_evidence_as_inconclusive_and_idempotently(
     tmp_path: Path,
 ) -> None:

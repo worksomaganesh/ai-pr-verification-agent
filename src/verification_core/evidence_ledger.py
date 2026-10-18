@@ -293,9 +293,13 @@ class SQLAlchemyEvidenceLedger:
             raise ValueError("record_key must be a lowercase SHA-256 digest")
         try:
             with self._engine.connect() as connection:
-                row = connection.execute(
-                    select(_EVIDENCE).where(_EVIDENCE.c.record_key == record_key)
-                ).mappings().first()
+                row = (
+                    connection.execute(
+                        select(_EVIDENCE).where(_EVIDENCE.c.record_key == record_key)
+                    )
+                    .mappings()
+                    .first()
+                )
                 return dict(row) if row is not None else None
         except SQLAlchemyError:
             raise DeliveryStoreError("Could not read authenticated evidence.") from None
