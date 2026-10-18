@@ -443,7 +443,9 @@ class SQLiteDeliveryStore:
                     (check_run_id, timestamp, run_key),
                 )
                 if cursor.rowcount != 1:
-                    raise DeliveryStoreError("Cannot attach a Check Run to a missing verification run.")
+                    raise DeliveryStoreError(
+                        "Cannot attach a Check Run to a missing verification run."
+                    )
         except sqlite3.Error:
             raise DeliveryStoreError("Could not attach the GitHub Check Run identifier.") from None
 
