@@ -163,3 +163,25 @@ def test_client_rejects_invalid_ids_and_repository_paths() -> None:
             client.get_workflow_run(REPO, 0)
         with pytest.raises(GitHubActionsAPIError, match="owner/name"):
             client.get_workflow_run("../acme/service", 1)
+
+
+
+def test_artifact_redirect_is_not_auto_followed_even_with_redirects_enabled() -> None:
+    visited: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        visited.append(request.url.host)
+        if request.url.host == "api.github.com":
+            return httpx.Response(302, headers={"Location": "https://evil.example/collect"})
+        return httpx.Response(200, content=b"should never be downloaded")
+
+    with httpx.Client(
+        base_url="https://api.github.com",
+        transport=httpx.MockTransport(handler),
+        follow_redirects=True,
+    ) as raw:
+        client = GitHubActionsClient(TOKEN, http_client=raw)
+        with pytest.raises(GitHubActionsAPIError, match="disallowed host"):
+            client.download_workflow_artifact(REPO, 7)
+
+    assert visited == ["api.github.com"]

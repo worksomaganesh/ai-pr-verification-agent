@@ -70,9 +70,7 @@ def _mapping(value: object, field: str) -> Mapping[str, object]:
 
 
 def _assert_current_pull_request(github: PullRequestReader, commit: CommitIdentity) -> None:
-    pr = _mapping(
-        github.get_pull_request(commit.repo_full_name, commit.pr_number), "pull request"
-    )
+    pr = _mapping(github.get_pull_request(commit.repo_full_name, commit.pr_number), "pull request")
     base = _mapping(pr.get("base"), "pull request base")
     head = _mapping(pr.get("head"), "pull request head")
     if pr.get("state") != "open":

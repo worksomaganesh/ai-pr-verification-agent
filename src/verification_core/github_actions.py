@@ -232,7 +232,10 @@ class GitHubActionsClient:
         path = f"/repos/{repo}/actions/artifacts/{artifact_id}/zip"
         try:
             with self._client.stream(
-                "GET", path, headers={"Authorization": self._authorization}
+                "GET",
+                path,
+                headers={"Authorization": self._authorization},
+                follow_redirects=False,
             ) as response:
                 if response.status_code == 200:
                     return _read_limited(response, self._max_archive_bytes)
@@ -253,7 +256,7 @@ class GitHubActionsClient:
                     )
             # The external signed URL is a bearer capability in its own right. Do not copy
             # the GitHub installation Authorization header to it and do not follow redirects.
-            with self._client.stream("GET", location) as download:
+            with self._client.stream("GET", location, follow_redirects=False) as download:
                 if download.status_code != 200:
                     raise GitHubActionsAPIError("The signed artifact download failed.")
                 return _read_limited(download, self._max_archive_bytes)
