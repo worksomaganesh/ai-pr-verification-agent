@@ -207,8 +207,10 @@ class GitHubAppAuthenticator:
                 self._private_key_pem,
                 algorithm="RS256",
             )
-        except (jwt.PyJWTError, ValueError, TypeError):
-            raise GitHubAPIError("GitHub App private key could not sign an App JWT.") from None
+        except (jwt.PyJWTError, ValueError, TypeError) as exc:
+            raise GitHubAPIError(
+                f"GitHub App private key could not sign an App JWT ({type(exc).__name__})."
+            ) from None
         if not isinstance(token, str):
             raise GitHubAPIError("GitHub App JWT encoder returned an invalid token.")
         return token
@@ -265,6 +267,9 @@ class GitHubRESTClient(GitHubReadClient):
     @staticmethod
     def _repo(repository: str) -> str:
         if not isinstance(repository, str) or not _REPOSITORY_RE.fullmatch(repository):
+            raise GitHubAPIError("Repository must match owner/name.")
+        owner, name = repository.split("/", maxsplit=1)
+        if owner in {".", ".."} or name in {".", ".."}:
             raise GitHubAPIError("Repository must match owner/name.")
         return quote(repository, safe="/")
 
