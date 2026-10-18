@@ -378,3 +378,10 @@ This commit also closes a ledger-validation inconsistency: reconciliation timest
 - Update the Phase III deployment docs: one run/one artifact is the supported V1 contract, and the trusted `main` workflow plus honest per-test manifest production remains required before live ingestion can be enabled.
 
 **Not yet verified:** No claim is made for formatting, lint, strict typing, tests, or coverage on the upcoming corrective SHA. The previous run failed formatting before all downstream checks, so those results were skipped rather than passed. No percentage increase is assigned to this unverified slice.
+
+
+## Formatter correction from exact CI diff — 2026-10-18 (no percentage increase)
+
+**Failing exact-head run:** [#39149971965](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39149971965), SHA `a2e4b5a49717b350a59d980bc659aea86a47adac`.
+
+The format-check output named `src/verification_core/phase_three.py` and `tests/unit/test_actions_evidence.py`. It requested two one-line statement consolidations, a one-line test signature, and removal of an extra blank line. The next commit applies that output directly. All downstream CI gates were skipped, and this formatting-only correction does not change the 70% implementation estimate.

@@ -180,9 +180,7 @@ def _validate_trusted_workflow_upload_contract(
         )
     upload_step = upload_steps[0]
     if "if" in upload_step:
-        raise EvidenceIngestionServiceError(
-            "Trusted evidence upload step must not be conditional."
-        )
+        raise EvidenceIngestionServiceError("Trusted evidence upload step must not be conditional.")
     action_ref = upload_step.get("uses")
     if not isinstance(action_ref, str) or not _PINNED_UPLOAD_ACTION.fullmatch(action_ref):
         raise EvidenceIngestionServiceError(
@@ -391,9 +389,7 @@ def ingest_pull_request_run(
             expected_run_id=workflow_run_id,
             required_step_name=required_step_name,
         )
-        _assert_workflow_run_unchanged(
-            actions, commit.repo_full_name, workflow_run_id, run_payload
-        )
+        _assert_workflow_run_unchanged(actions, commit.repo_full_name, workflow_run_id, run_payload)
         _assert_current_pull_request(github, commit)
         ledger_record_key = None
         if evidence_ledger is not None:

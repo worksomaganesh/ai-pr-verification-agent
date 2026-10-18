@@ -459,9 +459,7 @@ def test_phase_three_service_binds_base_workflow_and_rechecks_pr() -> None:
         ),
     ],
 )
-def test_phase_three_rejects_unverifiable_base_workflow_contract(
-    source: str, message: str
-) -> None:
+def test_phase_three_rejects_unverifiable_base_workflow_contract(source: str, message: str) -> None:
     from verification_core.phase_three import EvidenceIngestionServiceError, ingest_pull_request_run
 
     with pytest.raises(EvidenceIngestionServiceError, match=message):

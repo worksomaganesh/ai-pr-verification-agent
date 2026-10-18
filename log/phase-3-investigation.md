@@ -254,3 +254,8 @@ Reviewing rerun semantics also found a collection race: job-list APIs can repres
 The upload step validator now rejects conditional upload steps as well as duplicate/missing uploaders, unpinned references, dynamic/wildcard paths, mismatched names, duplicate YAML keys, and missing-file warning modes. This is intentionally fail-closed. The workflow currently at the PR's base SHA lacks the required uploader and the repository does not yet have a deployed per-test manifest producer. This is recorded as a release/deployment prerequisite; the validator must not be weakened to conceal it.
 
 The regression suite also adds checks for run-attempt changes, publication API failures preventing terminal ledger writes, and post-publication ledger persistence failures reporting `ledger_persisted=False`. These tests are part of the next full CI attempt and must not be called passed until that run proves it.
+
+
+## Follow-up CI formatting failure — 2026-10-18
+
+Run [#39149971965](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39149971965) tested the exact PR head `a2e4b5a49717b350a59d980bc659aea86a47adac` and failed `ruff format --check src tests`. Its actual output identified two files and four formatting adjustments: collapse the conditional-upload error constructor; collapse the workflow-run recheck call; collapse the parametrized trusted-workflow test signature; and remove an extra blank line. Ruff lint, strict mypy, tests, and coverage were skipped. These exact formatting changes are applied in the next commit. No test or coverage result is inferred from this run.
