@@ -199,3 +199,8 @@ Run `39144951098` passed format but failed lint with six diagnostics: import sor
 and two test locations, an undefined `ExecutionOutcome` in the adversarial test, an unused
 `ObligationStatus` import in the service module, and naturally sorted slots. These are now corrected
 without weakening Ruff. Strict typing and test behavior have not yet been validated on this SHA.
+
+
+The latest run passed format and all production/test lint checks except one long import in
+`tests/unit/test_evidence_ledger.py`. It is now a parenthesized multi-line import; no test result is
+claimed until CI proceeds past lint.

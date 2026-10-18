@@ -330,3 +330,8 @@ two import-order errors, one missing test-local `ExecutionOutcome` import, one u
 unsorted `__slots__` tuple. All are deterministic static-analysis findings; this commit applies the
 suggested import order, removes the unused name, adds the explicit test dependency, and sorts slots.
 The next run must confirm strict typing and tests.
+
+
+The next lint run found one remaining import-sort issue in the evidence-ledger test: the two imported
+ledger symbols needed a parenthesized multi-line import. The production code and newly added tests
+passed Ruff in that run; this last import-only correction is now applied.
