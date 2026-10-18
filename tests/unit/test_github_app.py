@@ -51,6 +51,7 @@ def test_github_app_jwt_and_installation_token() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         seen["path"] = request.url.path
         seen["authorization"] = request.headers.get("authorization")
+        seen["body"] = json.loads(request.content)
         return json_response(
             {"token": "ghs-installation-token", "expires_at": "2030-01-01T00:00:00Z"}
         )
@@ -64,7 +65,7 @@ def test_github_app_jwt_and_installation_token() -> None:
         app_jwt,
         public_pem,
         algorithms=["RS256"],
-        options={"verify_exp": False},
+        options={"verify_exp": False, "verify_iat": False},
     )
     assert claims["iss"] == 123
     assert claims["iat"] == 1_799_999_970
@@ -74,6 +75,11 @@ def test_github_app_jwt_and_installation_token() -> None:
     assert token.expires_at.tzinfo is not None
     assert seen["path"] == "/app/installations/456/access_tokens"
     assert str(seen["authorization"]).startswith("Bearer ")
+    assert seen["body"]["permissions"] == {
+        "contents": "read",
+        "pull_requests": "read",
+        "checks": "write",
+    }
     with pytest.raises(ValueError):
         authenticator.create_installation_token(0)
     authenticator.close()
