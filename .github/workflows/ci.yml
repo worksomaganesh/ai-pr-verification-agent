@@ -57,5 +57,5 @@ jobs:
       - name: Enforce Phase II integration coverage gate
         run: >-
           coverage report
-          --include=src/verification_core/__main__.py,src/verification_core/asgi.py,src/verification_core/delivery_store.py,src/verification_core/gemini_planner.py,src/verification_core/github_app.py,src/verification_core/phase_two.py,src/verification_core/runtime.py,src/verification_core/webhook_app.py
+          --include=src/verification_core/__main__.py,src/verification_core/asgi.py,src/verification_core/delivery_store.py,src/verification_core/gemini_planner.py,src/verification_core/github_app.py,src/verification_core/phase_two.py,src/verification_core/runtime.py,src/verification_core/run_ledger.py,src/verification_core/webhook_app.py
           --fail-under=80
