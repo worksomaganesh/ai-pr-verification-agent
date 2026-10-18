@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import stat
 import zipfile
 from pathlib import Path
 
@@ -41,6 +42,24 @@ MANIFEST = json.dumps(
         ],
     }
 ).encode()
+
+
+TRUSTED_WORKFLOW = """\\
+name: trusted-ci
+on: pull_request
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Upload verification evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: verification-evidence
+          path: |
+            junit.xml
+            coverage-manifest.json
+          if-no-files-found: error
+"""
 
 
 def identity() -> CommitIdentity:
@@ -181,6 +200,96 @@ def test_rejects_extra_files_traversal_and_contradictory_reports() -> None:
         ingest(archive({"junit.xml": JUNIT, "coverage-manifest.json": contradictory}))
 
 
+@pytest.mark.parametrize("payload", [b"", b"not-a-zip-archive"])
+def test_archive_reader_rejects_empty_or_malformed_zip(payload: bytes) -> None:
+    from verification_core.actions_evidence import _read_zip_members
+
+    with pytest.raises(ActionsEvidenceError, match="non-empty bytes|valid ZIP"):
+        _read_zip_members(payload)
+
+
+def test_archive_reader_rejects_too_many_members() -> None:
+    from verification_core.actions_evidence import _read_zip_members
+
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w", zipfile.ZIP_STORED) as zip_file:
+        for index in range(17):
+            zip_file.writestr(f"untrusted-{index}.txt", b"x")
+    with pytest.raises(ActionsEvidenceError, match="number of members"):
+        _read_zip_members(output.getvalue())
+
+
+@pytest.mark.parametrize("unsafe_name", ["../junit.xml", "/junit.xml", "folder\\\\junit.xml"])
+def test_archive_reader_rejects_unsafe_paths(unsafe_name: str) -> None:
+    from verification_core.actions_evidence import _read_zip_members
+
+    with pytest.raises(ActionsEvidenceError, match="unsafe member path|path-traversal"):
+        _read_zip_members(archive({unsafe_name: JUNIT, "coverage-manifest.json": MANIFEST}))
+
+
+def test_archive_reader_rejects_duplicate_members() -> None:
+    from verification_core.actions_evidence import _read_zip_members
+
+    output = io.BytesIO()
+    with pytest.warns(UserWarning, match="Duplicate name"):
+        with zipfile.ZipFile(output, "w", zipfile.ZIP_STORED) as zip_file:
+            zip_file.writestr("junit.xml", JUNIT)
+            zip_file.writestr("junit.xml", JUNIT)
+            zip_file.writestr("coverage-manifest.json", MANIFEST)
+    with pytest.raises(ActionsEvidenceError, match="duplicate file names"):
+        _read_zip_members(output.getvalue())
+
+
+def test_archive_reader_rejects_symlink_and_empty_member() -> None:
+    from verification_core.actions_evidence import _read_zip_members
+
+    output = io.BytesIO()
+    symlink = zipfile.ZipInfo("junit.xml")
+    symlink.create_system = 3
+    symlink.external_attr = (stat.S_IFLNK | 0o777) << 16
+    with zipfile.ZipFile(output, "w", zipfile.ZIP_STORED) as zip_file:
+        zip_file.writestr(symlink, b"target")
+        zip_file.writestr("coverage-manifest.json", MANIFEST)
+    with pytest.raises(ActionsEvidenceError, match="non-regular file"):
+        _read_zip_members(output.getvalue())
+
+    empty = archive({"junit.xml": b"", "coverage-manifest.json": MANIFEST})
+    with pytest.raises(ActionsEvidenceError, match="empty or exceeds"):
+        _read_zip_members(empty)
+
+
+def test_archive_reader_rejects_large_and_high_ratio_members() -> None:
+    from verification_core.actions_evidence import _read_zip_members
+
+    oversized = archive(
+        {
+            "junit.xml": b"x" * (5 * 1024 * 1024 + 1),
+            "coverage-manifest.json": MANIFEST,
+        }
+    )
+    with pytest.raises(ActionsEvidenceError, match="empty or exceeds"):
+        _read_zip_members(oversized)
+
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        zip_file.writestr("junit.xml", JUNIT)
+        zip_file.writestr("coverage-manifest.json", b"x" * 600_000)
+    with pytest.raises(ActionsEvidenceError, match="compression ratio"):
+        _read_zip_members(output.getvalue())
+
+
+def test_archive_reader_allows_explicit_directory_entries_only_as_containers() -> None:
+    from verification_core.actions_evidence import _read_zip_members
+
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        zip_file.writestr("reports/", b"")
+        zip_file.writestr("junit.xml", JUNIT)
+        zip_file.writestr("coverage-manifest.json", MANIFEST)
+    assert set(_read_zip_members(output.getvalue())) == {"junit.xml", "coverage-manifest.json"}
+
+
+
 @pytest.mark.parametrize(
     "url",
     [
@@ -210,9 +319,15 @@ def test_rejects_archive_size_that_disagrees_with_api_metadata() -> None:
 
 
 class _FakePRReader:
-    def __init__(self, *, move_head_after_first_read: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        move_head_after_first_read: bool = False,
+        workflow_source: str = TRUSTED_WORKFLOW,
+    ) -> None:
         self.calls = 0
         self.move_head_after_first_read = move_head_after_first_read
+        self.workflow_source = workflow_source
 
     def get_pull_request(self, repository: str, pr_number: int) -> dict[str, object]:
         assert repository == REPO
@@ -227,7 +342,7 @@ class _FakePRReader:
         assert repository == REPO
         assert path == ".github/workflows/ci.yml"
         assert ref == BASE
-        return "name: trusted-ci\non: pull_request\njobs: {}\n"
+        return self.workflow_source
 
 
 class _FakeActionsReader:
@@ -276,6 +391,85 @@ def test_phase_three_service_binds_base_workflow_and_rechecks_pr() -> None:
     assert result.evidence.artifact_id == 55
     assert len(result.workflow_definition_sha256) == 64
     assert pr_reader.calls == 2
+
+
+@pytest.mark.parametrize(
+    ("source", "message"),
+    [
+        (TRUSTED_WORKFLOW.replace("on: pull_request", "on: push"), "pull_request trigger"),
+        (
+            TRUSTED_WORKFLOW.replace(
+                "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+                "actions/upload-artifact@v4",
+            ),
+            "full immutable commit SHA",
+        ),
+        (
+            TRUSTED_WORKFLOW.replace("name: verification-evidence", "name: arbitrary-name"),
+            "artifact name",
+        ),
+        (
+            TRUSTED_WORKFLOW.replace("coverage-manifest.json", "coverage-*.json"),
+            "exact junit.xml and coverage-manifest.json",
+        ),
+        (
+            TRUSTED_WORKFLOW.replace("if-no-files-found: error", "if-no-files-found: warn"),
+            "fail when an evidence file is missing",
+        ),
+        (
+            TRUSTED_WORKFLOW.replace(
+                "        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+                "        run: echo not-an-upload-action",
+            ),
+            "exactly one required step",
+        ),
+        (
+            TRUSTED_WORKFLOW.replace(
+                "          if-no-files-found: error\n",
+                "          if-no-files-found: error\n      - name: Extra uploader\n        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02\n        with:\n          name: extra-artifact\n          path: extra.txt\n          if-no-files-found: error\n",
+            ),
+            "exactly one required step",
+        ),
+        ("name: broken\non: [pull_request\njobs: {}", "malformed or ambiguous"),
+        (
+            "name: duplicate\non: pull_request\njobs:\n  verify: {}\n  verify: {}",
+            "malformed or ambiguous",
+        ),
+        (
+            TRUSTED_WORKFLOW.replace("name: Upload verification evidence", "name: Different display name"),
+            "exactly one required step",
+        ),
+    ],
+)
+def test_phase_three_rejects_unverifiable_base_workflow_contract(
+    source: str, message: str
+) -> None:
+    from verification_core.phase_three import EvidenceIngestionServiceError, ingest_pull_request_run
+
+    with pytest.raises(EvidenceIngestionServiceError, match=message):
+        ingest_pull_request_run(
+            github=_FakePRReader(workflow_source=source),
+            actions=_FakeActionsReader(),
+            commit=identity(),
+            workflow_run_id=99,
+            trusted_workflow_paths=(".github/workflows/ci.yml",),
+            harness_sensitive_paths=(".github/workflows/", "conftest.py"),
+            changed_paths=("src/auth.py",),
+        )
+
+
+def test_phase_three_workflow_source_size_is_bounded() -> None:
+    from verification_core.phase_three import (
+        EvidenceIngestionServiceError,
+        _validate_trusted_workflow_upload_contract,
+    )
+
+    with pytest.raises(EvidenceIngestionServiceError, match="size limit"):
+        _validate_trusted_workflow_upload_contract(
+            "x" * (256 * 1024 + 1),
+            required_step_name="Upload verification evidence",
+            expected_artifact_name="verification-evidence",
+        )
 
 
 def test_phase_three_service_rejects_missing_or_ambiguous_artifacts() -> None:

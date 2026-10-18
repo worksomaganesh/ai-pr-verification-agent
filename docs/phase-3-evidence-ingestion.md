@@ -93,3 +93,12 @@ conclusions map to `PASSED`, `FAILED`, and `STALE` evidence reconciliation statu
 `action_required` or `neutral` conclusion leaves the evidence record `INCONCLUSIVE`. If the
 post-publication ledger write fails, the result explicitly reports `ledger_persisted=False` so the
 decision can be retried idempotently; the code does not claim durable completion.
+
+
+## Trusted workflow definition contract
+
+The orchestration layer now parses the workflow source retrieved at the exact base SHA before downloading evidence. The accepted shape is intentionally narrow: the workflow must declare a `pull_request` trigger; it must define exactly one step named `Upload verification evidence`; that step must be the workflow's only `actions/upload-artifact` use and must pin the action to a full 40-character commit SHA; its literal artifact name must equal the configured name; its path input must contain exactly `junit.xml` and `coverage-manifest.json`; and `if-no-files-found` must be `error`. The source is size-bounded and parsed with duplicate YAML mapping keys rejected. Unrecognized or ambiguous shapes fail closed.
+
+This validates the upload contract declared in trusted source; it does not independently prove that a test assertion is behaviorally sufficient. The platform-reported step must still be completed successfully, downloaded bytes must match the authenticated artifact digest, and obligation reconciliation still uses the deterministic Phase I state machine. The source currently present on the repository's `main` branch does not declare this uploader; the Phase III service therefore intentionally rejects that workflow as an evidence producer until an appropriate trusted workflow configuration is deployed.
+
+The V1 run policy is conservative: one workflow run attempt and exactly one artifact with the configured evidence name. No automatic cross-run, rerun, or shard aggregation is performed. Missing or ambiguous artifacts are rejected; a future aggregation feature must define identity, completeness, and contradiction semantics before it can combine reports.

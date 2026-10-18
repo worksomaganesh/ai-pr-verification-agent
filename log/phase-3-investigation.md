@@ -234,3 +234,12 @@ For run/shard handling, one requested run currently requires exactly one artifac
 name. That is a useful fail-closed primitive, but it is not a documented aggregation protocol for
 multiple successful runs, reruns, or test shards. Until a deterministic aggregation contract exists,
 ambiguous or partial evidence must remain inconclusive rather than being combined optimistically.
+
+
+## Trusted workflow semantics and adversarial ZIP boundaries — implementation slice
+
+The ingestion service previously fetched the workflow at the base SHA and stored its digest, but treated the path and a successful display-name step as enough. That was incomplete: a same-named shell step or an uploader configured with a different name/path could satisfy the shallow check. The service now validates a bounded, duplicate-key-rejecting YAML document, a pull-request trigger, one precisely named and sole artifact uploader, a full immutable upload-artifact commit pin, the exact evidence filenames, the literal artifact name, and `if-no-files-found: error`. Unsupported/ambiguous workflows fail closed before artifact downloads. The repository's current base workflow does not itself meet this contract; that is a deployment prerequisite, not a reason to weaken the validator.
+
+The archive regression suite now exercises malformed/empty ZIP input, excess members, traversal/absolute/backslash paths, duplicate names, symlinks, empty/oversized files, excessive compression ratios, and directory entries. These tests are meant to lock the parser's boundary behavior; they are not release proof until they pass on the exact new SHA.
+
+A review also found that ingestion timestamps were already checked for finiteness, while terminal-decision timestamps only checked negativity. The ledger now rejects boolean, NaN, infinite, and negative decision timestamps too, keeping the decision-write validation contract consistent.

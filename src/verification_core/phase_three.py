@@ -9,8 +9,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections.abc import Mapping, Sequence
-from typing import Protocol
+from typing import Protocol, cast
+
+import yaml
+from yaml.constructor import ConstructorError
+from yaml.nodes import MappingNode
 
 from verification_core.actions_evidence import (
     ActionsEvidenceError,
@@ -41,6 +46,168 @@ from verification_core.security import scrub_secrets
 
 class EvidenceIngestionServiceError(ValueError):
     """Raised when evidence collection is ambiguous, stale, or lacks trusted context."""
+
+
+class _UniqueKeySafeLoader(yaml.SafeLoader):
+    """Safe YAML loader that rejects duplicate mapping keys instead of silently overriding them."""
+
+
+def _construct_unique_mapping(
+    loader: _UniqueKeySafeLoader, node: MappingNode, deep: bool = False
+) -> dict[object, object]:
+    mapping: dict[object, object] = {}
+    for key_node, value_node in node.value:
+        key = loader.construct_object(key_node, deep=deep)
+        try:
+            duplicate = key in mapping
+        except TypeError as exc:
+            raise ConstructorError(
+                None, None, "workflow YAML mapping keys must be hashable", key_node.start_mark
+            ) from exc
+        if duplicate:
+            raise ConstructorError(
+                None, None, f"duplicate workflow YAML key: {key!r}", key_node.start_mark
+            )
+        mapping[key] = loader.construct_object(value_node, deep=deep)
+    return mapping
+
+
+_UniqueKeySafeLoader.add_constructor(
+    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _construct_unique_mapping
+)
+
+_MAX_TRUSTED_WORKFLOW_BYTES = 256 * 1024
+_PINNED_UPLOAD_ACTION = re.compile(r"actions/upload-artifact@[0-9a-f]{40}")
+_REQUIRED_ARTIFACT_FILES = ("coverage-manifest.json", "junit.xml")
+
+
+def _workflow_mapping(value: object, field: str) -> Mapping[object, object]:
+    if not isinstance(value, Mapping):
+        raise EvidenceIngestionServiceError(f"Trusted workflow {field} must be a mapping.")
+    return value
+
+
+def _workflow_string_mapping(value: object, field: str) -> Mapping[str, object]:
+    mapping = _workflow_mapping(value, field)
+    if any(not isinstance(key, str) for key in mapping):
+        raise EvidenceIngestionServiceError(
+            f"Trusted workflow {field} must use string mapping keys."
+        )
+    return cast(Mapping[str, object], mapping)
+
+
+def _validate_trusted_workflow_upload_contract(
+    workflow_source: str, *, required_step_name: str, expected_artifact_name: str
+) -> None:
+    """Prove the base-SHA workflow has one pinned uploader for the exact evidence contract.
+
+    This deliberately accepts a narrow workflow shape. Unknown YAML, duplicate keys, multiple
+    uploaders, tag-based action references, dynamic artifact names, globs, and missing-file
+    warning modes are rejected rather than guessed at.
+    """
+    if not isinstance(workflow_source, str) or not workflow_source:
+        raise EvidenceIngestionServiceError("Trusted workflow source is missing.")
+    try:
+        source_bytes = workflow_source.encode("utf-8")
+    except UnicodeEncodeError as exc:
+        raise EvidenceIngestionServiceError(
+            "Trusted workflow source is not valid UTF-8 text."
+        ) from exc
+    if len(source_bytes) > _MAX_TRUSTED_WORKFLOW_BYTES:
+        raise EvidenceIngestionServiceError("Trusted workflow source exceeds its size limit.")
+    if (
+        not isinstance(required_step_name, str)
+        or not required_step_name.strip()
+        or len(required_step_name) > 200
+    ):
+        raise EvidenceIngestionServiceError("Required evidence step name is invalid.")
+    if (
+        not isinstance(expected_artifact_name, str)
+        or not expected_artifact_name.strip()
+        or len(expected_artifact_name) > 200
+    ):
+        raise EvidenceIngestionServiceError("Expected evidence artifact name is invalid.")
+
+    try:
+        workflow_value = yaml.load(workflow_source, Loader=_UniqueKeySafeLoader)
+    except (yaml.YAMLError, RecursionError, TypeError, ValueError) as exc:
+        raise EvidenceIngestionServiceError(
+            "Trusted workflow YAML is malformed or ambiguous."
+        ) from exc
+    workflow = _workflow_mapping(workflow_value, "root")
+    if "on" in workflow and True in workflow:
+        raise EvidenceIngestionServiceError("Trusted workflow trigger declaration is ambiguous.")
+    triggers = workflow.get("on", workflow.get(True))
+    has_pull_request_trigger = (
+        triggers == "pull_request"
+        or isinstance(triggers, list) and "pull_request" in triggers
+        or isinstance(triggers, Mapping)
+        and "pull_request" in triggers
+        and triggers.get("pull_request") is not False
+    )
+    if not has_pull_request_trigger:
+        raise EvidenceIngestionServiceError(
+            "Trusted workflow must declare a pull_request trigger."
+        )
+
+    jobs = _workflow_string_mapping(workflow.get("jobs"), "jobs")
+    if not jobs:
+        raise EvidenceIngestionServiceError("Trusted workflow has no jobs.")
+    named_steps: list[Mapping[str, object]] = []
+    upload_steps: list[Mapping[str, object]] = []
+    for job_name, raw_job in jobs.items():
+        job = _workflow_string_mapping(raw_job, f"job {job_name}")
+        raw_steps = job.get("steps")
+        if raw_steps is None:
+            continue
+        if not isinstance(raw_steps, list):
+            raise EvidenceIngestionServiceError(
+                f"Trusted workflow job {job_name} steps must be a list."
+            )
+        for index, raw_step in enumerate(raw_steps):
+            step = _workflow_string_mapping(raw_step, f"job {job_name} step {index}")
+            if step.get("name") == required_step_name:
+                named_steps.append(step)
+            uses = step.get("uses")
+            if isinstance(uses, str) and (
+                uses == "actions/upload-artifact" or uses.startswith("actions/upload-artifact@")
+            ):
+                upload_steps.append(step)
+
+    if (
+        len(named_steps) != 1
+        or len(upload_steps) != 1
+        or named_steps[0] is not upload_steps[0]
+    ):
+        raise EvidenceIngestionServiceError(
+            "Trusted workflow must define exactly one required step and exactly one matching "
+            "upload-artifact action."
+        )
+    upload_step = upload_steps[0]
+    action_ref = upload_step.get("uses")
+    if not isinstance(action_ref, str) or not _PINNED_UPLOAD_ACTION.fullmatch(action_ref):
+        raise EvidenceIngestionServiceError(
+            "Trusted upload-artifact action must be pinned to a full immutable commit SHA."
+        )
+    inputs = _workflow_string_mapping(upload_step.get("with"), "upload step inputs")
+    if inputs.get("name") != expected_artifact_name:
+        raise EvidenceIngestionServiceError(
+            "Trusted upload step artifact name does not match the configured evidence name."
+        )
+    raw_path = inputs.get("path")
+    if not isinstance(raw_path, str):
+        raise EvidenceIngestionServiceError("Trusted upload step path must be a literal string.")
+    paths = [line.strip() for line in raw_path.splitlines() if line.strip()]
+    if sorted(paths) != sorted(_REQUIRED_ARTIFACT_FILES) or len(paths) != len(
+        _REQUIRED_ARTIFACT_FILES
+    ):
+        raise EvidenceIngestionServiceError(
+            "Trusted upload step must contain exactly junit.xml and coverage-manifest.json."
+        )
+    if inputs.get("if-no-files-found") != "error":
+        raise EvidenceIngestionServiceError(
+            "Trusted upload step must fail when an evidence file is missing."
+        )
 
 
 class PullRequestReader(Protocol):
@@ -164,6 +331,11 @@ def ingest_pull_request_run(
             raise EvidenceIngestionServiceError(
                 "Trusted workflow file does not exist at the exact base SHA."
             )
+        _validate_trusted_workflow_upload_contract(
+            workflow_source,
+            required_step_name=required_step_name,
+            expected_artifact_name=expected_artifact_name,
+        )
         workflow_digest = hashlib.sha256(workflow_source.encode("utf-8")).hexdigest()
 
         jobs = actions.list_workflow_run_jobs(commit.repo_full_name, workflow_run_id)
