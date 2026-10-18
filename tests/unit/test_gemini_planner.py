@@ -163,9 +163,10 @@ def test_environment_factory_uses_deterministic_mode_without_api_key() -> None:
     assert gemini_model_from_environment({}) is None
     with pytest.raises(RuntimeError, match="GEMINI_MODEL"):
         gemini_model_from_environment({"GEMINI_API_KEY": "test-key"})
-    assert gemini_model_from_environment(
-        {"GEMINI_API_KEY": "test-key", "GEMINI_MODEL": "test-model"}
-    ) is not None
+    assert (
+        gemini_model_from_environment({"GEMINI_API_KEY": "test-key", "GEMINI_MODEL": "test-model"})
+        is not None
+    )
 
 
 def test_gemini_rejects_invalid_timeout() -> None:
