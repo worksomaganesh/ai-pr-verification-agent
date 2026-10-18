@@ -171,3 +171,19 @@ coverage were skipped.
 
 **Progress remains 62% complete / 38% remaining.** This is a lint-only correction, not a substantive
 Phase III milestone.
+
+
+## Validation iteration — 2026-10-18 (no percentage increase)
+
+**Failure confirmed:** [run #39129212422](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39129212422)
+again failed only at Ruff `I001` in `tests/unit/test_evidence_ledger.py`. The emitted diff explicitly
+showed that Ruff wants `verification_core.evidence` before `verification_core.evidence_ledger`.
+The branch content still had the inverse order.
+
+**Change:** Restored the import order required by that exact diff and corrected the prior log note
+so the history explains why the attempted fix did not resolve CI. This is a lint-only correction.
+
+**Progress remains 62% complete / 38% remaining.** Formatting passed on the preceding failing runs,
+but Ruff is still the first failed gate. Strict type checking, tests, and coverage have not yet run
+successfully on the combined branch head. The next task is to confirm this import fix in CI and then
+address any newly surfaced gates.
