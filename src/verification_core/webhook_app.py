@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import os
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -129,7 +129,7 @@ def create_webhook_app(
 
 
 def create_app_from_environment(
-    *, database_path: str | None = None, environ: dict[str, str] | None = None
+    *, database_path: str | None = None, environ: Mapping[str, str] | None = None
 ) -> FastAPI:
     """Construct the ingress app from deployment environment without import-time side effects."""
     environment = os.environ if environ is None else environ
