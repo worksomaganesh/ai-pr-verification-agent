@@ -316,3 +316,8 @@ stopped at Ruff formatting before lint, strict typing, or tests. The formatter i
 the new publication helper's conditional indentation/line wrapping, an extra blank line before its test
 fake, and the evidence-ledger test's import spacing. This patch applies the exact formatting changes;
 no behavior result is inferred from that run.
+
+
+The first formatting correction still left two exact Ruff diffs: indentation in the nested sufficiency
+conditional and an extra blank line before `from __future__ import annotations` in the ledger test.
+Both are corrected in this commit. The full CI run must still confirm lint, types, tests, and coverage.

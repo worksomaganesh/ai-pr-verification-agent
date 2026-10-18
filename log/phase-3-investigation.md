@@ -185,3 +185,9 @@ Run #39144723077 failed at formatting only. Ruff's diff identified the condition
 indentation, three line-wrapping differences in the publication helper, and one extra blank line before
 the new fake publisher. These formatting-only edits are now applied; the next CI run must reach lint,
 mypy and tests to validate the implementation.
+
+
+The follow-up CI attempt found only two formatting diffs: the conditional expression was indented
+incorrectly after adding contradiction preservation, and the ledger test had two blank lines between
+its module docstring and future import. Both exact diffs are corrected; no behavioral gate has yet run
+on this revision.

@@ -257,15 +257,15 @@ def reconcile_authenticated_obligation(
     else:
         assertion_verified = trusted_assertion_bindings.get(obligation.obligation_id) == node_id
         sufficiency = (
-        assess_evidence_sufficiency(
-            total_tests=evidence.junit_report.total_tests,
-            target_lines_exercised=reconciled.target_lines_exercised,
-            target_branches_exercised=reconciled.target_branches_exercised,
-            behavioral_assertion_verified=assertion_verified,
-        )
-            if reconciled.outcome is ExecutionOutcome.PASSED
-                else EvidenceSufficiency.UNVERIFIED
+            assess_evidence_sufficiency(
+                total_tests=evidence.junit_report.total_tests,
+                target_lines_exercised=reconciled.target_lines_exercised,
+                target_branches_exercised=reconciled.target_branches_exercised,
+                behavioral_assertion_verified=assertion_verified,
             )
+            if reconciled.outcome is ExecutionOutcome.PASSED
+            else EvidenceSufficiency.UNVERIFIED
+        )
     execution = ExecutionEvidence(
         test_node_id=node_id,
         outcome=reconciled.outcome,
