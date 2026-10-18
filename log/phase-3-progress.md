@@ -395,3 +395,8 @@ Run [#39168709842](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 ## Follow-up Ruff suppression and fixture corrections — 2026-10-19
 
 Run [#39169027616](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39169027616) passed formatting but Ruff found three issues: the `S506` suppression was attached to the wrong line and was consequently unused, the custom-loader argument itself was flagged, and a long embedded workflow fixture line exceeded the configured line length. The suppression is now attached to the `Loader=_UniqueKeySafeLoader` argument with a comment documenting that it subclasses `yaml.SafeLoader`; the fixture is split into adjacent literals without changing the YAML bytes. Strict typing/tests were skipped in that run and remain pending.
+
+
+## Full-test findings and regression additions — 2026-10-19
+
+Run [#39169277725](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39169277725) passed format, Ruff, and strict mypy, then ran 424 tests: 422 passed and two failed in the new workflow-contract parameterization. The wildcard-path case expected the wrong error wording; the conditional-upload fixture accidentally contained a literal backslash-n, so YAML parsing correctly rejected it before reaching the conditional-step assertion. The expected message and fixture are corrected. Overall coverage was 89.68%, below the required 90%; added parametrized regression cases for changes to every workflow-run identity field and invalid original attempt metadata to increase meaningful branch coverage. These fixes remain unverified until a new exact-head CI run passes.

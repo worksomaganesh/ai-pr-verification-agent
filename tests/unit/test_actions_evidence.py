@@ -421,7 +421,7 @@ def test_phase_three_service_binds_base_workflow_and_rechecks_pr() -> None:
         ),
         (
             TRUSTED_WORKFLOW.replace("coverage-manifest.json", "coverage-*.json"),
-            "exact junit.xml and coverage-manifest.json",
+            r"exactly junit\.xml and coverage-manifest\.json",
         ),
         (
             TRUSTED_WORKFLOW.replace("if-no-files-found: error", "if-no-files-found: warn"),
@@ -430,7 +430,7 @@ def test_phase_three_service_binds_base_workflow_and_rechecks_pr() -> None:
         (
             TRUSTED_WORKFLOW.replace(
                 "      - name: Upload verification evidence",
-                "      - name: Upload verification evidence\\n        if: false",
+                "      - name: Upload verification evidence\n        if: false",
             ),
             "must not be conditional",
         ),
@@ -535,6 +535,43 @@ def test_phase_three_service_rejects_pr_head_moving_during_ingestion() -> None:
             changed_paths=("src/auth.py",),
         )
 
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement"),
+    [
+        ("id", 100),
+        ("workflow_id", 101),
+        ("path", ".github/workflows/other.yml"),
+        ("event", "push"),
+        ("status", "in_progress"),
+        ("conclusion", "cancelled"),
+        ("head_sha", "e" * 40),
+        ("run_attempt", 2),
+    ],
+)
+def test_phase_three_rejects_each_workflow_run_identity_change(
+    field: str, replacement: object
+) -> None:
+    from verification_core.phase_three import (
+        EvidenceIngestionServiceError,
+        _assert_workflow_run_unchanged,
+    )
+
+    actions = _FakeActionsReader()
+    original = actions.run_payload
+    actions.run_payload = {**original, field: replacement}
+    with pytest.raises(EvidenceIngestionServiceError, match="identity or attempt changed"):
+        _assert_workflow_run_unchanged(actions, REPO, 99, original)
+
+
+def test_phase_three_rejects_invalid_original_workflow_attempt() -> None:
+    from verification_core.phase_three import EvidenceIngestionServiceError, _assert_workflow_run_unchanged
+
+    actions = _FakeActionsReader()
+    original = {**actions.run_payload, "run_attempt": True}
+    with pytest.raises(EvidenceIngestionServiceError, match="attempt is missing or invalid"):
+        _assert_workflow_run_unchanged(actions, REPO, 99, original)
 
 def test_phase_three_service_rejects_attempt_change_during_ingestion() -> None:
     from verification_core.phase_three import EvidenceIngestionServiceError, ingest_pull_request_run
