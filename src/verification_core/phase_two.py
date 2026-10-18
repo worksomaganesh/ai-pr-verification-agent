@@ -13,6 +13,7 @@ from verification_core.domain import (
 )
 from verification_core.github_app import GitHubAPIError, GitHubRESTClient, InstallationToken
 from verification_core.github_context import assemble_pull_request_context
+from verification_core.run_ledger import VerificationRunLedger
 from verification_core.planning import (
     PlanningResult,
     VerificationModelPort,
@@ -136,14 +137,21 @@ class PhaseTwoProcessor:
         store: SQLiteDeliveryStore,
         authenticator: InstallationTokenProvider,
         model_factory: ModelFactory | None = None,
+        run_ledger: VerificationRunLedger | None = None,
         check_name: str = "AI PR Verification",
     ) -> None:
         if not check_name or len(check_name) > 100:
             raise ValueError("check_name must contain 1-100 characters")
         self._store = store
+        self._run_ledger = run_ledger or store
         self._authenticator = authenticator
         self._model_factory = model_factory
         self._check_name = check_name
+
+    def close(self) -> None:
+        """Release the optional separate SQLAlchemy run-ledger connection pool."""
+        if self._run_ledger is not self._store:
+            self._run_ledger.close()
 
     def process_next(self) -> ProcessingResult | None:
         """Claim and process one delivery. Failures are retried with bounded backoff."""
@@ -205,7 +213,7 @@ class PhaseTwoProcessor:
                     model_mode=planning.planner_mode,
                     degradation_reason=planning.degradation_reason,
                 )
-                run_key = self._store.save_verification_run(
+                run_key = self._run_ledger.save_verification_run(
                     commit=planning.commit,
                     analysis_completeness=planning.analysis_completeness.value,
                     planner_mode=planning.planner_mode,
@@ -224,7 +232,7 @@ class PhaseTwoProcessor:
                     external_id=external_id,
                     details_url=details_url,
                 )
-                self._store.set_check_run_id(run_key, check_run_id)
+                self._run_ledger.set_check_run_id(run_key, check_run_id)
             finally:
                 client.close()
 
