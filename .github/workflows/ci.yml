@@ -47,3 +47,15 @@ jobs:
 
       - name: Run unit and property-based tests with coverage
         run: pytest --cov=src/verification_core --cov-report=term-missing --cov-report=xml
+
+      - name: Enforce Phase I core coverage gate
+        run: >-
+          coverage report
+          --include=src/verification_core/coverage.py,src/verification_core/domain/*,src/verification_core/evidence.py,src/verification_core/github_context.py,src/verification_core/ledger.py,src/verification_core/planning.py,src/verification_core/policy.py,src/verification_core/scenarios/*,src/verification_core/security.py,src/verification_core/webhooks.py
+          --fail-under=95
+
+      - name: Enforce Phase II integration coverage gate
+        run: >-
+          coverage report
+          --include=src/verification_core/__main__.py,src/verification_core/asgi.py,src/verification_core/delivery_store.py,src/verification_core/gemini_planner.py,src/verification_core/github_app.py,src/verification_core/phase_two.py,src/verification_core/runtime.py,src/verification_core/webhook_app.py
+          --fail-under=80
