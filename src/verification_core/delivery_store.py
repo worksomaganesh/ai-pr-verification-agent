@@ -203,8 +203,15 @@ class SQLiteDeliveryStore:
                     payload: Any = json.loads(row["event_json"])
                     event = PullRequestWebhookEvent(**payload)
                 except (TypeError, ValueError, json.JSONDecodeError):
-                    self.mark_failed(str(row["delivery_id"]), error_code="stored_event_invalid", retry=False, now=timestamp)
-                    raise DeliveryStoreError("Stored webhook event failed schema validation.") from None
+                    self.mark_failed(
+                        str(row["delivery_id"]),
+                        error_code="stored_event_invalid",
+                        retry=False,
+                        now=timestamp,
+                    )
+                    raise DeliveryStoreError(
+                        "Stored webhook event failed schema validation."
+                    ) from None
                 return QueuedDelivery(event=event, attempts=attempts)
         except sqlite3.Error:
             raise DeliveryStoreError("Could not claim a webhook delivery safely.") from None
@@ -253,9 +260,7 @@ class SQLiteDeliveryStore:
         except sqlite3.Error:
             raise DeliveryStoreError("Could not record webhook processing failure.") from None
 
-    def _transition_processing(
-        self, delivery_id: str, *, status: str, now: float | None
-    ) -> None:
+    def _transition_processing(self, delivery_id: str, *, status: str, now: float | None) -> None:
         timestamp = time.time() if now is None else now
         try:
             with self._connect() as connection:
