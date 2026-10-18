@@ -243,3 +243,17 @@ single test module so CI can expose strict-mypy and test failures. This is a dia
 the final code-quality resolution**. Before Phase III can be called complete, the suppression must be
 removed and the import block normalized using actual `ruff check --fix` output or an equivalent
 reproducible formatter run.
+
+
+## Strict-mypy findings — 2026-10-18
+
+The diagnostic run [#39143710693](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39143710693)
+passed formatting and Ruff, then exposed 28 strict-mypy errors. The root causes were (a) a JUnit node
+map typed as `object` even though its values are parsed JUnit cases, (b) one test helper missing a
+return annotation, and (c) dynamically unpacked `dict[str, object]` keyword arguments that mypy
+cannot safely map to the ingestion service's typed signature.
+
+This commit replaces the overly broad map with a type-inferred mapping of JUnit cases, annotates the
+helper's return type, and expands shared test argument dictionaries into explicit typed keyword calls.
+These changes improve the code's type contract instead of weakening mypy. The next CI run must verify
+them; no phase progress increase is assigned yet.

@@ -106,7 +106,9 @@ def jobs() -> list[dict[str, object]]:
     ]
 
 
-def ingest(payload: bytes | None = None, **overrides: object):
+def ingest(
+    payload: bytes | None = None, **overrides: object
+) -> AuthenticatedEvidenceArtifact:
     data = payload or archive()
     args: dict[str, object] = {
         "commit": identity(),
@@ -283,20 +285,25 @@ def test_phase_three_service_rejects_missing_or_ambiguous_artifacts() -> None:
 
     data = archive()
     one = metadata(data)
-    common = {
-        "github": _FakePRReader(),
-        "commit": identity(),
-        "workflow_run_id": 99,
-        "trusted_workflow_paths": (".github/workflows/ci.yml",),
-        "harness_sensitive_paths": (".github/workflows/", "conftest.py"),
-        "changed_paths": ("src/auth.py",),
-    }
-    with pytest.raises(EvidenceIngestionServiceError, match="exactly one"):
-        ingest_pull_request_run(**common, actions=_FakeActionsReader(artifacts=[]))
     with pytest.raises(EvidenceIngestionServiceError, match="exactly one"):
         ingest_pull_request_run(
-            **common,
+            github=_FakePRReader(),
+            actions=_FakeActionsReader(artifacts=[]),
+            commit=identity(),
+            workflow_run_id=99,
+            trusted_workflow_paths=(".github/workflows/ci.yml",),
+            harness_sensitive_paths=(".github/workflows/", "conftest.py"),
+            changed_paths=("src/auth.py",),
+        )
+    with pytest.raises(EvidenceIngestionServiceError, match="exactly one"):
+        ingest_pull_request_run(
+            github=_FakePRReader(),
             actions=_FakeActionsReader(artifacts=[one, {**one, "id": 56}]),
+            commit=identity(),
+            workflow_run_id=99,
+            trusted_workflow_paths=(".github/workflows/ci.yml",),
+            harness_sensitive_paths=(".github/workflows/", "conftest.py"),
+            changed_paths=("src/auth.py",),
         )
 
 
@@ -322,17 +329,28 @@ def test_phase_three_service_persists_evidence_as_inconclusive_and_idempotently(
     from verification_core.phase_three import ingest_pull_request_run
 
     ledger = SQLAlchemyEvidenceLedger(f"sqlite:///{tmp_path / 'evidence.sqlite3'}")
-    kwargs = {
-        "commit": identity(),
-        "workflow_run_id": 99,
-        "trusted_workflow_paths": (".github/workflows/ci.yml",),
-        "harness_sensitive_paths": (".github/workflows/", "conftest.py"),
-        "changed_paths": ("src/auth.py",),
-        "evidence_ledger": ledger,
-        "ledger_now": 10,
-    }
-    first = ingest_pull_request_run(github=_FakePRReader(), actions=_FakeActionsReader(), **kwargs)
-    second = ingest_pull_request_run(github=_FakePRReader(), actions=_FakeActionsReader(), **kwargs)
+    first = ingest_pull_request_run(
+        github=_FakePRReader(),
+        actions=_FakeActionsReader(),
+        commit=identity(),
+        workflow_run_id=99,
+        trusted_workflow_paths=(".github/workflows/ci.yml",),
+        harness_sensitive_paths=(".github/workflows/", "conftest.py"),
+        changed_paths=("src/auth.py",),
+        evidence_ledger=ledger,
+        ledger_now=10,
+    )
+    second = ingest_pull_request_run(
+        github=_FakePRReader(),
+        actions=_FakeActionsReader(),
+        commit=identity(),
+        workflow_run_id=99,
+        trusted_workflow_paths=(".github/workflows/ci.yml",),
+        harness_sensitive_paths=(".github/workflows/", "conftest.py"),
+        changed_paths=("src/auth.py",),
+        evidence_ledger=ledger,
+        ledger_now=10,
+    )
     assert first.ledger_record_key is not None
     assert second.ledger_record_key == first.ledger_record_key
     row = ledger.get_record(first.ledger_record_key)

@@ -121,3 +121,13 @@ unavailable because the environment has no package-network access.
 A narrowly scoped file-level `I001` suppression is a temporary diagnostic step to let strict typing,
 tests, and coverage execute. It must be removed before Phase III is release-complete. The suppression is
 not counted as a quality fix or progress increase.
+
+
+## Strict typing now reached
+
+After the temporary single-file Ruff suppression, CI run #39143710693 passed formatting and lint and
+reached `mypy --strict src tests`. It failed with 28 errors: an `object`-typed JUnit map prevented
+safe `.outcome` access, one test helper lacked a return annotation, and several test calls used
+`**dict[str, object]` against a fully typed keyword-only API. The fix uses inferred concrete JUnit
+case values and explicit keyword arguments in tests. These are actual type-safety improvements, not
+type-ignore suppressions; the next run must confirm.

@@ -383,12 +383,10 @@ def ingest_authenticated_artifact(
         ) from exc
     if coverage_manifest.head_sha != commit.head_sha:
         raise ActionsEvidenceError("Coverage manifest is stale or bound to a different commit.")
-    junit_nodes: dict[str, object] = {}
-    for case in junit_report.cases:
-        if case.node_id in junit_nodes:
-            raise ActionsEvidenceError("JUnit report contains duplicate test node IDs.")
-        junit_nodes[case.node_id] = case
+    junit_nodes = {case.node_id: case for case in junit_report.cases}
     manifest_nodes = {case.node_id: case for case in coverage_manifest.cases}
+    if len(junit_nodes) != len(junit_report.cases):
+        raise ActionsEvidenceError("JUnit report contains duplicate test node IDs.")
     if set(junit_nodes) != set(manifest_nodes):
         raise ActionsEvidenceError("JUnit and coverage manifest test inventories do not match.")
     if any(
