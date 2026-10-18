@@ -385,3 +385,8 @@ This commit also closes a ledger-validation inconsistency: reconciliation timest
 **Failing exact-head run:** [#39149971965](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39149971965), SHA `a2e4b5a49717b350a59d980bc659aea86a47adac`.
 
 The format-check output named `src/verification_core/phase_three.py` and `tests/unit/test_actions_evidence.py`. It requested two one-line statement consolidations, a one-line test signature, and removal of an extra blank line. The next commit applies that output directly. All downstream CI gates were skipped, and this formatting-only correction does not change the 70% implementation estimate.
+
+
+## Ruff findings and explicit fixes — 2026-10-19
+
+Run [#39168709842](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39168709842) passed formatting and failed Ruff with eight findings. The corrections preserve strict linting: the duplicate-key YAML parser remains a `SafeLoader` subclass and has a narrow `S506` suppression on the loader invocation; trigger logic now explicitly groups mixed boolean operators; error text is wrapped; regex-based `pytest.raises(match=...)` values are raw strings; the duplicate ZIP fixture combines context managers; and the trusted workflow fixture string is split into adjacent literals. Strict mypy and tests were skipped in that run and remain unverified until CI executes them.

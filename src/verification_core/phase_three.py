@@ -129,7 +129,9 @@ def _validate_trusted_workflow_upload_contract(
         raise EvidenceIngestionServiceError("Expected evidence artifact name is invalid.")
 
     try:
-        workflow_value = yaml.load(workflow_source, Loader=_UniqueKeySafeLoader)
+        workflow_value = yaml.load(  # noqa: S506 — this loader subclasses SafeLoader
+            workflow_source, Loader=_UniqueKeySafeLoader
+        )
     except (yaml.YAMLError, RecursionError, TypeError, ValueError) as exc:
         raise EvidenceIngestionServiceError(
             "Trusted workflow YAML is malformed or ambiguous."
@@ -140,11 +142,14 @@ def _validate_trusted_workflow_upload_contract(
     triggers = workflow.get("on", workflow.get(True))
     has_pull_request_trigger = (
         triggers == "pull_request"
-        or isinstance(triggers, list)
-        and "pull_request" in triggers
-        or isinstance(triggers, Mapping)
-        and "pull_request" in triggers
-        and triggers.get("pull_request") is not False
+        or (
+            isinstance(triggers, list) and "pull_request" in triggers
+        )
+        or (
+            isinstance(triggers, Mapping)
+            and "pull_request" in triggers
+            and triggers.get("pull_request") is not False
+        )
     )
     if not has_pull_request_trigger:
         raise EvidenceIngestionServiceError("Trusted workflow must declare a pull_request trigger.")
@@ -308,7 +313,8 @@ def _assert_workflow_run_unchanged(
     )
     if any(current_run.get(field) != original_run.get(field) for field in identity_fields):
         raise EvidenceIngestionServiceError(
-            "Workflow run identity or attempt changed during evidence ingestion; discard this evidence."
+            "Workflow run identity or attempt changed during evidence ingestion; "
+            "discard this evidence."
         )
 
 

@@ -259,3 +259,8 @@ The regression suite also adds checks for run-attempt changes, publication API f
 ## Follow-up CI formatting failure — 2026-10-18
 
 Run [#39149971965](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39149971965) tested the exact PR head `a2e4b5a49717b350a59d980bc659aea86a47adac` and failed `ruff format --check src tests`. Its actual output identified two files and four formatting adjustments: collapse the conditional-upload error constructor; collapse the workflow-run recheck call; collapse the parametrized trusted-workflow test signature; and remove an extra blank line. Ruff lint, strict mypy, tests, and coverage were skipped. These exact formatting changes are applied in the next commit. No test or coverage result is inferred from this run.
+
+
+## Ruff findings and explicit fixes — 2026-10-19
+
+Run [#39168709842](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39168709842) passed formatting and failed Ruff with eight findings. The corrections preserve strict linting: the duplicate-key YAML parser remains a `SafeLoader` subclass and has a narrow `S506` suppression on the loader invocation; trigger logic now explicitly groups mixed boolean operators; error text is wrapped; regex-based `pytest.raises(match=...)` values are raw strings; the duplicate ZIP fixture combines context managers; and the trusted workflow fixture string is split into adjacent literals. Strict mypy and tests were skipped in that run and remain unverified until CI executes them.

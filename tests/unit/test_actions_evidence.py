@@ -204,7 +204,7 @@ def test_rejects_extra_files_traversal_and_contradictory_reports() -> None:
 def test_archive_reader_rejects_empty_or_malformed_zip(payload: bytes) -> None:
     from verification_core.actions_evidence import _read_zip_members
 
-    with pytest.raises(ActionsEvidenceError, match="non-empty bytes|valid ZIP"):
+    with pytest.raises(ActionsEvidenceError, match=r"non-empty bytes|valid ZIP"):
         _read_zip_members(payload)
 
 
@@ -223,7 +223,7 @@ def test_archive_reader_rejects_too_many_members() -> None:
 def test_archive_reader_rejects_unsafe_paths(unsafe_name: str) -> None:
     from verification_core.actions_evidence import _read_zip_members
 
-    with pytest.raises(ActionsEvidenceError, match="unsafe member path|path-traversal"):
+    with pytest.raises(ActionsEvidenceError, match=r"unsafe member path|path-traversal"):
         _read_zip_members(archive({unsafe_name: JUNIT, "coverage-manifest.json": MANIFEST}))
 
 
@@ -231,8 +231,10 @@ def test_archive_reader_rejects_duplicate_members() -> None:
     from verification_core.actions_evidence import _read_zip_members
 
     output = io.BytesIO()
-    with pytest.warns(UserWarning, match="Duplicate name"):
-        with zipfile.ZipFile(output, "w", zipfile.ZIP_STORED) as zip_file:
+    with (
+        pytest.warns(UserWarning, match="Duplicate name"),
+        zipfile.ZipFile(output, "w", zipfile.ZIP_STORED) as zip_file,
+    ):
             zip_file.writestr("junit.xml", JUNIT)
             zip_file.writestr("junit.xml", JUNIT)
             zip_file.writestr("coverage-manifest.json", MANIFEST)

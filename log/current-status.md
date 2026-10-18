@@ -38,3 +38,8 @@
 4. Publication tests prove no ledger terminal decision is written when Check Run publication fails and that post-publication persistence failure is surfaced as `ledger_persisted=False`.
 5. Progress and investigation logs explain the failure, correction, evidence, and remaining deployment prerequisite without deleting failed history.
 6. Branch head, PR head, changed tree, and CI-tested SHA are re-read and agree before claiming completion.
+
+
+## Ruff findings and explicit fixes — 2026-10-19
+
+Run [#39168709842](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39168709842) passed formatting and failed Ruff with eight findings. The corrections preserve strict linting: the duplicate-key YAML parser remains a `SafeLoader` subclass and has a narrow `S506` suppression on the loader invocation; trigger logic now explicitly groups mixed boolean operators; error text is wrapped; regex-based `pytest.raises(match=...)` values are raw strings; the duplicate ZIP fixture combines context managers; and the trusted workflow fixture string is split into adjacent literals. Strict mypy and tests were skipped in that run and remain unverified until CI executes them.
