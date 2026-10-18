@@ -264,8 +264,8 @@ def reconcile_authenticated_obligation(
             behavioral_assertion_verified=assertion_verified,
         )
             if reconciled.outcome is ExecutionOutcome.PASSED
-            else EvidenceSufficiency.UNVERIFIED
-        )
+                else EvidenceSufficiency.UNVERIFIED
+            )
     execution = ExecutionEvidence(
         test_node_id=node_id,
         outcome=reconciled.outcome,
@@ -290,7 +290,6 @@ def reconcile_authenticated_obligation(
         evidence=execution,
         expected_commit=expected_commit,
     )
-
 
 
 class CheckRunPublisher(PullRequestReader, Protocol):
@@ -376,8 +375,7 @@ def publish_reconciled_verification(
         has_unsupported_critical_changes=has_unsupported_critical_changes,
     )
     obligation_lines = [
-        f"- `{obligation.obligation_id}`: `{obligation.status.value}`"
-        for obligation in obligations
+        f"- `{obligation.obligation_id}`: `{obligation.status.value}`" for obligation in obligations
     ]
     summary_parts = [evaluation.summary_rationale]
     if obligation_lines:
@@ -426,14 +424,10 @@ def publish_reconciled_verification(
             "head_sha": commit.head_sha,
             "policy_sha256": commit.policy_sha256,
             "conclusion": evaluation.github_conclusion.value,
-            "obligations": sorted(
-                (item.obligation_id, item.status.value) for item in obligations
-            ),
+            "obligations": sorted((item.obligation_id, item.status.value) for item in obligations),
         }
         decision_digest = hashlib.sha256(
-            json.dumps(
-                decision_payload, sort_keys=True, separators=(",", ":")
-            ).encode("utf-8")
+            json.dumps(decision_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
         ).hexdigest()
         try:
             decision_ledger.record_reconciliation(

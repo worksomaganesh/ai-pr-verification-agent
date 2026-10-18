@@ -177,3 +177,11 @@ refuses to publish when any identity is stale. Another defensive fix keeps `CONT
 contradictory all the way into the Phase I state machine, rather than allowing subsequent sufficiency
 calculation to overlook the contradiction. New adversarial tests exercise these contracts; CI for the
 new SHA remains the required validation.
+
+
+## Publication-slice formatter correction
+
+Run #39144723077 failed at formatting only. Ruff's diff identified the conditional expression's
+indentation, three line-wrapping differences in the publication helper, and one extra blank line before
+the new fake publisher. These formatting-only edits are now applied; the next CI run must reach lint,
+mypy and tests to validate the implementation.

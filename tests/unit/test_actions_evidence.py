@@ -488,7 +488,6 @@ def test_reconciliation_missing_target_coverage_stays_inconclusive() -> None:
     assert result.status is ObligationStatus.INCONCLUSIVE
 
 
-
 class _FakeCheckPublisher(_FakePRReader):
     def __init__(self, *, stale: bool = False) -> None:
         super().__init__()

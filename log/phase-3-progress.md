@@ -307,3 +307,12 @@ made. It also preserves `CONTRADICTORY` sufficiency instead of recalculating it 
 Regression tests cover stale-PR suppression, action-required for unverified obligations, success only
 for already-passed obligations, and contradiction fail-closed behavior. This is a meaningful code
 milestone, but is not verified until its own CI run passes.
+
+
+## Publication-slice formatting correction — 2026-10-18
+
+CI run [#39144723077](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39144723077)
+stopped at Ruff formatting before lint, strict typing, or tests. The formatter identified three files:
+the new publication helper's conditional indentation/line wrapping, an extra blank line before its test
+fake, and the evidence-ledger test's import spacing. This patch applies the exact formatting changes;
+no behavior result is inferred from that run.
