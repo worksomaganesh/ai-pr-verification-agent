@@ -194,3 +194,12 @@ def test_artifact_redirect_allows_https_signed_storage_url() -> None:
     assert _artifact_redirect_is_allowed(
         "https://pipelines.actions.githubusercontent.com/signed/path"
     )
+
+
+
+def test_rejects_archive_size_that_disagrees_with_api_metadata() -> None:
+    data = archive()
+    artifact = metadata(data)
+    artifact["size_in_bytes"] = len(data) + 1
+    with pytest.raises(ActionsEvidenceError, match="size does not match"):
+        ingest(artifact_metadata=artifact)

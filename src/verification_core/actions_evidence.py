@@ -358,12 +358,16 @@ def ingest_authenticated_artifact(
         required_step_name=required_step_name,
         recorded_at=recorded_at,
     )
-    artifact_id, _reported_size, expected_digest = _validate_artifact_metadata(
+    artifact_id, reported_size, expected_digest = _validate_artifact_metadata(
         artifact=artifact_metadata,
         run_payload=run,
         expected_run_id=run_id,
         expected_name=expected_artifact_name,
     )
+    if len(archive_bytes) != reported_size:
+        raise ActionsEvidenceError(
+            "Downloaded artifact size does not match GitHub artifact metadata."
+        )
     actual_digest = hashlib.sha256(archive_bytes).hexdigest()
     if actual_digest != expected_digest:
         raise ActionsEvidenceError(
