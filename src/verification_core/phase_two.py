@@ -44,6 +44,7 @@ class ProcessingResult:
     conclusion: str | None
     check_run_id: int | None
     reason_code: str | None = None
+    run_key: str | None = None
 
 
 def _policy_config(policy: VerificationPolicy) -> ConclusionPolicyConfig:
@@ -204,6 +205,14 @@ class PhaseTwoProcessor:
                     model_mode=planning.planner_mode,
                     degradation_reason=planning.degradation_reason,
                 )
+                run_key = self._store.save_verification_run(
+                    commit=planning.commit,
+                    analysis_completeness=planning.analysis_completeness.value,
+                    planner_mode=planning.planner_mode,
+                    conclusion=evaluation.github_conclusion.value,
+                    summary=summary,
+                    obligations=planning.obligations,
+                )
                 external_id = f"aiprv:{event.pr_number}:{event.head_sha}"
                 check_run_id = client.publish_check_run(
                     repository=event.repository_full_name,
@@ -215,6 +224,7 @@ class PhaseTwoProcessor:
                     external_id=external_id,
                     details_url=details_url,
                 )
+                self._store.set_check_run_id(run_key, check_run_id)
             finally:
                 client.close()
 
@@ -224,6 +234,7 @@ class PhaseTwoProcessor:
                 status="completed",
                 conclusion=evaluation.github_conclusion.value,
                 check_run_id=check_run_id,
+                run_key=run_key,
             )
         except (GitHubAPIError, ValueError) as exc:
             reason_code = {
