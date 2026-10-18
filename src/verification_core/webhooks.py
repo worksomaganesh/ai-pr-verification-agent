@@ -61,7 +61,9 @@ class PullRequestWebhookEvent:
             raise WebhookPayloadError("base_sha and head_sha must be distinct.")
         if not self.base_ref.strip() or not self.head_ref.strip():
             raise WebhookPayloadError("base_ref and head_ref must be non-empty.")
-        if self.installation_id is not None and (type(self.installation_id) is not int or self.installation_id < 1):
+        if self.installation_id is not None and (
+            type(self.installation_id) is not int or self.installation_id < 1
+        ):
             raise WebhookPayloadError("installation_id must be a positive integer when present.")
 
     @property
