@@ -152,3 +152,10 @@ state machine. It accepts target line/branch sets and exact obligation-to-test a
 trusted analysis; it deliberately ignores the artifact's self-certified assertion flag when deciding
 whether a passing test is sufficient. This prevents an authenticated ZIP from self-authorizing a
 PASSED obligation. The new reconciliation code and tests require their own full CI run.
+
+
+## Reconciliation-slice formatter failure
+
+Run #39144197581 failed only at `ruff format --check` before any lint, type, or test step. Its exact
+diff showed an extra blank line before `reconcile_authenticated_obligation` and three long imports
+in the new tests. Those exact changes are applied; no behavioral test result is inferred from this run.

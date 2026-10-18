@@ -396,7 +396,10 @@ def test_reconciliation_never_trusts_artifact_assertion_claim_alone() -> None:
     from verification_core.domain.enums import ObligationSource, ObligationStatus, Severity
     from verification_core.domain.models import VerificationObligation
     from verification_core.domain.state_machine import schedule_obligation
-    from verification_core.phase_three import IngestedPullRequestEvidence, reconcile_authenticated_obligation
+    from verification_core.phase_three import (
+        IngestedPullRequestEvidence,
+        reconcile_authenticated_obligation,
+    )
 
     commit = identity()
     proposed = VerificationObligation.propose(
@@ -427,7 +430,10 @@ def test_reconciliation_pass_requires_trusted_assertion_binding() -> None:
     from verification_core.domain.enums import ObligationSource, ObligationStatus, Severity
     from verification_core.domain.models import VerificationObligation
     from verification_core.domain.state_machine import schedule_obligation
-    from verification_core.phase_three import IngestedPullRequestEvidence, reconcile_authenticated_obligation
+    from verification_core.phase_three import (
+        IngestedPullRequestEvidence,
+        reconcile_authenticated_obligation,
+    )
 
     commit = identity()
     proposed = VerificationObligation.propose(
@@ -458,7 +464,10 @@ def test_reconciliation_missing_target_coverage_stays_inconclusive() -> None:
     from verification_core.domain.enums import ObligationSource, ObligationStatus, Severity
     from verification_core.domain.models import VerificationObligation
     from verification_core.domain.state_machine import schedule_obligation
-    from verification_core.phase_three import IngestedPullRequestEvidence, reconcile_authenticated_obligation
+    from verification_core.phase_three import (
+        IngestedPullRequestEvidence,
+        reconcile_authenticated_obligation,
+    )
 
     proposed = VerificationObligation.propose(
         obligation_id="OBL-AUTH-3",

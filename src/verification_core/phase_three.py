@@ -194,7 +194,6 @@ def ingest_pull_request_run(
         raise EvidenceIngestionServiceError("Authenticated evidence failed validation.") from exc
 
 
-
 def reconcile_authenticated_obligation(
     *,
     ingested: IngestedPullRequestEvidence,
