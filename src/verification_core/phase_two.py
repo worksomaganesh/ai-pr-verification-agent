@@ -52,6 +52,15 @@ def _policy_config(policy: object) -> ConclusionPolicyConfig:
     )
 
 
+def _inline(value: object) -> str:
+    """Escape untrusted inline values before inserting them into Markdown output."""
+    text = scrub_secrets(str(value)).replace("\\", "\\\\")
+    text = text.replace("\r", " ").replace("\n", " ")
+    for char in (chr(96), "*", "_", "[", "]", "|"):
+        text = text.replace(char, "\\" + char)
+    return text.replace("<", "&lt;").replace(">", "&gt;")
+
+
 def _summary(
     *,
     planning: object,
@@ -87,23 +96,23 @@ def _summary(
             selector = obligation.candidate_test_id or "No matching test found"
             lines.append(
                 f"- **{obligation.severity.value.upper()} · {obligation.obligation_id}** — "
-                f"{scrub_secrets(obligation.description)}"
+                f"{_inline(obligation.description)}"
             )
             lines.append(f"  - Status: {obligation.status.value} (proposed; not executed)")
-            lines.append(f"  - Changed files: {', '.join(obligation.affected_files)}")
-            lines.append(f"  - Candidate test: {scrub_secrets(selector)}")
+            lines.append(f"  - Changed files: {', '.join(_inline(path) for path in obligation.affected_files)}")
+            lines.append(f"  - Candidate test: {_inline(selector)}")
     if analysis_issues:
         lines.extend(["", "## Analysis limitations", ""])
-        lines.extend(f"- {scrub_secrets(issue)}" for issue in analysis_issues[:30])
+        lines.extend(f"- {_inline(issue)}" for issue in analysis_issues[:30])
     if degradation_reason:
-        lines.extend(["", "## Planner fallback", "", scrub_secrets(degradation_reason)])
+        lines.extend(["", "## Planner fallback", "", _inline(degradation_reason)])
     lines.extend(
         [
             "",
             "## Deterministic conclusion",
             "",
             f"- **Conclusion:** {getattr(evaluation, 'github_conclusion').value}",
-            f"- **Reason:** {scrub_secrets(getattr(evaluation, 'summary_rationale'))}",
+            f"- **Reason:** {_inline(getattr(evaluation, 'summary_rationale'))}",
         ]
     )
     return scrub_secrets("\n".join(lines))[:59_000]
