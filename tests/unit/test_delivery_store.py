@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from pathlib import Path
 
 from verification_core.delivery_store import DeliveryStoreError, SQLiteDeliveryStore
 from verification_core.webhooks import PullRequestWebhookEvent
@@ -25,11 +26,11 @@ def event(delivery_id: str = "delivery-1", *, head: str = HEAD) -> PullRequestWe
     )
 
 
-def store(tmp_path: object) -> SQLiteDeliveryStore:
-    return SQLiteDeliveryStore(str(tmp_path / "events.sqlite3"))  # type: ignore[operator]
+def store(tmp_path: Path) -> SQLiteDeliveryStore:
+    return SQLiteDeliveryStore(str(tmp_path / "events.sqlite3"))
 
 
-def test_enqueue_is_durable_and_idempotent(tmp_path: object) -> None:
+def test_enqueue_is_durable_and_idempotent(tmp_path: Path) -> None:
     ledger = store(tmp_path)
     first = ledger.enqueue(event(), now=10)
     second = ledger.enqueue(event(), now=11)
