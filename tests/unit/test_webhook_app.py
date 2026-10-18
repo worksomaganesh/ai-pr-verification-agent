@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 from verification_core.delivery_store import SQLiteDeliveryStore
 from verification_core.webhook_app import create_webhook_app
 
-SECRET = "unit-test-webhook-secret"
+SIGNING_VALUE = "unit-test-webhook-secret"
 BASE = "1" * 40
 HEAD = "2" * 40
 
@@ -36,7 +36,7 @@ def raw_payload(*, action: str = "opened", installation_id: int = 42) -> bytes:
 
 
 def sign(body: bytes) -> str:
-    digest = hmac.new(SECRET.encode(), body, hashlib.sha256).hexdigest()
+    digest = hmac.new(SIGNING_VALUE.encode(), body, hashlib.sha256).hexdigest()
     return f"sha256={digest}"
 
 
@@ -54,7 +54,7 @@ def headers(
 def client(tmp_path: object, *, max_body_bytes: int = 1_048_576) -> TestClient:
     path = str(tmp_path / "deliveries.sqlite3")  # type: ignore[operator]
     app = create_webhook_app(
-        webhook_secret=SECRET,
+        webhook_secret=SIGNING_VALUE,
         delivery_store=SQLiteDeliveryStore(path),
         max_body_bytes=max_body_bytes,
     )
