@@ -536,7 +536,6 @@ def test_phase_three_service_rejects_pr_head_moving_during_ingestion() -> None:
         )
 
 
-
 @pytest.mark.parametrize(
     ("field", "replacement"),
     [
@@ -566,7 +565,10 @@ def test_phase_three_rejects_each_workflow_run_identity_change(
 
 
 def test_phase_three_rejects_invalid_original_workflow_attempt() -> None:
-    from verification_core.phase_three import EvidenceIngestionServiceError, _assert_workflow_run_unchanged
+    from verification_core.phase_three import (
+        EvidenceIngestionServiceError,
+        _assert_workflow_run_unchanged,
+    )
 
     actions = _FakeActionsReader()
     original = {**actions.run_payload, "run_attempt": True}
