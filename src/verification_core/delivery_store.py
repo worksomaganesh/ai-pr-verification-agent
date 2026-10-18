@@ -93,6 +93,7 @@ class SQLiteDeliveryStore:
                 "head_sha": event.head_sha,
                 "base_ref": event.base_ref,
                 "head_ref": event.head_ref,
+                "installation_id": event.installation_id,
             },
             sort_keys=True,
             separators=(",", ":"),
