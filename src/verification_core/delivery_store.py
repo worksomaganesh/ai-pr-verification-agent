@@ -6,6 +6,7 @@ installation tokens, private keys, and PR diff contents are never stored here.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 import time
@@ -119,11 +120,9 @@ class SQLiteDeliveryStore:
         if timestamp < 0:
             raise ValueError("now must be non-negative")
         serialized = self._event_json(event)
-        import hashlib
-
         fingerprint = hashlib.sha256(serialized.encode("utf-8")).hexdigest()
         try:
-            with self._connect() as connection:
+            with self._connection() as connection:
                 connection.execute("BEGIN IMMEDIATE")
                 row = connection.execute(
                     "SELECT event_fingerprint, status FROM deliveries WHERE delivery_id = ?",
@@ -160,7 +159,7 @@ class SQLiteDeliveryStore:
         if type(max_attempts) is not int or not 1 <= max_attempts <= 100:
             raise ValueError("max_attempts must be between 1 and 100")
         try:
-            with self._connect() as connection:
+            with self._connection() as connection:
                 connection.execute("BEGIN IMMEDIATE")
                 connection.execute(
                     """
@@ -230,9 +229,11 @@ class SQLiteDeliveryStore:
     ) -> None:
         if not error_code or len(error_code) > 80 or not error_code.replace("_", "").isalnum():
             raise ValueError("error_code must be a short alphanumeric snake_case code")
+        if type(max_attempts) is not int or not 1 <= max_attempts <= 100:
+            raise ValueError("max_attempts must be between 1 and 100")
         timestamp = time.time() if now is None else now
         try:
-            with self._connect() as connection:
+            with self._connection() as connection:
                 connection.execute("BEGIN IMMEDIATE")
                 row = connection.execute(
                     "SELECT attempts FROM deliveries WHERE delivery_id=? AND status='processing'",
@@ -263,7 +264,7 @@ class SQLiteDeliveryStore:
     def _transition_processing(self, delivery_id: str, *, status: str, now: float | None) -> None:
         timestamp = time.time() if now is None else now
         try:
-            with self._connect() as connection:
+            with self._connection() as connection:
                 cursor = connection.execute(
                     """
                     UPDATE deliveries SET status=?, updated_at=?, lease_until=NULL,
@@ -281,7 +282,7 @@ class SQLiteDeliveryStore:
 
     def get_status(self, delivery_id: str) -> str | None:
         try:
-            with self._connect() as connection:
+            with self._connection() as connection:
                 row = connection.execute(
                     "SELECT status FROM deliveries WHERE delivery_id=?", (delivery_id,)
                 ).fetchone()
