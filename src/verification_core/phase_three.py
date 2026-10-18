@@ -63,7 +63,7 @@ class EvidenceLedgerPort(Protocol):
 class IngestedPullRequestEvidence:
     """Output carrying validated evidence and the digest of its base-commit workflow source."""
 
-    __slots__ = ("evidence", "workflow_definition_sha256", "ledger_record_key")
+    __slots__ = ("evidence", "ledger_record_key", "workflow_definition_sha256")
 
     def __init__(
         self,

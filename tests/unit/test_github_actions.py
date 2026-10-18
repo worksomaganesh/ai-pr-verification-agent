@@ -5,17 +5,17 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from verification_core.github_app import GitHubResponseTooLarge
 from verification_core.github_actions import GitHubActionsAPIError, GitHubActionsClient
+from verification_core.github_app import GitHubResponseTooLarge
 
 REPO = "acme/service"
-TOKEN = "test-installation-token"
+INSTALLATION_FIXTURE = "fixture-value"
 
 
 def test_get_workflow_run_uses_authenticated_api_and_checks_id() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == f"/repos/{REPO}/actions/runs/99"
-        assert request.headers["Authorization"] == f"Bearer {TOKEN}"
+        assert request.headers["Authorization"] == f"Bearer {INSTALLATION_FIXTURE}"
         return httpx.Response(200, json={"id": 99, "event": "pull_request"})
 
     with httpx.Client(
@@ -23,7 +23,7 @@ def test_get_workflow_run_uses_authenticated_api_and_checks_id() -> None:
         transport=httpx.MockTransport(handler),
         follow_redirects=False,
     ) as raw:
-        client = GitHubActionsClient(TOKEN, http_client=raw)
+        client = GitHubActionsClient(INSTALLATION_FIXTURE, http_client=raw)
         assert client.get_workflow_run(REPO, 99)["id"] == 99
 
 
@@ -34,7 +34,7 @@ def test_get_workflow_run_rejects_mismatched_response_id() -> None:
     with httpx.Client(
         base_url="https://api.github.com", transport=httpx.MockTransport(handler)
     ) as raw:
-        client = GitHubActionsClient(TOKEN, http_client=raw)
+        client = GitHubActionsClient(INSTALLATION_FIXTURE, http_client=raw)
         with pytest.raises(GitHubActionsAPIError, match="requested ID"):
             client.get_workflow_run(REPO, 99)
 
@@ -54,7 +54,7 @@ def test_job_listing_retrieves_every_page() -> None:
     with httpx.Client(
         base_url="https://api.github.com", transport=httpx.MockTransport(handler)
     ) as raw:
-        client = GitHubActionsClient(TOKEN, http_client=raw)
+        client = GitHubActionsClient(INSTALLATION_FIXTURE, http_client=raw)
         result = client.list_workflow_run_jobs(REPO, 99)
 
     assert [item["id"] for item in result] == [1, 2, 3]
@@ -72,7 +72,7 @@ def test_pagination_rejects_count_changes_and_missing_pages() -> None:
     with httpx.Client(
         base_url="https://api.github.com", transport=httpx.MockTransport(changing_count)
     ) as raw:
-        client = GitHubActionsClient(TOKEN, http_client=raw)
+        client = GitHubActionsClient(INSTALLATION_FIXTURE, http_client=raw)
         with pytest.raises(GitHubActionsAPIError, match="pagination changed"):
             client.list_workflow_run_jobs(REPO, 99)
 
@@ -82,7 +82,7 @@ def test_pagination_rejects_count_changes_and_missing_pages() -> None:
     with httpx.Client(
         base_url="https://api.github.com", transport=httpx.MockTransport(missing_items)
     ) as raw:
-        client = GitHubActionsClient(TOKEN, http_client=raw)
+        client = GitHubActionsClient(INSTALLATION_FIXTURE, http_client=raw)
         with pytest.raises(GitHubActionsAPIError, match="ended before"):
             client.list_workflow_run_jobs(REPO, 99)
 
@@ -100,7 +100,7 @@ def test_artifact_listing_rejects_artifact_from_another_run() -> None:
     with httpx.Client(
         base_url="https://api.github.com", transport=httpx.MockTransport(handler)
     ) as raw:
-        client = GitHubActionsClient(TOKEN, http_client=raw)
+        client = GitHubActionsClient(INSTALLATION_FIXTURE, http_client=raw)
         with pytest.raises(GitHubActionsAPIError, match="requested workflow run"):
             client.list_workflow_run_artifacts(REPO, 99)
 
@@ -121,11 +121,11 @@ def test_artifact_download_does_not_forward_installation_token() -> None:
         transport=httpx.MockTransport(handler),
         follow_redirects=False,
     ) as raw:
-        client = GitHubActionsClient(TOKEN, http_client=raw)
+        client = GitHubActionsClient(INSTALLATION_FIXTURE, http_client=raw)
         assert client.download_workflow_artifact(REPO, 7) == archive_bytes
 
     assert seen == [
-        ("api.github.com", f"Bearer {TOKEN}"),
+        ("api.github.com", f"Bearer {INSTALLATION_FIXTURE}"),
         ("pipelines.actions.githubusercontent.com", None),
     ]
 
@@ -137,7 +137,7 @@ def test_artifact_download_rejects_untrusted_redirect_and_oversize_body() -> Non
     with httpx.Client(
         base_url="https://api.github.com", transport=httpx.MockTransport(bad_redirect)
     ) as raw:
-        client = GitHubActionsClient(TOKEN, http_client=raw)
+        client = GitHubActionsClient(INSTALLATION_FIXTURE, http_client=raw)
         with pytest.raises(GitHubActionsAPIError, match="disallowed host"):
             client.download_workflow_artifact(REPO, 7)
 
@@ -147,7 +147,7 @@ def test_artifact_download_rejects_untrusted_redirect_and_oversize_body() -> Non
     with httpx.Client(
         base_url="https://api.github.com", transport=httpx.MockTransport(large_body)
     ) as raw:
-        client = GitHubActionsClient(TOKEN, http_client=raw, max_archive_bytes=4)
+        client = GitHubActionsClient(INSTALLATION_FIXTURE, http_client=raw, max_archive_bytes=4)
         with pytest.raises(GitHubResponseTooLarge):
             client.download_workflow_artifact(REPO, 7)
 
@@ -157,7 +157,7 @@ def test_client_rejects_invalid_ids_and_repository_paths() -> None:
         base_url="https://api.github.com",
         transport=httpx.MockTransport(lambda request: httpx.Response(200, json={"id": 1})),
     ) as raw:
-        client = GitHubActionsClient(TOKEN, http_client=raw)
+        client = GitHubActionsClient(INSTALLATION_FIXTURE, http_client=raw)
         with pytest.raises(ValueError, match="run_id"):
             client.get_workflow_run(REPO, 0)
         with pytest.raises(GitHubActionsAPIError, match="owner/name"):
@@ -178,7 +178,7 @@ def test_artifact_redirect_is_not_auto_followed_even_with_redirects_enabled() ->
         transport=httpx.MockTransport(handler),
         follow_redirects=True,
     ) as raw:
-        client = GitHubActionsClient(TOKEN, http_client=raw)
+        client = GitHubActionsClient(INSTALLATION_FIXTURE, http_client=raw)
         with pytest.raises(GitHubActionsAPIError, match="disallowed host"):
             client.download_workflow_artifact(REPO, 7)
 
