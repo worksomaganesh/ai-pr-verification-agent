@@ -97,7 +97,9 @@ class SQLAlchemyEvidenceLedger:
         try:
             self._engine = create_engine(
                 database_url,
-                connect_args={"check_same_thread": False} if database_url.startswith("sqlite:///") else {},
+                connect_args={"check_same_thread": False}
+                if database_url.startswith("sqlite:///")
+                else {},
                 pool_pre_ping=True,
             )
             _METADATA.create_all(self._engine)

@@ -141,6 +141,7 @@ def test_ingest_binds_run_artifact_and_reports_to_exact_commit() -> None:
     ],
 )
 
+
 def test_rejects_stale_untrusted_or_unsuccessful_workflow(payload: dict[str, object]) -> None:
     with pytest.raises(ActionsEvidenceError):
         ingest(run_payload=payload)
@@ -187,6 +188,7 @@ def test_rejects_extra_files_traversal_and_contradictory_reports() -> None:
         "//githubusercontent.com/artifact",
     ],
 )
+
 
 def test_artifact_redirect_rejects_untrusted_urls(url: str) -> None:
     assert not _artifact_redirect_is_allowed(url)
