@@ -57,9 +57,7 @@ def test_github_app_jwt_and_installation_token() -> None:
         seen["path"] = request.url.path
         seen["authorization"] = request.headers.get("authorization")
         seen["body"] = json.loads(request.content)
-        return json_response(
-            {"token": SAMPLE_TOKEN_VALUE, "expires_at": "2030-01-01T00:00:00Z"}
-        )
+        return json_response({"token": SAMPLE_TOKEN_VALUE, "expires_at": "2030-01-01T00:00:00Z"})
 
     raw = httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com")
     authenticator = GitHubAppAuthenticator(123, private_pem, http_client=raw)
