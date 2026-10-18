@@ -355,7 +355,7 @@ class GitHubRESTClient(GitHubReadClient):
             max_bytes=_MAX_TREE_RESPONSE_BYTES,
         )
         tree_payload = _mapping(result, "git tree")
-        if tree_payload.get("truncated") is True:
+        if tree_payload.get("truncated") is not False:
             raise GitHubAPIError("Git tree response was truncated; test inventory is incomplete.")
         tree = tree_payload.get("tree")
         if not isinstance(tree, list):
