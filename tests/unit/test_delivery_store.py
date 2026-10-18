@@ -93,9 +93,7 @@ def test_failure_can_be_terminal(tmp_path: Path) -> None:
     ("lease_seconds", "max_attempts"),
     [(0, 8), (3601, 8), (1, 0), (1, 101)],
 )
-def test_claim_rejects_unsafe_bounds(
-    tmp_path: Path, lease_seconds: int, max_attempts: int
-) -> None:
+def test_claim_rejects_unsafe_bounds(tmp_path: Path, lease_seconds: int, max_attempts: int) -> None:
     with pytest.raises(ValueError):
         store(tmp_path).claim_next(now=1, lease_seconds=lease_seconds, max_attempts=max_attempts)
 
