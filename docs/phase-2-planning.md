@@ -2,7 +2,7 @@
 
 ## Status
 
-This branch begins Phase II with a pure, deterministic planning foundation. It does not yet implement the GitHub App, webhook receiver, persistence layer, GitHub API client, or live Check Run publisher. Those integrations must be built only after the planning contracts are tested.
+Phase II implementation is present on the integration branch and is being validated through CI. It now includes the bounded planner, GitHub App authentication, read-only REST context client, HMAC-verified FastAPI ingress, durable SQLite delivery ledger, queue worker, optional Gemini hypothesis adapter, and deterministic Check Run publisher. See [phase-2-operations.md](phase-2-operations.md) for deployment instructions and explicit boundaries. This phase is planning-only: it does not execute PR tests or ingest Actions artifacts.
 
 ## Trust contract
 
@@ -79,5 +79,7 @@ These are interfaces and pure orchestration over an injected client, not a live 
 - The planner has not been evaluated on a representative production PR corpus.
 - Path-based rules can miss risks hidden in ordinary filenames or over-classify harmless changes.
 - Static line ranges do not prove semantic behavior.
-- The webhook signature function and adapter-neutral context assembly are implemented, but no concrete GitHub HTTP transport, installation-token lifecycle, durable delivery ledger, artifact authentication, persistence, Gemini API adapter, or Check Run publisher exists yet.
-- Phase II is not complete merely because this initial foundation is merged.
+- The GitHub REST adapter uses bounded response sizes, explicit timeouts, no redirects, exact-SHA reads, and an installation token reduced to contents:read, pull_requests:read, and checks:write.
+- The SQLite ledger is a single-host reference queue, not a distributed worker queue. Production multi-host deployment needs a shared database/queue and operational controls.
+- Phase II does not prove workflow/artifact authenticity or actual test execution. Those are Phase III obligations.
+- Phase II completion is gated on CI, adversarial tests, and review of the merged integration; code being present is not itself evidence that release gates passed.
