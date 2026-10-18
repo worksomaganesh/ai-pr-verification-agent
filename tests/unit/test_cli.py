@@ -15,7 +15,7 @@ def test_positive_int_parser() -> None:
     assert cli._positive_int("7") == 7
     with pytest.raises(argparse.ArgumentTypeError):
         cli._positive_int("zero")
-    with pytest.raises(Exception):
+    with pytest.raises(argparse.ArgumentTypeError):
         cli._positive_int("0")
 
 
