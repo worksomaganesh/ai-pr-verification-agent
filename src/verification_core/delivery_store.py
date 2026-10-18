@@ -10,12 +10,13 @@ import hashlib
 import json
 import sqlite3
 import time
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from verification_core.domain import CommitIdentity, VerificationObligation
 from verification_core.webhooks import PullRequestWebhookEvent
 
 _SCHEMA = """
@@ -33,6 +34,37 @@ CREATE TABLE IF NOT EXISTS deliveries (
 );
 CREATE INDEX IF NOT EXISTS deliveries_ready
 ON deliveries(status, next_attempt_at, received_at);
+CREATE TABLE IF NOT EXISTS verification_runs (
+    run_key TEXT PRIMARY KEY,
+    repository_full_name TEXT NOT NULL,
+    pr_number INTEGER NOT NULL CHECK (pr_number >= 1),
+    base_sha TEXT NOT NULL,
+    head_sha TEXT NOT NULL,
+    policy_sha256 TEXT NOT NULL,
+    analysis_completeness TEXT NOT NULL,
+    planner_mode TEXT NOT NULL,
+    conclusion TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    check_run_id INTEGER,
+    created_at REAL NOT NULL,
+    updated_at REAL NOT NULL,
+    UNIQUE(repository_full_name, pr_number, base_sha, head_sha, policy_sha256)
+);
+CREATE TABLE IF NOT EXISTS verification_obligations (
+    run_key TEXT NOT NULL REFERENCES verification_runs(run_key) ON DELETE CASCADE,
+    obligation_id TEXT NOT NULL,
+    category TEXT NOT NULL,
+    severity TEXT NOT NULL,
+    source TEXT NOT NULL,
+    description TEXT NOT NULL,
+    affected_files_json TEXT NOT NULL,
+    status TEXT NOT NULL,
+    candidate_test_id TEXT,
+    status_reason TEXT,
+    PRIMARY KEY(run_key, obligation_id)
+);
+CREATE INDEX IF NOT EXISTS verification_runs_pr
+ON verification_runs(repository_full_name, pr_number, created_at);
 """
 
 
