@@ -334,8 +334,16 @@ class GitHubRESTClient(GitHubReadClient):
         """Parse bounded test-file ASTs at the PR head; never import or execute PR code."""
         if not _SHA_RE.fullmatch(head_sha):
             raise GitHubAPIError("Test inventory ref must be an exact commit SHA.")
+        commit_payload = _mapping(
+            self._get(f"/repos/{self._repo(repository)}/git/commits/{head_sha}"),
+            "git commit",
+        )
+        tree_record = _mapping(commit_payload.get("tree"), "git commit tree")
+        tree_sha = tree_record.get("sha")
+        if not isinstance(tree_sha, str) or not _SHA_RE.fullmatch(tree_sha):
+            raise GitHubAPIError("GitHub commit response did not contain a valid tree SHA.")
         result = self._get(
-            f"/repos/{self._repo(repository)}/git/trees/{head_sha}",
+            f"/repos/{self._repo(repository)}/git/trees/{tree_sha}",
             params={"recursive": 1},
             max_bytes=_MAX_TREE_RESPONSE_BYTES,
         )
@@ -360,7 +368,9 @@ class GitHubRESTClient(GitHubReadClient):
                 paths.append(path_value)
         paths.sort()
         if len(paths) > _MAX_TEST_FILES:
-            paths = paths[:_MAX_TEST_FILES]
+            raise GitHubAPIError(
+                "Test inventory exceeded the configured file limit; inventory is incomplete."
+            )
 
         entries: list[InventoryEntry] = []
         for path in paths:
