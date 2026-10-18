@@ -480,6 +480,47 @@ def test_phase_three_rejects_unverifiable_base_workflow_contract(source: str, me
         )
 
 
+
+@pytest.mark.parametrize(
+    ("workflow_source", "required_step_name", "artifact_name", "message"),
+    [
+        ("", "Upload verification evidence", "verification-evidence", "source is missing"),
+        ("name: safe", "Upload verification evidence", "verification-evidence", "pull_request trigger"),
+        (
+            TRUSTED_WORKFLOW,
+            "",
+            "verification-evidence",
+            "Required evidence step name is invalid",
+        ),
+        (
+            TRUSTED_WORKFLOW,
+            "Upload verification evidence",
+            "",
+            "Expected evidence artifact name is invalid",
+        ),
+        (
+            "name: oversized\\n" + " " * (256 * 1024),
+            "Upload verification evidence",
+            "verification-evidence",
+            "size limit",
+        ),
+    ],
+)
+def test_phase_three_trusted_workflow_input_validation(
+    workflow_source: str, required_step_name: str, artifact_name: str, message: str
+) -> None:
+    from verification_core.phase_three import (
+        EvidenceIngestionServiceError,
+        _validate_trusted_workflow_upload_contract,
+    )
+
+    with pytest.raises(EvidenceIngestionServiceError, match=message):
+        _validate_trusted_workflow_upload_contract(
+            workflow_source,
+            required_step_name=required_step_name,
+            expected_artifact_name=artifact_name,
+        )
+
 def test_phase_three_workflow_source_size_is_bounded() -> None:
     from verification_core.phase_three import (
         EvidenceIngestionServiceError,
