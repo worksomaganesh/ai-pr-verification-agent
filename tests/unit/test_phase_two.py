@@ -154,6 +154,12 @@ def test_processor_publishes_action_required_for_unexecuted_critical_obligations
     assert result.status == "completed"
     assert result.conclusion == "action_required"
     assert result.check_run_id == 1234
+    assert result.run_key is not None
+    persisted_run = store.get_verification_run(result.run_key)
+    assert persisted_run is not None
+    assert persisted_run["check_run_id"] == 1234
+    assert persisted_run["conclusion"] == "action_required"
+    assert isinstance(persisted_run["obligations"], list)
     assert store.get_status("phase-two-1") == "completed"
     assert auth.installations == [42]
     assert fake_client.closed
