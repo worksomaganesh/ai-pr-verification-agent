@@ -65,8 +65,13 @@ _EVIDENCE = Table(
     Column("created_at", Float, nullable=False),
     Column("updated_at", Float, nullable=False),
     UniqueConstraint(
-        "repository_full_name", "pr_number", "base_sha", "head_sha",
-        "workflow_run_id", "workflow_attempt", "artifact_id",
+        "repository_full_name",
+        "pr_number",
+        "base_sha",
+        "head_sha",
+        "workflow_run_id",
+        "workflow_attempt",
+        "artifact_id",
         name="uq_authenticated_evidence_identity",
     ),
 )
