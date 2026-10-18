@@ -102,7 +102,7 @@ def create_webhook_app(
                 event_name=event_name,
                 payload=payload,
             )
-        except (UnicodeDecodeError, json.JSONDecodeError, ValueError, WebhookPayloadError):
+        except ValueError:
             return JSONResponse(status_code=400, content={"error": "invalid_webhook_payload"})
 
         if event is None:
