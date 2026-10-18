@@ -178,7 +178,6 @@ def test_verification_run_and_obligations_are_persisted_idempotently(tmp_path: P
         now=11,
     )
     assert first_key == second_key
-    assert ledger.get_verification_run(first_key) is None or True
     ledger.set_check_run_id(first_key, 1234, now=12)
     record = ledger.get_verification_run(first_key)
     assert record is not None
