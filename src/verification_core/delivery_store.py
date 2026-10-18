@@ -322,5 +322,158 @@ class SQLiteDeliveryStore:
         except sqlite3.Error:
             raise DeliveryStoreError("Could not read webhook delivery status.") from None
 
+    def save_verification_run(
+        self,
+        *,
+        commit: CommitIdentity,
+        analysis_completeness: str,
+        planner_mode: str,
+        conclusion: str,
+        summary: str,
+        obligations: Sequence[VerificationObligation],
+        now: float | None = None,
+    ) -> str:
+        """Atomically persist a planning run and its obligation ledger, idempotently by identity."""
+        if not analysis_completeness or len(analysis_completeness) > 80:
+            raise ValueError("analysis_completeness must contain 1-80 characters")
+        if not planner_mode or len(planner_mode) > 80:
+            raise ValueError("planner_mode must contain 1-80 characters")
+        if conclusion not in {
+            "success", "neutral", "action_required", "failure", "cancelled", "timed_out", "skipped"
+        }:
+            raise ValueError("unsupported Check Run conclusion")
+        if not isinstance(summary, str) or len(summary) > 60_000:
+            raise ValueError("summary must not exceed 60000 characters")
+        if len(obligations) > 500:
+            raise ValueError("obligation ledger exceeds 500 records")
+        timestamp = time.time() if now is None else now
+        identity = json.dumps(
+            [
+                commit.repo_full_name,
+                commit.pr_number,
+                commit.base_sha,
+                commit.head_sha,
+                commit.policy_sha256,
+            ],
+            separators=(",", ":"),
+        )
+        run_key = hashlib.sha256(identity.encode("utf-8")).hexdigest()
+        try:
+            with self._connection() as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                connection.execute(
+                    """
+                    INSERT INTO verification_runs (
+                        run_key, repository_full_name, pr_number, base_sha, head_sha,
+                        policy_sha256, analysis_completeness, planner_mode, conclusion,
+                        summary, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(run_key) DO UPDATE SET
+                        analysis_completeness=excluded.analysis_completeness,
+                        planner_mode=excluded.planner_mode,
+                        conclusion=excluded.conclusion,
+                        summary=excluded.summary,
+                        updated_at=excluded.updated_at
+                    """,
+                    (
+                        run_key,
+                        commit.repo_full_name,
+                        commit.pr_number,
+                        commit.base_sha,
+                        commit.head_sha,
+                        commit.policy_sha256,
+                        analysis_completeness,
+                        planner_mode,
+                        conclusion,
+                        summary,
+                        timestamp,
+                        timestamp,
+                    ),
+                )
+                connection.execute(
+                    "DELETE FROM verification_obligations WHERE run_key = ?", (run_key,)
+                )
+                for obligation in obligations:
+                    connection.execute(
+                        """
+                        INSERT INTO verification_obligations (
+                            run_key, obligation_id, category, severity, source, description,
+                            affected_files_json, status, candidate_test_id, status_reason
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            run_key,
+                            obligation.obligation_id,
+                            obligation.category,
+                            obligation.severity.value,
+                            obligation.source.value,
+                            obligation.description[:4000],
+                            json.dumps(obligation.affected_files, separators=(",", ":")),
+                            obligation.status.value,
+                            obligation.candidate_test_id,
+                            obligation.status_reason,
+                        ),
+                    )
+                connection.commit()
+                return run_key
+        except sqlite3.Error:
+            raise DeliveryStoreError("Could not persist the verification run and obligations.") from None
+
+    def set_check_run_id(
+        self, run_key: str, check_run_id: int, *, now: float | None = None
+    ) -> None:
+        """Attach the platform Check Run ID after successful publication."""
+        if not run_key or len(run_key) != 64:
+            raise ValueError("run_key must be a SHA-256 hex digest")
+        if type(check_run_id) is not int or check_run_id < 1:
+            raise ValueError("check_run_id must be a positive integer")
+        timestamp = time.time() if now is None else now
+        try:
+            with self._connection() as connection:
+                cursor = connection.execute(
+                    "UPDATE verification_runs SET check_run_id = ?, updated_at = ? WHERE run_key = ?",
+                    (check_run_id, timestamp, run_key),
+                )
+                if cursor.rowcount != 1:
+                    raise DeliveryStoreError("Cannot attach a Check Run to a missing verification run.")
+        except sqlite3.Error:
+            raise DeliveryStoreError("Could not attach the GitHub Check Run identifier.") from None
+
+    def get_verification_run(self, run_key: str) -> dict[str, object] | None:
+        """Return a persisted run and its obligations for audit and tests."""
+        try:
+            with self._connection() as connection:
+                row = connection.execute(
+                    "SELECT * FROM verification_runs WHERE run_key = ?", (run_key,)
+                ).fetchone()
+                if row is None:
+                    return None
+                record: dict[str, object] = dict(row)
+                rows = connection.execute(
+                    """
+                    SELECT obligation_id, category, severity, source, description,
+                           affected_files_json, status, candidate_test_id, status_reason
+                    FROM verification_obligations WHERE run_key = ?
+                    ORDER BY severity, obligation_id
+                    """,
+                    (run_key,),
+                ).fetchall()
+                obligations: list[dict[str, object]] = []
+                for item in rows:
+                    obligation = dict(item)
+                    try:
+                        obligation["affected_files"] = json.loads(
+                            str(obligation.pop("affected_files_json"))
+                        )
+                    except (TypeError, ValueError):
+                        raise DeliveryStoreError(
+                            "Persisted obligation file list failed schema validation."
+                        ) from None
+                    obligations.append(obligation)
+                record["obligations"] = obligations
+                return record
+        except sqlite3.Error:
+            raise DeliveryStoreError("Could not read the persisted verification run.") from None
+
     def close(self) -> None:
         """Compatibility hook; connections are scoped to individual operations."""
