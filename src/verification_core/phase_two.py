@@ -11,11 +11,7 @@ from verification_core.domain import (
     VerificationRunEvaluation,
     evaluate_verification_run,
 )
-from verification_core.github_app import (
-    GitHubAPIError,
-    GitHubAppAuthenticator,
-    GitHubRESTClient,
-)
+from verification_core.github_app import GitHubAPIError, GitHubRESTClient, InstallationToken
 from verification_core.github_context import assemble_pull_request_context
 from verification_core.planning import (
     PlanningResult,
@@ -25,6 +21,12 @@ from verification_core.planning import (
 )
 from verification_core.policy import VerificationPolicy
 from verification_core.security import scrub_secrets
+
+
+class InstallationTokenProvider(Protocol):
+    """Minimal token provider interface, injectable for tests and alternate runtimes."""
+
+    def create_installation_token(self, installation_id: int) -> InstallationToken: ...
 
 
 class ModelFactory(Protocol):
@@ -131,7 +133,7 @@ class PhaseTwoProcessor:
         self,
         *,
         store: SQLiteDeliveryStore,
-        authenticator: GitHubAppAuthenticator,
+        authenticator: InstallationTokenProvider,
         model_factory: ModelFactory | None = None,
         check_name: str = "AI PR Verification",
     ) -> None:
