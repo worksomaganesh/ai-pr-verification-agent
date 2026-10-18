@@ -26,7 +26,7 @@ A JSON field such as `behavioral_assertion_verified: true` is still a claim insi
 
 ## Remaining Phase III release gates
 
-- [ ] Wire Actions API client into a worker-facing evidence ingestion service and durable evidence ledger.
+- [x] Wire the Actions API client into worker-facing evidence ingestion and persist authenticated metadata in the durable evidence ledger (initial slice; requires full CI verification).
 - [ ] Revalidate current PR base/head immediately before publishing any Check Run; stale runs must not publish a success.
 - [ ] Bind each workflow ID/path and evidence-upload step to the exact trusted workflow file from the base SHA, not just a string in a run response.
 - [ ] Resolve workflow reruns, multiple artifacts, shard aggregation, missing artifacts, and contradictory outcomes with fail-closed rules.
@@ -54,3 +54,12 @@ Every newly ingested record starts with reconciliation status `INCONCLUSIVE`. A 
 decisions are immutable. This is persistence infrastructure only: the caller must still run the
 deterministic obligation reconciliation and state machine before recording a result. The ledger
 does not independently prove behavioral assertions.
+
+
+### Worker and ledger integration
+
+`ingest_pull_request_run` accepts an optional `EvidenceLedgerPort`. It performs the final freshness
+check before recording metadata and returns the ledger record key. The ledger stores only normalized
+metadata and digests, starts records as `INCONCLUSIVE`, and treats repeated identical ingestion as
+idempotent. A stale PR discovered during collection is rejected before persistence. These changes
+do not publish a Check Run or substitute for the pending obligation reconciliation stage.

@@ -142,6 +142,7 @@ class SQLAlchemyEvidenceLedger:
             or evidence.pull_request_number != commit.pr_number
             or evidence.base_sha != commit.base_sha
             or evidence.head_sha != commit.head_sha
+            or evidence.coverage_manifest.head_sha != commit.head_sha
             or not evidence.provenance.is_authentic_and_trusted(commit)
         ):
             raise ValueError("evidence provenance does not match the supplied commit identity")
@@ -253,9 +254,11 @@ class SQLAlchemyEvidenceLedger:
             raise ValueError("now must be a non-negative timestamp")
         try:
             with self._engine.begin() as connection:
-                row = connection.execute(
-                    select(_EVIDENCE).where(_EVIDENCE.c.record_key == record_key)
-                ).mappings().first()
+                row = (
+                    connection.execute(select(_EVIDENCE).where(_EVIDENCE.c.record_key == record_key))
+                    .mappings()
+                    .first()
+                )
                 if row is None:
                     raise DeliveryStoreError("missing evidence record")
                 if row["reconciliation_status"] != "INCONCLUSIVE":

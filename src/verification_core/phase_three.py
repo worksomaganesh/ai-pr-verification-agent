@@ -47,13 +47,29 @@ class ActionsReader(Protocol):
     def download_workflow_artifact(self, repository: str, artifact_id: int) -> bytes: ...
 
 
+class EvidenceLedgerPort(Protocol):
+    """Persistence port for authenticated evidence; ingestion must never mark it passed."""
+
+    def record_ingestion(
+        self,
+        *,
+        commit: CommitIdentity,
+        evidence: AuthenticatedEvidenceArtifact,
+        workflow_definition_sha256: str,
+        now: float | None = None,
+    ) -> str: ...
+
+
 class IngestedPullRequestEvidence:
     """Output carrying validated evidence and the digest of its base-commit workflow source."""
 
-    __slots__ = ("evidence", "workflow_definition_sha256")
+    __slots__ = ("evidence", "workflow_definition_sha256", "ledger_record_key")
 
     def __init__(
-        self, evidence: AuthenticatedEvidenceArtifact, workflow_definition_sha256: str
+        self,
+        evidence: AuthenticatedEvidenceArtifact,
+        workflow_definition_sha256: str,
+        ledger_record_key: str | None = None,
     ) -> None:
         if len(workflow_definition_sha256) != 64 or any(
             char not in "0123456789abcdef" for char in workflow_definition_sha256
@@ -61,6 +77,7 @@ class IngestedPullRequestEvidence:
             raise ValueError("workflow_definition_sha256 must be a lowercase SHA-256 digest")
         self.evidence = evidence
         self.workflow_definition_sha256 = workflow_definition_sha256
+        self.ledger_record_key = ledger_record_key
 
 
 def _mapping(value: object, field: str) -> Mapping[str, object]:
@@ -92,6 +109,8 @@ def ingest_pull_request_run(
     changed_paths: Sequence[str],
     expected_artifact_name: str = "verification-evidence",
     required_step_name: str = "Upload verification evidence",
+    evidence_ledger: EvidenceLedgerPort | None = None,
+    ledger_now: float | None = None,
 ) -> IngestedPullRequestEvidence:
     """Collect one run and bind it to the still-current PR commit.
 
@@ -152,6 +171,16 @@ def ingest_pull_request_run(
             required_step_name=required_step_name,
         )
         _assert_current_pull_request(github, commit)
-        return IngestedPullRequestEvidence(evidence, workflow_digest)
+        ledger_record_key = None
+        if evidence_ledger is not None:
+            ledger_record_key = evidence_ledger.record_ingestion(
+                commit=commit,
+                evidence=evidence,
+                workflow_definition_sha256=workflow_digest,
+                now=ledger_now,
+            )
+        return IngestedPullRequestEvidence(
+            evidence, workflow_digest, ledger_record_key=ledger_record_key
+        )
     except ActionsEvidenceError as exc:
         raise EvidenceIngestionServiceError("Authenticated evidence failed validation.") from exc

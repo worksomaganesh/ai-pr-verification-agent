@@ -6,10 +6,15 @@ import hashlib
 import io
 import json
 import zipfile
+from pathlib import Path
 
 import pytest
 
-from verification_core.actions_evidence import ActionsEvidenceError, ingest_authenticated_artifact
+from verification_core.actions_evidence import (
+    ActionsEvidenceError,
+    AuthenticatedEvidenceArtifact,
+    ingest_authenticated_artifact,
+)
 from verification_core.domain.models import CommitIdentity
 from verification_core.github_actions import _artifact_redirect_is_allowed
 
@@ -186,8 +191,6 @@ def test_rejects_extra_files_traversal_and_contradictory_reports() -> None:
         "//githubusercontent.com/artifact",
     ],
 )
-
-
 def test_artifact_redirect_rejects_untrusted_urls(url: str) -> None:
     assert not _artifact_redirect_is_allowed(url)
 
@@ -310,3 +313,68 @@ def test_phase_three_service_rejects_pr_head_moving_during_ingestion() -> None:
             harness_sensitive_paths=(".github/workflows/", "conftest.py"),
             changed_paths=("src/auth.py",),
         )
+
+
+
+def test_phase_three_service_persists_evidence_as_inconclusive_and_idempotently(
+    tmp_path: Path,
+) -> None:
+    from verification_core.evidence_ledger import SQLAlchemyEvidenceLedger
+    from verification_core.phase_three import ingest_pull_request_run
+
+    ledger = SQLAlchemyEvidenceLedger(f"sqlite:///{tmp_path / 'evidence.sqlite3'}")
+    kwargs = {
+        "commit": identity(),
+        "workflow_run_id": 99,
+        "trusted_workflow_paths": (".github/workflows/ci.yml",),
+        "harness_sensitive_paths": (".github/workflows/", "conftest.py"),
+        "changed_paths": ("src/auth.py",),
+        "evidence_ledger": ledger,
+        "ledger_now": 10,
+    }
+    first = ingest_pull_request_run(
+        github=_FakePRReader(), actions=_FakeActionsReader(), **kwargs
+    )
+    second = ingest_pull_request_run(
+        github=_FakePRReader(), actions=_FakeActionsReader(), **kwargs
+    )
+    assert first.ledger_record_key is not None
+    assert second.ledger_record_key == first.ledger_record_key
+    row = ledger.get_record(first.ledger_record_key)
+    assert row is not None
+    assert row["reconciliation_status"] == "INCONCLUSIVE"
+    ledger.close()
+
+
+class _RecordingEvidenceLedger:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def record_ingestion(
+        self,
+        *,
+        commit: CommitIdentity,
+        evidence: AuthenticatedEvidenceArtifact,
+        workflow_definition_sha256: str,
+        now: float | None = None,
+    ) -> str:
+        self.calls += 1
+        return "f" * 64
+
+
+def test_stale_pr_is_rejected_before_persisting_evidence() -> None:
+    from verification_core.phase_three import EvidenceIngestionServiceError, ingest_pull_request_run
+
+    ledger = _RecordingEvidenceLedger()
+    with pytest.raises(EvidenceIngestionServiceError, match="changed during"):
+        ingest_pull_request_run(
+            github=_FakePRReader(move_head_after_first_read=True),
+            actions=_FakeActionsReader(),
+            commit=identity(),
+            workflow_run_id=99,
+            trusted_workflow_paths=(".github/workflows/ci.yml",),
+            harness_sensitive_paths=(".github/workflows/", "conftest.py"),
+            changed_paths=("src/auth.py",),
+            evidence_ledger=ledger,
+        )
+    assert ledger.calls == 0
