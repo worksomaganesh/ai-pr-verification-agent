@@ -24,7 +24,7 @@ def test_serve_command_passes_host_and_port_to_uvicorn(
 ) -> None:
     seen: dict[str, Any] = {}
     monkeypatch.setattr(sys, "argv", ["agent", "serve", "--host", "127.0.0.1", "--port", "9000"])
-    monkeypatch.setattr(cli.uvicorn, "run", lambda *args, **kwargs: seen.update(kwargs))
+    monkeypatch.setattr("verification_core.__main__.uvicorn.run", lambda *args, **kwargs: seen.update(kwargs))
     assert cli.main() == 0
     assert seen["host"] == "127.0.0.1"
     assert seen["port"] == 9000
@@ -55,7 +55,7 @@ def test_worker_stops_cleanly_on_keyboard_interrupt(
     def interrupt(_seconds: float) -> None:
         raise KeyboardInterrupt
 
-    monkeypatch.setattr(cli.time, "sleep", interrupt)
+    monkeypatch.setattr("verification_core.__main__.time.sleep", interrupt)
     assert cli.main() == 0
     assert authenticator.closed
 
