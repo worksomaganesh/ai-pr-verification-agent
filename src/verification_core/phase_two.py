@@ -217,7 +217,7 @@ class PhaseTwoProcessor:
                 conclusion=evaluation.github_conclusion.value,
                 check_run_id=check_run_id,
             )
-        except (GitHubAPIError, GitHubContextError, DiffAnalysisError, ValueError) as exc:
+        except (GitHubAPIError, ValueError) as exc:
             reason_code = {
                 "GitHubRateLimitError": "github_rate_limited",
                 "GitHubResponseTooLarge": "github_response_too_large",
@@ -248,7 +248,13 @@ class PhaseTwoProcessor:
                     event.delivery_id, error_code="unexpected_processing_error", retry=True
                 )
             except DeliveryStoreError:
-                pass
+                return ProcessingResult(
+                    delivery_id=event.delivery_id,
+                    status="failed",
+                    conclusion=None,
+                    check_run_id=None,
+                    reason_code="delivery_state_update_failed",
+                )
             return ProcessingResult(
                 delivery_id=event.delivery_id,
                 status="retrying",
