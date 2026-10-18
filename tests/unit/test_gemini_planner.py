@@ -14,8 +14,6 @@ from verification_core.gemini_planner import (
 )
 from verification_core.planning import (
     ChangedFileInput,
-    DiffAnalysisError,
-    DiffLimits,
     InventoryEntry,
     PlannerContext,
     analyze_changed_files,
