@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+from collections.abc import Mapping
 from typing import Any
 
 from google import genai
@@ -97,7 +98,7 @@ class GeminiVerificationModel(VerificationModelPort):
 
 
 def gemini_model_from_environment(
-    environ: dict[str, str] | None = None,
+    environ: Mapping[str, str] | None = None,
 ) -> GeminiVerificationModel | None:
     """Return no model when no API key is configured; callers then use deterministic planning."""
     environment = os.environ if environ is None else environ
