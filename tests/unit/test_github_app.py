@@ -170,9 +170,7 @@ def test_missing_content_returns_none_and_bad_base64_fails_closed() -> None:
     raw.close()
 
     client, raw = make_client(
-        lambda _request: json_response(
-            {"type": "file", "encoding": "base64", "content": "!!!"}
-        )
+        lambda _request: json_response({"type": "file", "encoding": "base64", "content": "!!!"})
     )
     with pytest.raises(GitHubAPIError, match="base64 UTF-8"):
         client.get_file_content("acme/repo", "tests/test_x.py", BASE)
@@ -241,7 +239,9 @@ def test_check_run_is_created_then_updated_by_external_id() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         if request.method == "GET":
             if state["created"]:
-                return json_response({"check_runs": [{"id": 55, "external_id": state["external_id"]}]})
+                return json_response(
+                    {"check_runs": [{"id": 55, "external_id": state["external_id"]}]}
+                )
             return json_response({"check_runs": []})
         if request.method == "POST":
             state["created"] = True
@@ -318,7 +318,7 @@ def test_transport_errors_and_large_responses_are_sanitized() -> None:
 
 def test_rate_limit_is_classified() -> None:
     def limited(_request: httpx.Request) -> httpx.Response:
-        return json_response({}, 429,)
+        return json_response({}, 429)
 
     client, raw = make_client(limited)
     with pytest.raises(GitHubAPIError, match="rate limit"):
