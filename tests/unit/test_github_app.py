@@ -20,6 +20,7 @@ from verification_core.github_app import (
     GitHubRESTClient,
 )
 
+SAMPLE_TOKEN_VALUE = "sample-installation-value"
 HEAD = "2" * 40
 TREE = "3" * 40
 BASE = "1" * 40
@@ -57,7 +58,7 @@ def test_github_app_jwt_and_installation_token() -> None:
         seen["authorization"] = request.headers.get("authorization")
         seen["body"] = json.loads(request.content)
         return json_response(
-            {"token": "ghs-installation-token", "expires_at": "2030-01-01T00:00:00Z"}
+            {"token": SAMPLE_TOKEN_VALUE, "expires_at": "2030-01-01T00:00:00Z"}
         )
 
     raw = httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com")
@@ -73,8 +74,7 @@ def test_github_app_jwt_and_installation_token() -> None:
     assert claims["iat"] == 1_799_999_970
     assert seen == {}
     token = authenticator.create_installation_token(456)
-    expected_installation_value = "ghs-installation-value"
-    assert token.token == expected_installation_value
+    assert token.token == SAMPLE_TOKEN_VALUE
     assert token.expires_at.tzinfo is not None
     assert seen["path"] == "/app/installations/456/access_tokens"
     assert str(seen["authorization"]).startswith("Bearer ")
@@ -338,10 +338,10 @@ def test_token_expiry_must_be_timezone_aware() -> None:
     from verification_core.github_app import InstallationToken
 
     with pytest.raises(ValueError):
-        InstallationToken(token="sample-value", expires_at=datetime.now())
+        InstallationToken(token=SAMPLE_TOKEN_VALUE, expires_at=datetime.now())
     assert (
         InstallationToken(
-            token="sample-value", expires_at=datetime.now(UTC) + timedelta(hours=1)
+            token=SAMPLE_TOKEN_VALUE, expires_at=datetime.now(UTC) + timedelta(hours=1)
         ).token
-        == "sample-value"
+        == SAMPLE_TOKEN_VALUE
     )
