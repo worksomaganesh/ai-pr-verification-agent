@@ -19,7 +19,7 @@ Phase II now adds:
 - a provider-agnostic planning port and optional Gemini hypothesis adapter; model failures fall back to deterministic path rules, and model output cannot mark evidence as passed;
 - deterministic Check Run publication with an external ID, secret-scrubbed summary, and explicit disclosure that Phase II performs planning only and runs no untrusted tests.
 
-The Phase II reference deployment keeps the webhook delivery queue on SQLite and can store run/obligation audit records in PostgreSQL. The queue is still single-host and is not a distributed queue; horizontally scaled ingress/worker deployment requires a shared queue backend. Deploy the ingress behind the operator's normal TLS/reverse-proxy boundary. Phase III remains responsible for platform-authenticated Actions workflow/job/artifact ingestion and actual test-evidence reconciliation.
+The Phase II reference deployment keeps the webhook delivery queue on SQLite and can store run/obligation audit records in PostgreSQL. The queue is still single-host and is not a distributed queue; horizontally scaled ingress/worker deployment requires a shared queue backend. Deploy the ingress behind the operator's normal TLS/reverse-proxy boundary. Phase III is in progress on draft PR [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6): it adds authenticated Actions run/job/artifact collection, bounded ZIP/JUnit/coverage validation, a durable evidence ledger, deterministic obligation reconciliation, and freshness-checked Check Run publication. It is not release-complete until the exact PR head passes all CI/coverage gates and the remaining workflow-authenticity, rerun/shard, partial-evidence, and publication-failure cases are verified.
 
 ## Security principles
 
@@ -50,7 +50,7 @@ CI runs formatting, lint, strict typing, and tests with a 90% overall coverage f
 | 1A | Deterministic domain models and state machine | Implemented; previously green with 5,000-example property test |
 | 1B | Policy validator, runner allowlist, evidence parsers, ledger, adversarial scenario | Release gate passed on the Phase I release-hardening tree; Phase II CI continues to run the expanded suite |
 | 2 | Diff analysis, planning, persistence, webhook and Check Run service | Implemented on the Phase II integration branch; awaiting CI/review before merge. Includes authenticated GitHub REST transport, durable delivery queue, SQLite/PostgreSQL run ledger, worker orchestration, optional Gemini planning, and honest planning-only Check Runs |
-| 3 | Platform-anchored passive CI artifact ingestion and reconciliation | Not started |
+| 3 | Platform-anchored passive CI artifact ingestion and reconciliation | In progress on draft PR #6; CI/release gates still pending |
 | 4 | Opt-in dispatch, additional adapters, human governance hooks | Not started |
 
 See [docs/verification-semantics.md](docs/verification-semantics.md), [docs/phase-0-architecture.md](docs/phase-0-architecture.md), [docs/phase-1-release-gate.md](docs/phase-1-release-gate.md), [docs/phase-2-planning.md](docs/phase-2-planning.md), and [docs/phase-2-operations.md](docs/phase-2-operations.md).

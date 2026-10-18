@@ -340,3 +340,22 @@ passed Ruff in that run; this last import-only correction is now applied.
 Ruff's exact remaining diff indicates the configured import sorter wants one blank line—not two—between this
 test module's import block and its first constants. That spacing is now aligned with the repository's
 actual lint configuration; the next CI run is the authority on whether the gate is clean.
+
+
+## Exact-head CI diagnosis — 2026-10-18
+
+Live PR metadata, the branch head, and the Actions job payload agree on the tested candidate
+`34df9e9c9aaf8f58bdd62a0a2070169da563a4df`. Run [#39145290937](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39145290937)
+passed formatting and Ruff, then failed strict mypy on the return annotation for
+`_scheduled_high_obligation` in `tests/unit/test_actions_evidence.py:517`. Tests and both coverage
+gates were skipped. This is a real, narrow test-typing issue—not a production implementation result.
+
+The follow-up commit annotates the helper as returning `VerificationObligation` and imports that type
+at module scope. No progress increase is assigned to this repair before the exact new SHA passes CI.
+
+The refreshed review also identifies an acceptance gap: the service hashes the workflow definition read
+from the base SHA but does not yet prove from that definition that the named successful job step invokes
+the intended artifact-upload action with the configured artifact name. The next implementation slice
+must close this semantic trust gap or explicitly reject workflow shapes it cannot verify. Reruns/shards
+need a fail-closed contract rather than implicit aggregation, and tests still need to demonstrate these
+boundaries.

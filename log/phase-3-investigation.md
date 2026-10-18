@@ -208,3 +208,29 @@ claimed until CI proceeds past lint.
 
 The import members are now parenthesized and sorted. Ruff's remaining diff points only to the import-to-
 constant spacing; the configured style expects one blank line here, which this commit applies.
+
+
+## Exact-head CI failure and next diagnostic — 2026-10-18
+
+A fresh read of the live PR, branch tree, and workflow API supersedes the older status snapshot above:
+PR #6 currently points at `34df9e9c9aaf8f58bdd62a0a2070169da563a4df`, and CI run [#39145290937](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39145290937)
+tested that exact SHA. Formatting and Ruff both passed; strict mypy then stopped the job at
+`tests/unit/test_actions_evidence.py:517` because `_scheduled_high_obligation` had no return annotation.
+Tests and both coverage gates were skipped, not passed.
+
+The corrective change imports `VerificationObligation` at module scope and annotates the helper's
+return type. It preserves `mypy --strict`; the fix is not considered verified until a later run reaches
+and passes the test and coverage steps.
+
+A second issue is more architectural: `ingest_pull_request_run` fetches the trusted workflow text at
+the base SHA and records its SHA-256, but the current code does not parse that definition to prove that
+the configured step actually invokes the expected artifact-upload action or names the required artifact.
+A job step's display name alone is not a reliable semantic contract. The next trust-boundary implementation
+must make the upload contract explicit and reject unsupported or ambiguous workflow shapes, with tests
+for look-alike names, missing uploader actions, mismatched artifact names, duplicate candidate upload
+steps, and unpinned/unapproved action references.
+
+For run/shard handling, one requested run currently requires exactly one artifact with the configured
+name. That is a useful fail-closed primitive, but it is not a documented aggregation protocol for
+multiple successful runs, reruns, or test shards. Until a deterministic aggregation contract exists,
+ambiguous or partial evidence must remain inconclusive rather than being combined optimistically.

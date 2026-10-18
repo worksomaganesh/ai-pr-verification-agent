@@ -15,7 +15,7 @@ from verification_core.actions_evidence import (
     AuthenticatedEvidenceArtifact,
     ingest_authenticated_artifact,
 )
-from verification_core.domain.models import CommitIdentity
+from verification_core.domain.models import CommitIdentity, VerificationObligation
 from verification_core.github_actions import _artifact_redirect_is_allowed
 
 BASE = "1" * 40
@@ -514,9 +514,10 @@ class _FakeCheckPublisher(_FakePRReader):
         return 123
 
 
-def _scheduled_high_obligation(obligation_id: str = "OBL-PUBLISH-1"):
+def _scheduled_high_obligation(
+    obligation_id: str = "OBL-PUBLISH-1",
+) -> VerificationObligation:
     from verification_core.domain.enums import ObligationSource, Severity
-    from verification_core.domain.models import VerificationObligation
     from verification_core.domain.state_machine import schedule_obligation
 
     return schedule_obligation(
