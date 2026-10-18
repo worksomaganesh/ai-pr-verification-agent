@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import sys
 from typing import Any
 
@@ -12,7 +13,7 @@ import verification_core.__main__ as cli
 
 def test_positive_int_parser() -> None:
     assert cli._positive_int("7") == 7
-    with pytest.raises(Exception):
+    with pytest.raises(argparse.ArgumentTypeError):
         cli._positive_int("zero")
     with pytest.raises(Exception):
         cli._positive_int("0")
