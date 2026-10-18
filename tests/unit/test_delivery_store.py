@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 from verification_core.delivery_store import DeliveryStoreError, SQLiteDeliveryStore
 from verification_core.webhooks import PullRequestWebhookEvent
