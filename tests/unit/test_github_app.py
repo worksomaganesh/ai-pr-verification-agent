@@ -141,7 +141,6 @@ def test_content_is_loaded_at_exact_sha_and_bounded() -> None:
 
     client, raw = make_client(handler)
     assert client.get_file_content("acme/repo", "tests/test_example.py", BASE) == "print('safe')\n"
-    assert client.get_file_content("acme/repo", "tests/test_example.py", "bad") is None if False else True
     with pytest.raises(GitHubAPIError, match="unsafe repository file"):
         client.get_file_content("acme/repo", "../secret", BASE)
     with pytest.raises(GitHubAPIError, match="exact 40-character"):
@@ -209,7 +208,7 @@ def test_test_inventory_uses_commit_tree_and_parses_ast_without_execution() -> N
     ("payload", "message"),
     [
         ({"tree": {"sha": "bad"}}, "tree SHA"),
-        ({"tree": {"sha": TREE}}, "git tree"),
+        ({"tree": {"sha": TREE}}, "truncated"),
     ],
 )
 def test_test_inventory_rejects_malformed_tree(payload: object, message: str) -> None:
