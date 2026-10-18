@@ -480,7 +480,6 @@ def test_phase_three_rejects_unverifiable_base_workflow_contract(source: str, me
         )
 
 
-
 @pytest.mark.parametrize(
     ("workflow_source", "required_step_name", "artifact_name", "message"),
     [
