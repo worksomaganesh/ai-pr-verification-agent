@@ -575,6 +575,7 @@ def test_phase_three_rejects_invalid_original_workflow_attempt() -> None:
     with pytest.raises(EvidenceIngestionServiceError, match="attempt is missing or invalid"):
         _assert_workflow_run_unchanged(actions, REPO, 99, original)
 
+
 def test_phase_three_service_rejects_attempt_change_during_ingestion() -> None:
     from verification_core.phase_three import EvidenceIngestionServiceError, ingest_pull_request_run
 
