@@ -16,7 +16,6 @@ from verification_core.evidence_ledger import (
     SQLAlchemyEvidenceLedger,
 )
 
-
 BASE = "1" * 40
 HEAD = "2" * 40
 POLICY = "a" * 64

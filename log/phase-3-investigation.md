@@ -204,3 +204,7 @@ without weakening Ruff. Strict typing and test behavior have not yet been valida
 The latest run passed format and all production/test lint checks except one long import in
 `tests/unit/test_evidence_ledger.py`. It is now a parenthesized multi-line import; no test result is
 claimed until CI proceeds past lint.
+
+
+The import members are now parenthesized and sorted. Ruff's remaining diff points only to the import-to-
+constant spacing; the configured style expects one blank line here, which this commit applies.

@@ -335,3 +335,8 @@ The next run must confirm strict typing and tests.
 The next lint run found one remaining import-sort issue in the evidence-ledger test: the two imported
 ledger symbols needed a parenthesized multi-line import. The production code and newly added tests
 passed Ruff in that run; this last import-only correction is now applied.
+
+
+Ruff's exact remaining diff indicates the configured import sorter wants one blank line—not two—between this
+test module's import block and its first constants. That spacing is now aligned with the repository's
+actual lint configuration; the next CI run is the authority on whether the gate is clean.
