@@ -7,7 +7,12 @@ from pathlib import Path
 import pytest
 
 from verification_core.delivery_store import DeliveryStoreError, SQLiteDeliveryStore
-from verification_core.domain import CommitIdentity, ObligationSource, Severity, VerificationObligation
+from verification_core.domain import (
+    CommitIdentity,
+    ObligationSource,
+    Severity,
+    VerificationObligation,
+)
 from verification_core.webhooks import PullRequestWebhookEvent
 
 BASE = "1" * 40
