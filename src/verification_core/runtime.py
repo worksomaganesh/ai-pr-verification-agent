@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Mapping
 from pathlib import Path
+
+from fastapi import FastAPI
 
 from verification_core.delivery_store import SQLiteDeliveryStore
 from verification_core.gemini_planner import gemini_model_from_environment
@@ -12,7 +15,7 @@ from verification_core.phase_two import PhaseTwoProcessor
 from verification_core.webhook_app import create_app_from_environment
 
 
-def _private_key(environment: dict[str, str]) -> str:
+def _private_key(environment: Mapping[str, str]) -> str:
     key_path = environment.get("GITHUB_APP_PRIVATE_KEY_PATH", "")
     if key_path:
         path = Path(key_path)
@@ -31,7 +34,7 @@ def _private_key(environment: dict[str, str]) -> str:
 
 
 def create_processor_from_environment(
-    environ: dict[str, str] | None = None,
+    environ: Mapping[str, str] | None = None,
 ) -> tuple[PhaseTwoProcessor, SQLiteDeliveryStore, GitHubAppAuthenticator]:
     """Build the worker from explicit environment configuration without printing secrets."""
     environment = os.environ if environ is None else environ
