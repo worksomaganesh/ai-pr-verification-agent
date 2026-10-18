@@ -96,9 +96,7 @@ def test_claim_rejects_unsafe_bounds(
     tmp_path: object, lease_seconds: int, max_attempts: int
 ) -> None:
     with pytest.raises(ValueError):
-        store(tmp_path).claim_next(
-            now=1, lease_seconds=lease_seconds, max_attempts=max_attempts
-        )
+        store(tmp_path).claim_next(now=1, lease_seconds=lease_seconds, max_attempts=max_attempts)
 
 
 def test_state_transitions_require_a_processing_lease(tmp_path: object) -> None:
