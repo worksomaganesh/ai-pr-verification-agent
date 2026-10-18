@@ -53,7 +53,7 @@ def headers(
 
 
 def client(tmp_path: Path, *, max_body_bytes: int = 1_048_576) -> TestClient:
-    path = str(tmp_path / "deliveries.sqlite3")  # type: ignore[operator]
+    path = str(tmp_path / "deliveries.sqlite3")
     app = create_webhook_app(
         webhook_secret=SIGNING_VALUE,
         delivery_store=SQLiteDeliveryStore(path),
