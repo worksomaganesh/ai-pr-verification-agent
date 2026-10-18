@@ -2,47 +2,39 @@
 
 **Snapshot date:** 2026-10-18  
 **Main/base SHA for Phase III PR:** `1ff87390071491a9a08c9748aca2f36887ac5d77`  
-**Phase III branch head at snapshot:** `34df9e9c9aaf8f58bdd62a0a2070169da563a4df`  
-**Phase III PR:** [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6), open and draft.
+**Last inspected Phase III head:** `d2a1e0c2a08e3a702ff9814eee408b3606e4ea37`  
+**Phase III PR:** [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6), open and draft.  
+**Last completed CI run:** [#39147354586](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39147354586).
 
 ## Verified on main
 
 ### Phase I
 - Exact run: [#39036376525](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39036376525).
 - Tested SHA: `5626ef5b5df58f288058977f73692947234abc1c`.
-- Formatting, Ruff, strict mypy, and tests passed.
-- Result: 167 passed; 97.30% overall coverage against the 95% release gate.
+- Formatting, Ruff, strict mypy, and tests passed: 167 tests and 97.30% overall coverage against the 95% Phase I release gate.
 
 ### Phase II
 - Exact run: [#39103979912](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39103979912).
 - Tested SHA: `1ff87390071491a9a08c9748aca2f36887ac5d77`.
-- Formatting, Ruff, strict mypy, tests, Phase I core gate, and Phase II integration gate passed.
-- Result: 353 passed, one warning, 92.66% overall; core coverage about 96%, integration coverage about 86%.
+- Formatting, Ruff, strict mypy, tests, Phase I core gate, and Phase II integration gate passed: 353 tests, one warning, 92.66% overall coverage.
 
-## Current Phase III state
+## Phase III: last observed verification
 
-- PR head at this snapshot: `34df9e9c9aaf8f58bdd62a0a2070169da563a4df`.
-- Exact CI run: [#39145290937](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39145290937).
-- Workflow run SHA matches the PR head above.
-- Formatting: **passed**.
-- Ruff lint: **passed**.
-- Strict mypy: **failed** at `tests/unit/test_actions_evidence.py:517`: `_scheduled_high_obligation` was missing a return type annotation (`no-untyped-def`).
-- Unit/property tests and both phase-specific coverage gates: **skipped** because strict mypy failed first.
-- The next commit adds the concrete `VerificationObligation` return type. That correction still needs a new CI run; this log does not claim the fix passed.
-- Phase III code is on draft PR #6 and is not merged to main. Artifact ingestion, durable evidence records, deterministic obligation reconciliation, and freshness-checked Check Run publication exist in the branch, but Phase III release acceptance is not yet complete.
-- The ingestion service reads and hashes the base-SHA workflow source. The remaining trust-boundary review must verify that the source actually defines the permitted upload step and artifact contract, not merely that the path exists.
-- Reruns/shards, malformed/partial evidence, archive boundaries, ledger decision behavior, and publication failure handling remain explicit release-review areas.
+- Tested PR merge ref resolved to branch head `d2a1e0c2a08e3a702ff9814eee408b3606e4ea37`; the run was not green.
+- Formatting failed in four reported locations: one timestamp conditional in `src/verification_core/evidence_ledger.py`, two formatting groups in `src/verification_core/phase_three.py`, and the parametrized workflow test in `tests/unit/test_actions_evidence.py`.
+- Ruff lint, strict mypy, unit/property tests, overall coverage, Phase I coverage, and Phase II integration coverage were **skipped**. They are unverified for that SHA.
+- The current `main` workflow file at the base SHA does not declare the required evidence-upload step. The new trust validator correctly rejects it. A production-capable ingestion run therefore requires a separate trusted-workflow deployment and an honest per-test evidence-manifest producer; a green library test suite alone cannot prove live ingestion is enabled.
+- The implementation uses one run and exactly one configured artifact. Cross-run and shard aggregation are not implemented. Missing or ambiguous evidence is rejected. This change adds an explicit post-download reread of the workflow run and rejects an attempt/identity change.
 
 ## Completion estimate
 
-The current conversational estimate is **70% implementation / 30% remaining**, as reported in the working session. This is a rough engineering estimate, not test coverage or a release-readiness score. The latest exact-SHA CI run is red, so it does not establish a completed milestone.
+**Working estimate: 70% implemented / 30% remaining.** This is an engineering-scope estimate, not code coverage or release readiness. The remaining release work is concrete: obtain green full CI on the exact candidate SHA; satisfy the coverage gates; deploy a trusted base-branch uploader and per-test manifest producer; validate live GitHub artifact digest behavior; and reconcile the PR metadata, repository logs, and latest CI evidence to the same immutable SHA. Do not report 100% until those conditions are met.
 
-## Next acceptance criteria
+## Acceptance checklist
 
-1. Fix strict mypy without relaxing strictness, then obtain a new full CI run on the new exact branch head.
-2. Resolve every formatting, lint, typing, test, overall-coverage, Phase I-coverage, and Phase II-integration-coverage failure surfaced by that run.
-3. Verify the trusted workflow's actual definition at the policy/base SHA and bind its upload step and artifact name to successful platform-reported step metadata.
-4. Define and test the supported rerun/shard contract; fail closed on ambiguous runs, missing or partial evidence, malformed inputs, and conflicting outcomes.
-5. Verify immutable ledger decisions and safe reporting/retry behavior when Check Run publication or subsequent ledger persistence fails.
-6. Update Phase III and repository documentation only to match behavior and CI evidence on the actual candidate SHA.
-7. Before calling Phase III complete, confirm the live branch ref, PR head, commit tree, and CI run SHA agree and all required gates pass.
+1. Formatting, Ruff, strict mypy, tests, and all coverage gates pass on the same exact candidate SHA.
+2. The run's ID, workflow ID/path, attempt, event, status, conclusion, and head SHA stay unchanged while evidence is retrieved; rerun or ambiguity fails closed.
+3. The exact base-SHA workflow contract is validated. Production enablement waits for a trusted deployed workflow that emits the exact two-file archive and does not fabricate behavioral proof.
+4. Publication tests prove no ledger terminal decision is written when Check Run publication fails and that post-publication persistence failure is surfaced as `ledger_persisted=False`.
+5. Progress and investigation logs explain the failure, correction, evidence, and remaining deployment prerequisite without deleting failed history.
+6. Branch head, PR head, changed tree, and CI-tested SHA are re-read and agree before claiming completion.

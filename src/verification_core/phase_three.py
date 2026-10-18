@@ -140,15 +140,14 @@ def _validate_trusted_workflow_upload_contract(
     triggers = workflow.get("on", workflow.get(True))
     has_pull_request_trigger = (
         triggers == "pull_request"
-        or isinstance(triggers, list) and "pull_request" in triggers
+        or isinstance(triggers, list)
+        and "pull_request" in triggers
         or isinstance(triggers, Mapping)
         and "pull_request" in triggers
         and triggers.get("pull_request") is not False
     )
     if not has_pull_request_trigger:
-        raise EvidenceIngestionServiceError(
-            "Trusted workflow must declare a pull_request trigger."
-        )
+        raise EvidenceIngestionServiceError("Trusted workflow must declare a pull_request trigger.")
 
     jobs = _workflow_string_mapping(workflow.get("jobs"), "jobs")
     if not jobs:
@@ -174,16 +173,16 @@ def _validate_trusted_workflow_upload_contract(
             ):
                 upload_steps.append(step)
 
-    if (
-        len(named_steps) != 1
-        or len(upload_steps) != 1
-        or named_steps[0] is not upload_steps[0]
-    ):
+    if len(named_steps) != 1 or len(upload_steps) != 1 or named_steps[0] is not upload_steps[0]:
         raise EvidenceIngestionServiceError(
             "Trusted workflow must define exactly one required step and exactly one matching "
             "upload-artifact action."
         )
     upload_step = upload_steps[0]
+    if "if" in upload_step:
+        raise EvidenceIngestionServiceError(
+            "Trusted evidence upload step must not be conditional."
+        )
     action_ref = upload_step.get("uses")
     if not isinstance(action_ref, str) or not _PINNED_UPLOAD_ACTION.fullmatch(action_ref):
         raise EvidenceIngestionServiceError(
@@ -288,6 +287,33 @@ def _assert_current_pull_request(
     return pr
 
 
+def _assert_workflow_run_unchanged(
+    actions: ActionsReader,
+    repository: str,
+    workflow_run_id: int,
+    original_run: Mapping[str, object],
+) -> None:
+    """Reject evidence collected across two different workflow-run attempts or identities."""
+    original_attempt = original_run.get("run_attempt")
+    if type(original_attempt) is not int or original_attempt < 1:
+        raise EvidenceIngestionServiceError("Workflow run attempt is missing or invalid.")
+    current_run = actions.get_workflow_run(repository, workflow_run_id)
+    identity_fields = (
+        "id",
+        "workflow_id",
+        "run_attempt",
+        "path",
+        "event",
+        "status",
+        "conclusion",
+        "head_sha",
+    )
+    if any(current_run.get(field) != original_run.get(field) for field in identity_fields):
+        raise EvidenceIngestionServiceError(
+            "Workflow run identity or attempt changed during evidence ingestion; discard this evidence."
+        )
+
+
 def ingest_pull_request_run(
     *,
     github: PullRequestReader,
@@ -364,6 +390,9 @@ def ingest_pull_request_run(
             expected_artifact_name=expected_artifact_name,
             expected_run_id=workflow_run_id,
             required_step_name=required_step_name,
+        )
+        _assert_workflow_run_unchanged(
+            actions, commit.repo_full_name, workflow_run_id, run_payload
         )
         _assert_current_pull_request(github, commit)
         ledger_record_key = None

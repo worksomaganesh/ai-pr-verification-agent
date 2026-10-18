@@ -9,7 +9,7 @@ Phase III has begun with a first implementation slice for authenticated GitHub A
 1. Obtain workflow-run, job, and artifact metadata directly from the authenticated GitHub Actions REST API using an installation token. Webhook fields and artifact contents are not authoritative.
 2. Bind the run to the expected repository, pull request number, base SHA, and head SHA. Only completed successful `pull_request` runs are eligible.
 3. Require the workflow path to match the trusted workflow list loaded from the base-commit policy. Reject a PR that changes a harness-sensitive path.
-4. Require a completed successful job step named `Upload verification evidence`. This is an initial contract; the caller must source the step definition from a workflow that the base policy trusts.
+4. Parse the workflow source at the exact base SHA with duplicate-key rejection. Require a `pull_request` trigger and exactly one unconditional, uniquely named `Upload verification evidence` step using a full-SHA-pinned `actions/upload-artifact` reference, the configured artifact name, exactly `junit.xml` and `coverage-manifest.json`, and `if-no-files-found: error`. A conditional or ambiguous uploader is rejected.
 5. Bind artifact metadata to the exact workflow-run ID and repository identity. Require a GitHub-provided SHA-256 digest and compare it to the downloaded bytes before parsing.
 6. Enforce archive size, member count, member size, expansion ratio, regular-file-only entries, exact member names, and safe paths. The accepted archive contains exactly `junit.xml` and `coverage-manifest.json`.
 7. Parse reports with the Phase I bounded parsers and require identical exact test-node inventories, matching outcomes, and the coverage manifest's head SHA to equal the expected head SHA.
@@ -28,11 +28,14 @@ A JSON field such as `behavioral_assertion_verified: true` is still a claim insi
 
 - [x] Wire the Actions API client into worker-facing evidence ingestion and persist authenticated metadata in the durable evidence ledger (initial slice; requires full CI verification).
 - [x] Revalidate current PR base/head immediately before publishing a Phase III Check Run; stale runs are rejected before any Check Run API call (covered by regression test).
-- [ ] Bind each workflow ID/path and evidence-upload step to the exact trusted workflow file from the base SHA, not just a string in a run response.
-- [ ] Resolve workflow reruns, multiple artifacts, shard aggregation, missing artifacts, and contradictory outcomes with fail-closed rules.
+- [x] Parse the exact base-SHA workflow and validate the narrow evidence-upload contract; reject missing, duplicate, conditional, or unpinned upload steps.
+- [ ] Deploy a trusted workflow on `main` that actually satisfies this contract and generates the per-test evidence manifest. The current base workflow does not satisfy it, so live ingestion remains intentionally unavailable until deployment.
+- [x] Use a conservative single-run/single-artifact policy: no cross-run or shard aggregation; missing/ambiguous artifacts fail closed; workflow run identity and attempt are re-read after download and must remain unchanged.
+- [ ] Add a separate explicit aggregation protocol before supporting shards or combining multiple runs.
 - [ ] Validate GitHub artifact digest semantics against live API responses and supported artifact service versions.
 - [x] Add an initial deterministic obligation-to-evidence reconciliation bridge using exact test IDs, trusted target locations, an independent trusted assertion binding, and the Phase I state machine. End-to-end trusted target/assertion derivation still belongs to the caller.
-- [ ] Add adversarial tests for pagination races, truncated results, artifact redirect hosts, oversized/changing streams, duplicate ZIP entries, compression bombs, symlinks, stale PR heads, forged digest, and partial shard evidence.
+- [x] Add adversarial tests for archive size/member limits, malformed/empty ZIPs, unsafe/duplicate paths, symlinks, oversized members, compression ratios, untrusted redirect URLs, stale PR heads, workflow-contract spoofing, and run-attempt changes.
+- [ ] Validate live artifact digest/version semantics and complete production artifact-manifest generation with a deployed trusted workflow.
 - [ ] Add deployment configuration, retention and redaction rules for evidence records.
 - [ ] Run format, lint, strict typing, complete tests, and coverage gates on the exact merge candidate.
 

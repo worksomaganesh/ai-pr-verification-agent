@@ -289,7 +289,6 @@ def test_archive_reader_allows_explicit_directory_entries_only_as_containers() -
     assert set(_read_zip_members(output.getvalue())) == {"junit.xml", "coverage-manifest.json"}
 
 
-
 @pytest.mark.parametrize(
     "url",
     [
@@ -346,13 +345,23 @@ class _FakePRReader:
 
 
 class _FakeActionsReader:
-    def __init__(self, *, artifacts: list[dict[str, object]] | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        artifacts: list[dict[str, object]] | None = None,
+        change_attempt_after_first_read: bool = False,
+    ) -> None:
         self.artifacts = artifacts
         self.run_payload = run()
+        self.run_reads = 0
+        self.change_attempt_after_first_read = change_attempt_after_first_read
 
     def get_workflow_run(self, repository: str, run_id: int) -> dict[str, object]:
         assert repository == REPO
         assert run_id == 99
+        self.run_reads += 1
+        if self.change_attempt_after_first_read and self.run_reads > 1:
+            return {**self.run_payload, "run_attempt": 2}
         return self.run_payload
 
     def list_workflow_run_jobs(self, repository: str, run_id: int) -> tuple[dict[str, object], ...]:
@@ -418,6 +427,13 @@ def test_phase_three_service_binds_base_workflow_and_rechecks_pr() -> None:
         ),
         (
             TRUSTED_WORKFLOW.replace(
+                "      - name: Upload verification evidence",
+                "      - name: Upload verification evidence\\n        if: false",
+            ),
+            "must not be conditional",
+        ),
+        (
+            TRUSTED_WORKFLOW.replace(
                 "        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
                 "        run: echo not-an-upload-action",
             ),
@@ -436,7 +452,9 @@ def test_phase_three_service_binds_base_workflow_and_rechecks_pr() -> None:
             "malformed or ambiguous",
         ),
         (
-            TRUSTED_WORKFLOW.replace("name: Upload verification evidence", "name: Different display name"),
+            TRUSTED_WORKFLOW.replace(
+                "name: Upload verification evidence", "name: Different display name"
+            ),
             "exactly one required step",
         ),
     ],
@@ -512,6 +530,22 @@ def test_phase_three_service_rejects_pr_head_moving_during_ingestion() -> None:
             harness_sensitive_paths=(".github/workflows/", "conftest.py"),
             changed_paths=("src/auth.py",),
         )
+
+
+def test_phase_three_service_rejects_attempt_change_during_ingestion() -> None:
+    from verification_core.phase_three import EvidenceIngestionServiceError, ingest_pull_request_run
+
+    with pytest.raises(EvidenceIngestionServiceError, match="identity or attempt changed"):
+        ingest_pull_request_run(
+            github=_FakePRReader(),
+            actions=_FakeActionsReader(change_attempt_after_first_read=True),
+            commit=identity(),
+            workflow_run_id=99,
+            trusted_workflow_paths=(".github/workflows/ci.yml",),
+            harness_sensitive_paths=(".github/workflows/", "conftest.py"),
+            changed_paths=("src/auth.py",),
+        )
+
 
 
 def test_phase_three_service_persists_evidence_as_inconclusive_and_idempotently(
@@ -818,3 +852,76 @@ def test_contradictory_coverage_result_is_never_turned_into_a_pass(
         trusted_assertion_bindings={"OBL-CONTRADICTORY": "tests.test_auth::test_access"},
     )
     assert result.status is ObligationStatus.FAILED
+
+
+class _RecordingDecisionLedger:
+    def __init__(self, *, fail: bool = False) -> None:
+        self.calls = 0
+        self.fail = fail
+
+    def record_reconciliation(
+        self,
+        record_key: str,
+        *,
+        status: str,
+        reason: str,
+        decision_sha256: str,
+        now: float | None = None,
+    ) -> None:
+        self.calls += 1
+        if self.fail:
+            raise RuntimeError("ledger unavailable")
+
+
+class _FailingCheckPublisher(_FakeCheckPublisher):
+    def publish_check_run(self, **kwargs: object) -> int:
+        raise RuntimeError("Check Run API unavailable")
+
+
+def _passed_obligation_for_publication() -> VerificationObligation:
+    from verification_core.phase_three import (
+        IngestedPullRequestEvidence,
+        reconcile_authenticated_obligation,
+    )
+
+    scheduled = _scheduled_high_obligation("OBL-PUBLISH-LEDGER")
+    return reconcile_authenticated_obligation(
+        ingested=IngestedPullRequestEvidence(ingest(), "d" * 64),
+        obligation=scheduled,
+        expected_commit=identity(),
+        target_lines={"src/auth.py": {10}},
+        target_branches={"src/auth.py": {"10:0"}},
+        trusted_assertion_bindings={"OBL-PUBLISH-LEDGER": "tests.test_auth::test_access"},
+    )
+
+
+def test_publication_failure_does_not_write_terminal_ledger_decision() -> None:
+    from verification_core.phase_three import publish_reconciled_verification
+
+    ledger = _RecordingDecisionLedger()
+    with pytest.raises(RuntimeError, match="Check Run API unavailable"):
+        publish_reconciled_verification(
+            github=_FailingCheckPublisher(),
+            commit=identity(),
+            obligations=(_passed_obligation_for_publication(),),
+            decision_ledger=ledger,
+            ledger_record_key="f" * 64,
+        )
+    assert ledger.calls == 0
+
+
+def test_publication_reports_failed_post_publish_ledger_persistence() -> None:
+    from verification_core.phase_three import publish_reconciled_verification
+
+    publisher = _FakeCheckPublisher()
+    ledger = _RecordingDecisionLedger(fail=True)
+    result = publish_reconciled_verification(
+        github=publisher,
+        commit=identity(),
+        obligations=(_passed_obligation_for_publication(),),
+        decision_ledger=ledger,
+        ledger_record_key="f" * 64,
+    )
+    assert len(publisher.published) == 1
+    assert ledger.calls == 1
+    assert result.ledger_persisted is False

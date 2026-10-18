@@ -366,3 +366,15 @@ boundaries.
 The next code slice adds semantic validation of the workflow file fetched at the exact base SHA. It rejects workflows without a PR trigger, ambiguous or duplicate YAML keys, absent or multiple uploader steps, tag-based uploader references, a mismatched artifact name, non-literal/wildcard paths, and upload configurations that warn instead of failing when evidence files are missing. A legitimate action reference must use a full commit SHA. Archive tests cover empty/malformed ZIPs, unsafe paths, duplicate members, symlink entries, empty/oversized files, high compression ratios, too many members, and benign directory entries.
 
 This commit also closes a ledger-validation inconsistency: reconciliation timestamps now require finite non-negative numeric values and reject booleans, NaN, and infinity. The preceding exact SHA `699b7cda35b02d73b31ee0f15298963230100a63` passed formatting, Ruff, strict mypy, and all 399 tests, but failed the overall coverage gate at 89.38% (90% required). The tests and fixes in this slice must be validated against their own commit; no phase completion is inferred.
+
+
+## Trusted-source and publication failure-path hardening — 2026-10-18 (verification pending)
+
+**Changes added in this slice:**
+- Reject any explicit `if:` condition on the trusted evidence-uploader step. An artifact must not rely on a workflow-controlled condition that is not covered by the narrow upload contract.
+- Re-read workflow-run metadata after downloading and validating the archive. Compare run ID, workflow ID, `run_attempt`, workflow path, event, status, conclusion, and head SHA with the initially authenticated run payload. A rerun/identity race fails closed instead of mixing first-attempt provenance with latest-attempt jobs/artifacts.
+- Add regression tests for a changing attempt, conditional-upload spoofing, failure to publish a Check Run, and post-publication ledger persistence failure.
+- Apply only the exact formatter corrections printed by run [#39147354586](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39147354586).
+- Update the Phase III deployment docs: one run/one artifact is the supported V1 contract, and the trusted `main` workflow plus honest per-test manifest production remains required before live ingestion can be enabled.
+
+**Not yet verified:** No claim is made for formatting, lint, strict typing, tests, or coverage on the upcoming corrective SHA. The previous run failed formatting before all downstream checks, so those results were skipped rather than passed. No percentage increase is assigned to this unverified slice.

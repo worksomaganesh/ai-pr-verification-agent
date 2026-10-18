@@ -252,11 +252,7 @@ class SQLAlchemyEvidenceLedger:
             raise ValueError("reason must contain 1-10000 characters")
         self._validate_digest(decision_sha256, "decision_sha256")
         timestamp = time.time() if now is None else now
-        if (
-            type(timestamp) not in (int, float)
-            or not math.isfinite(timestamp)
-            or timestamp < 0
-        ):
+        if type(timestamp) not in (int, float) or not math.isfinite(timestamp) or timestamp < 0:
             raise ValueError("now must be a finite non-negative timestamp")
         try:
             with self._engine.begin() as connection:

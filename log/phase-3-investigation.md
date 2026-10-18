@@ -243,3 +243,14 @@ The ingestion service previously fetched the workflow at the base SHA and stored
 The archive regression suite now exercises malformed/empty ZIP input, excess members, traversal/absolute/backslash paths, duplicate names, symlinks, empty/oversized files, excessive compression ratios, and directory entries. These tests are meant to lock the parser's boundary behavior; they are not release proof until they pass on the exact new SHA.
 
 A review also found that ingestion timestamps were already checked for finiteness, while terminal-decision timestamps only checked negativity. The ledger now rejects boolean, NaN, infinite, and negative decision timestamps too, keeping the decision-write validation contract consistent.
+
+
+## Exact formatting failure and run-attempt race — 2026-10-18
+
+Run [#39147354586](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39147354586) tested the PR merge ref containing branch head `d2a1e0c2a08e3a702ff9814eee408b3606e4ea37`. The first gate, `ruff format --check src tests`, failed at exactly four emitted diff locations: the reconciliation timestamp guard in `evidence_ledger.py`, two formatting groups in `phase_three.py`, and the parametrized trusted-workflow tests. Ruff lint, strict mypy, tests, and every coverage gate were skipped. These locations are now corrected according to the emitted diff; CI on the corrective commit remains the authority.
+
+Reviewing rerun semantics also found a collection race: job-list APIs can represent the latest attempt while the original run payload still describes an earlier attempt. The service now re-reads the run after artifact validation and compares run ID, workflow ID, attempt, path, event, status, conclusion, and head SHA before final PR freshness validation. If any field changes, the evidence is discarded. The supported contract remains one workflow run and exactly one artifact; shards are not combined.
+
+The upload step validator now rejects conditional upload steps as well as duplicate/missing uploaders, unpinned references, dynamic/wildcard paths, mismatched names, duplicate YAML keys, and missing-file warning modes. This is intentionally fail-closed. The workflow currently at the PR's base SHA lacks the required uploader and the repository does not yet have a deployed per-test manifest producer. This is recorded as a release/deployment prerequisite; the validator must not be weakened to conceal it.
+
+The regression suite also adds checks for run-attempt changes, publication API failures preventing terminal ledger writes, and post-publication ledger persistence failures reporting `ledger_persisted=False`. These tests are part of the next full CI attempt and must not be called passed until that run proves it.
