@@ -147,7 +147,9 @@ class SQLAlchemyRunLedger:
                 )
             _METADATA.create_all(self._engine)
         except SQLAlchemyError:
-            raise DeliveryStoreError("Could not initialize the verification run database.") from None
+            raise DeliveryStoreError(
+                "Could not initialize the verification run database."
+            ) from None
 
     @staticmethod
     def _run_key(commit: CommitIdentity) -> str:
@@ -209,9 +211,7 @@ class SQLAlchemyRunLedger:
         now: float | None = None,
     ) -> str:
         """Upsert the exact commit/policy run and atomically replace its obligation ledger."""
-        self._validate_run(
-            analysis_completeness, planner_mode, conclusion, summary, obligations
-        )
+        self._validate_run(analysis_completeness, planner_mode, conclusion, summary, obligations)
         timestamp = time.time() if now is None else now
         run_key = self._run_key(commit)
         values: dict[str, object] = {
@@ -231,18 +231,31 @@ class SQLAlchemyRunLedger:
         update_values = {
             key: value
             for key, value in values.items()
-            if key not in {"run_key", "repository_full_name", "pr_number", "base_sha", "head_sha", "policy_sha256", "created_at"}
+            if key
+            not in {
+                "run_key",
+                "repository_full_name",
+                "pr_number",
+                "base_sha",
+                "head_sha",
+                "policy_sha256",
+                "created_at",
+            }
         }
         try:
             with self._engine.begin() as connection:
                 if self._engine.dialect.name == "postgresql":
-                    statement = postgres_insert(_RUNS).values(**values).on_conflict_do_update(
-                        index_elements=[_RUNS.c.run_key], set_=update_values
+                    statement = (
+                        postgres_insert(_RUNS)
+                        .values(**values)
+                        .on_conflict_do_update(index_elements=[_RUNS.c.run_key], set_=update_values)
                     )
                     connection.execute(statement)
                 elif self._engine.dialect.name == "sqlite":
-                    statement = sqlite_insert(_RUNS).values(**values).on_conflict_do_update(
-                        index_elements=[_RUNS.c.run_key], set_=update_values
+                    statement = (
+                        sqlite_insert(_RUNS)
+                        .values(**values)
+                        .on_conflict_do_update(index_elements=[_RUNS.c.run_key], set_=update_values)
                     )
                     connection.execute(statement)
                 else:
@@ -263,7 +276,9 @@ class SQLAlchemyRunLedger:
                     )
             return run_key
         except SQLAlchemyError:
-            raise DeliveryStoreError("Could not persist the verification run and obligations.") from None
+            raise DeliveryStoreError(
+                "Could not persist the verification run and obligations."
+            ) from None
 
     def set_check_run_id(
         self, run_key: str, check_run_id: int, *, now: float | None = None
@@ -292,17 +307,23 @@ class SQLAlchemyRunLedger:
             raise ValueError("run_key must be a SHA-256 hex digest")
         try:
             with self._engine.connect() as connection:
-                row = connection.execute(
-                    select(_RUNS).where(_RUNS.c.run_key == run_key)
-                ).mappings().first()
+                row = (
+                    connection.execute(select(_RUNS).where(_RUNS.c.run_key == run_key))
+                    .mappings()
+                    .first()
+                )
                 if row is None:
                     return None
                 record = dict(row)
-                rows = connection.execute(
-                    select(_OBLIGATIONS)
-                    .where(_OBLIGATIONS.c.run_key == run_key)
-                    .order_by(_OBLIGATIONS.c.severity, _OBLIGATIONS.c.obligation_id)
-                ).mappings().all()
+                rows = (
+                    connection.execute(
+                        select(_OBLIGATIONS)
+                        .where(_OBLIGATIONS.c.run_key == run_key)
+                        .order_by(_OBLIGATIONS.c.severity, _OBLIGATIONS.c.obligation_id)
+                    )
+                    .mappings()
+                    .all()
+                )
                 obligations: list[dict[str, object]] = []
                 for item in rows:
                     obligation = dict(item)
