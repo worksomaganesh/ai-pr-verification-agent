@@ -114,8 +114,13 @@ class SQLAlchemyEvidenceLedger:
     @staticmethod
     def _identity_key(commit: CommitIdentity, evidence: AuthenticatedEvidenceArtifact) -> str:
         identity = [
-            commit.repo_full_name, commit.pr_number, commit.base_sha, commit.head_sha,
-            commit.policy_sha256, evidence.workflow_run_id, evidence.workflow_attempt,
+            commit.repo_full_name,
+            commit.pr_number,
+            commit.base_sha,
+            commit.head_sha,
+            commit.policy_sha256,
+            evidence.workflow_run_id,
+            evidence.workflow_attempt,
             evidence.artifact_id,
         ]
         return hashlib.sha256(

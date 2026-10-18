@@ -141,6 +141,7 @@ def test_ingest_binds_run_artifact_and_reports_to_exact_commit() -> None:
     ],
 )
 
+
 def test_rejects_stale_untrusted_or_unsuccessful_workflow(payload: dict[str, object]) -> None:
     with pytest.raises(ActionsEvidenceError):
         ingest(run_payload=payload)
