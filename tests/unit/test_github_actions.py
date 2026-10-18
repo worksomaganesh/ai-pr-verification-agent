@@ -154,9 +154,10 @@ def test_artifact_download_rejects_untrusted_redirect_and_oversize_body() -> Non
 
 
 def test_client_rejects_invalid_ids_and_repository_paths() -> None:
-    with httpx.Client(base_url="https://api.github.com", transport=httpx.MockTransport(
-        lambda request: httpx.Response(200, json={"id": 1})
-    )) as raw:
+    with httpx.Client(
+        base_url="https://api.github.com",
+        transport=httpx.MockTransport(lambda request: httpx.Response(200, json={"id": 1})),
+    ) as raw:
         client = GitHubActionsClient(TOKEN, http_client=raw)
         with pytest.raises(ValueError, match="run_id"):
             client.get_workflow_run(REPO, 0)
