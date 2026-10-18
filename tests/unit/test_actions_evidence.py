@@ -332,12 +332,8 @@ def test_phase_three_service_persists_evidence_as_inconclusive_and_idempotently(
         "evidence_ledger": ledger,
         "ledger_now": 10,
     }
-    first = ingest_pull_request_run(
-        github=_FakePRReader(), actions=_FakeActionsReader(), **kwargs
-    )
-    second = ingest_pull_request_run(
-        github=_FakePRReader(), actions=_FakeActionsReader(), **kwargs
-    )
+    first = ingest_pull_request_run(github=_FakePRReader(), actions=_FakeActionsReader(), **kwargs)
+    second = ingest_pull_request_run(github=_FakePRReader(), actions=_FakeActionsReader(), **kwargs)
     assert first.ledger_record_key is not None
     assert second.ledger_record_key == first.ledger_record_key
     row = ledger.get_record(first.ledger_record_key)

@@ -255,7 +255,9 @@ class SQLAlchemyEvidenceLedger:
         try:
             with self._engine.begin() as connection:
                 row = (
-                    connection.execute(select(_EVIDENCE).where(_EVIDENCE.c.record_key == record_key))
+                    connection.execute(
+                        select(_EVIDENCE).where(_EVIDENCE.c.record_key == record_key)
+                    )
                     .mappings()
                     .first()
                 )
