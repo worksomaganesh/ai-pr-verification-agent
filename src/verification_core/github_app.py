@@ -203,7 +203,7 @@ class GitHubAppAuthenticator:
             raise ValueError("now must be a positive Unix timestamp")
         try:
             token = jwt.encode(
-                {"iat": current - 30, "exp": current + 540, "iss": self._app_id},
+                {"iat": current - 30, "exp": current + 540, "iss": str(self._app_id)},
                 self._private_key_pem,
                 algorithm="RS256",
             )
