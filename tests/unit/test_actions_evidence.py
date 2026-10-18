@@ -235,9 +235,7 @@ class _FakeActionsReader:
         assert run_id == 99
         return self.run_payload
 
-    def list_workflow_run_jobs(
-        self, repository: str, run_id: int
-    ) -> tuple[dict[str, object], ...]:
+    def list_workflow_run_jobs(self, repository: str, run_id: int) -> tuple[dict[str, object], ...]:
         return tuple(jobs())
 
     def list_workflow_run_artifacts(

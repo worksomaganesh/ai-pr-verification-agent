@@ -137,9 +137,7 @@ def ingest_pull_request_run(
         artifact_id = metadata.get("id")
         if type(artifact_id) is not int or artifact_id < 1:
             raise EvidenceIngestionServiceError("Evidence artifact has an invalid identifier.")
-        archive_bytes = actions.download_workflow_artifact(
-            commit.repo_full_name, artifact_id
-        )
+        archive_bytes = actions.download_workflow_artifact(commit.repo_full_name, artifact_id)
         evidence = ingest_authenticated_artifact(
             commit=commit,
             run_payload=run_payload,

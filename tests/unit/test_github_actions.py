@@ -165,7 +165,6 @@ def test_client_rejects_invalid_ids_and_repository_paths() -> None:
             client.get_workflow_run("../acme/service", 1)
 
 
-
 def test_artifact_redirect_is_not_auto_followed_even_with_redirects_enabled() -> None:
     visited: list[str] = []
 
