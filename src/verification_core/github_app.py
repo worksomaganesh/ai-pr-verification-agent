@@ -143,7 +143,7 @@ def _request_json(
                 )
                 raise GitHubAPIError(message, status_code=response.status_code)
             raw = _read_limited(response, max_bytes)
-    except (GitHubAPIError, GitHubResponseTooLarge):
+    except GitHubAPIError:
         raise
     except httpx.TimeoutException:
         raise GitHubAPIError("GitHub API request timed out.") from None
@@ -152,7 +152,7 @@ def _request_json(
 
     try:
         return json.loads(raw)
-    except (UnicodeDecodeError, json.JSONDecodeError):
+    except ValueError:
         raise GitHubAPIError("GitHub API returned malformed JSON.") from None
 
 
@@ -169,7 +169,7 @@ def _repository_path(path: str) -> str:
         or len(path) > 1000
         or path.startswith("-")
         or "\\" in path
-        or "\x00" in path
+        or any(ord(char) < 32 or ord(char) == 127 for char in path)
         or PurePosixPath(path).is_absolute()
         or any(part in {"", ".", ".."} for part in path.split("/"))
     ):
@@ -317,7 +317,7 @@ class GitHubRESTClient(GitHubReadClient):
         try:
             raw = base64.b64decode("".join(encoded.split()), validate=True)
             text = raw.decode("utf-8")
-        except (ValueError, UnicodeDecodeError):
+        except ValueError:
             raise GitHubAPIError("GitHub file content was not valid base64 UTF-8.") from None
         max_content = (
             MAX_POLICY_BYTES if safe_path == ".verification-policy.yml" else _MAX_TEST_SOURCE_BYTES
