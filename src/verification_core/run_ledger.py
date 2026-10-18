@@ -25,10 +25,9 @@ from sqlalchemy import (
     select,
     update,
 )
-from sqlalchemy.engine import Engine
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.dialects.postgresql import insert as postgres_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+from sqlalchemy.exc import SQLAlchemyError
 
 from verification_core.delivery_store import DeliveryStoreError
 from verification_core.domain import CommitIdentity, VerificationObligation
