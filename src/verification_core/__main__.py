@@ -28,7 +28,7 @@ def main() -> int:
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
     serve = subparsers.add_parser("serve", help="start the GitHub webhook HTTP ingress")
-    serve.add_argument("--host", default=os.environ.get("WEBHOOK_HOST", "0.0.0.0"))
+    serve.add_argument("--host", default=os.environ.get("WEBHOOK_HOST", "127.0.0.1"))
     serve.add_argument(
         "--port",
         type=_positive_int,
