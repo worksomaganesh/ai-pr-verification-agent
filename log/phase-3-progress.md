@@ -321,3 +321,12 @@ no behavior result is inferred from that run.
 The first formatting correction still left two exact Ruff diffs: indentation in the nested sufficiency
 conditional and an extra blank line before `from __future__ import annotations` in the ledger test.
 Both are corrected in this commit. The full CI run must still confirm lint, types, tests, and coverage.
+
+
+## Lint diagnostics and exact fixes — 2026-10-18
+
+After formatting passed on commit `4a4e91280cef83c1bf16a1d19f46f1c5acef9d89`, Ruff reported six issues:
+two import-order errors, one missing test-local `ExecutionOutcome` import, one unused import, and one
+unsorted `__slots__` tuple. All are deterministic static-analysis findings; this commit applies the
+suggested import order, removes the unused name, adds the explicit test dependency, and sorts slots.
+The next run must confirm strict typing and tests.

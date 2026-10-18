@@ -23,7 +23,6 @@ from verification_core.domain.enums import (
     EvidenceSufficiency,
     ExecutionOutcome,
     GitHubCheckConclusion,
-    ObligationStatus,
 )
 from verification_core.domain.models import (
     CommitIdentity,
@@ -36,8 +35,8 @@ from verification_core.domain.state_machine import (
     evaluate_verification_run,
     reconcile_obligation_evidence,
 )
-from verification_core.security import scrub_secrets
 from verification_core.evidence import assess_evidence_sufficiency
+from verification_core.security import scrub_secrets
 
 
 class EvidenceIngestionServiceError(ValueError):
@@ -326,7 +325,7 @@ class ReconciliationLedgerPort(Protocol):
 class PhaseThreePublicationResult:
     """Result of a deterministic final evaluation and its Check Run publication."""
 
-    __slots__ = ("evaluation", "check_run_id", "ledger_persisted")
+    __slots__ = ("check_run_id", "evaluation", "ledger_persisted")
 
     def __init__(
         self,

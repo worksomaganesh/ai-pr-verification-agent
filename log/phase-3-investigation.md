@@ -191,3 +191,11 @@ The follow-up CI attempt found only two formatting diffs: the conditional expres
 incorrectly after adding contradiction preservation, and the ledger test had two blank lines between
 its module docstring and future import. Both exact diffs are corrected; no behavioral gate has yet run
 on this revision.
+
+
+## Ruff lint diagnostics after formatting passed
+
+Run `39144951098` passed format but failed lint with six diagnostics: import sorting in the new module
+and two test locations, an undefined `ExecutionOutcome` in the adversarial test, an unused
+`ObligationStatus` import in the service module, and naturally sorted slots. These are now corrected
+without weakening Ruff. Strict typing and test behavior have not yet been validated on this SHA.

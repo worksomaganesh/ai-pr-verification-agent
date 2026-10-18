@@ -594,9 +594,13 @@ def test_publication_passes_only_from_a_passed_phase_one_obligation() -> None:
 def test_contradictory_coverage_result_is_never_turned_into_a_pass(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from verification_core.coverage import ReconciledTestEvidence
-    from verification_core.domain.enums import EvidenceSufficiency, ObligationStatus
     import verification_core.phase_three as phase_three
+    from verification_core.coverage import ReconciledTestEvidence
+    from verification_core.domain.enums import (
+        EvidenceSufficiency,
+        ExecutionOutcome,
+        ObligationStatus,
+    )
 
     monkeypatch.setattr(
         phase_three,
