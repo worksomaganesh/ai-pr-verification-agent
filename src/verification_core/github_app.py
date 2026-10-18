@@ -218,6 +218,13 @@ class GitHubAppAuthenticator:
             self._client,
             "POST",
             f"/app/installations/{installation_id}/access_tokens",
+            json_body={
+                "permissions": {
+                    "contents": "read",
+                    "pull_requests": "read",
+                    "checks": "write",
+                }
+            },
             authorization=f"Bearer {self.create_app_jwt()}",
         )
         data = _mapping(payload, "installation token response")
