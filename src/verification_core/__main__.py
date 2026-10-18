@@ -65,7 +65,10 @@ def main() -> int:
     except KeyboardInterrupt:
         return 0
     finally:
-        authenticator.close()
+        try:
+            processor.close()
+        finally:
+            authenticator.close()
 
 
 if __name__ == "__main__":
