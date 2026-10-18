@@ -72,7 +72,7 @@ def test_github_app_jwt_and_installation_token() -> None:
         algorithms=["RS256"],
         options={"verify_exp": False, "verify_iat": False},
     )
-    assert claims["iss"] == 123
+    assert claims["iss"] == "123"
     assert claims["iat"] == 1_799_999_970
     assert seen == {}
     token = authenticator.create_installation_token(456)
