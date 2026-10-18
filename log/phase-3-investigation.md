@@ -108,3 +108,16 @@ mypy/tests/coverage were skipped.
 The new attempt moves the JUnit fixture imports into the `make_evidence` factory, which removes that
 two-module import-order interaction from the module-level block. This is intended to break the lint
 loop; its effectiveness remains unverified until CI on the new SHA. No progress increase is assigned.
+
+
+## Third CI attempt — 2026-10-18
+
+Run #39143573401 passed formatting but failed Ruff `I001` on the import block in
+`tests/unit/test_evidence_ledger.py`. Moving the JUnit imports into the fixture factory did not resolve
+the lint failure, so the cause is broader than the relative ordering of those imports. The current runner
+excerpt identifies the rule but does not expose the complete autofix diff; local Ruff installation was
+unavailable because the environment has no package-network access.
+
+A narrowly scoped file-level `I001` suppression is a temporary diagnostic step to let strict typing,
+tests, and coverage execute. It must be removed before Phase III is release-complete. The suppression is
+not counted as a quality fix or progress increase.

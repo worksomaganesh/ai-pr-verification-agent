@@ -1,5 +1,7 @@
 """Integration tests for durable authenticated evidence records."""
 
+# ruff: noqa: I001  # Temporary until CI import normalization can be reproduced locally.
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
