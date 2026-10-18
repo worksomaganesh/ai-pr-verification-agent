@@ -43,8 +43,13 @@ def test_worker_stops_cleanly_on_keyboard_interrupt(
             self.closed = True
 
     class FakeProcessor:
+        closed = False
+
         def process_next(self) -> None:
             return None
+
+        def close(self) -> None:
+            self.closed = True
 
     authenticator = FakeAuthenticator()
     monkeypatch.setattr(
