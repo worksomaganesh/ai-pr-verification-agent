@@ -16,7 +16,15 @@ from verification_core.actions_evidence import (
     AuthenticatedEvidenceArtifact,
     ingest_authenticated_artifact,
 )
-from verification_core.domain.models import CommitIdentity
+from verification_core.coverage import CoverageManifestError, reconcile_test_coverage
+from verification_core.domain.enums import EvidenceSufficiency, ExecutionOutcome
+from verification_core.domain.models import (
+    CommitIdentity,
+    ExecutionEvidence,
+    VerificationObligation,
+)
+from verification_core.domain.state_machine import reconcile_obligation_evidence
+from verification_core.evidence import assess_evidence_sufficiency
 
 
 class EvidenceIngestionServiceError(ValueError):
@@ -184,3 +192,74 @@ def ingest_pull_request_run(
         )
     except ActionsEvidenceError as exc:
         raise EvidenceIngestionServiceError("Authenticated evidence failed validation.") from exc
+
+
+
+def reconcile_authenticated_obligation(
+    *,
+    ingested: IngestedPullRequestEvidence,
+    obligation: VerificationObligation,
+    expected_commit: CommitIdentity,
+    target_lines: dict[str, set[int]],
+    target_branches: dict[str, set[str]],
+    trusted_assertion_bindings: Mapping[str, str],
+) -> VerificationObligation:
+    """Reconcile one scheduled obligation using exact test identity and trusted assertion binding.
+
+    Target locations must be derived from trusted diff/source analysis, not the artifact. The
+    trusted_assertion_bindings mapping must come from independently validated base-policy or
+    deterministic analysis; a manifest's own behavioral_assertion_verified boolean is never
+    accepted as authority to mark an obligation passed.
+    """
+    if obligation.candidate_test_id is None:
+        raise EvidenceIngestionServiceError(
+            "Obligation has no exact candidate test selector; evidence cannot be reconciled."
+        )
+    node_id = obligation.candidate_test_id
+    evidence = ingested.evidence
+    if not evidence.provenance.is_authentic_and_trusted(expected_commit):
+        raise EvidenceIngestionServiceError(
+            "Evidence provenance is not authentic and bound to the expected commit."
+        )
+    try:
+        reconciled = reconcile_test_coverage(
+            junit_report=evidence.junit_report,
+            manifest=evidence.coverage_manifest,
+            expected_head_sha=expected_commit.head_sha,
+            node_id=node_id,
+            target_lines=target_lines,
+            target_branches=target_branches,
+        )
+    except CoverageManifestError as exc:
+        raise EvidenceIngestionServiceError(
+            "Evidence cannot be reconciled against the expected test and target locations."
+        ) from exc
+
+    # The artifact can report coverage and outcomes, but cannot certify its own assertion quality.
+    assertion_verified = trusted_assertion_bindings.get(obligation.obligation_id) == node_id
+    sufficiency = (
+        assess_evidence_sufficiency(
+            total_tests=evidence.junit_report.total_tests,
+            target_lines_exercised=reconciled.target_lines_exercised,
+            target_branches_exercised=reconciled.target_branches_exercised,
+            behavioral_assertion_verified=assertion_verified,
+        )
+        if reconciled.outcome is ExecutionOutcome.PASSED
+        else EvidenceSufficiency.UNVERIFIED
+    )
+    execution = ExecutionEvidence(
+        test_node_id=node_id,
+        outcome=reconciled.outcome,
+        sufficiency=sufficiency,
+        provenance=evidence.provenance,
+        target_lines_exercised=reconciled.target_lines_exercised,
+        target_branches_exercised=reconciled.target_branches_exercised,
+        behavioral_assertion_verified=assertion_verified,
+        total_tests_in_report=evidence.junit_report.total_tests,
+        failure_summary=None,
+    )
+    return reconcile_obligation_evidence(
+        obligation,
+        evidence=execution,
+        expected_commit=expected_commit,
+    )

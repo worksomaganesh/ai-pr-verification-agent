@@ -389,3 +389,92 @@ def test_stale_pr_is_rejected_before_persisting_evidence() -> None:
             evidence_ledger=ledger,
         )
     assert ledger.calls == 0
+
+
+
+def test_reconciliation_never_trusts_artifact_assertion_claim_alone() -> None:
+    from verification_core.domain.enums import ObligationSource, ObligationStatus, Severity
+    from verification_core.domain.models import VerificationObligation
+    from verification_core.domain.state_machine import schedule_obligation
+    from verification_core.phase_three import IngestedPullRequestEvidence, reconcile_authenticated_obligation
+
+    commit = identity()
+    proposed = VerificationObligation.propose(
+        obligation_id="OBL-AUTH-1",
+        category="authorization",
+        description="A caller must not access another tenant's data.",
+        severity=Severity.HIGH,
+        source=ObligationSource.DETERMINISTIC_POLICY,
+        affected_files=("src/auth.py",),
+        candidate_test_id="tests.test_auth::test_access",
+    )
+    scheduled = schedule_obligation(proposed)
+    ingested = IngestedPullRequestEvidence(ingest(), "d" * 64)
+    result = reconcile_authenticated_obligation(
+        ingested=ingested,
+        obligation=scheduled,
+        expected_commit=commit,
+        target_lines={"src/auth.py": {10}},
+        target_branches={"src/auth.py": {"10:0"}},
+        trusted_assertion_bindings={},
+    )
+    assert result.status is ObligationStatus.INCONCLUSIVE
+    assert result.evidence is not None
+    assert not result.evidence.behavioral_assertion_verified
+
+
+def test_reconciliation_pass_requires_trusted_assertion_binding() -> None:
+    from verification_core.domain.enums import ObligationSource, ObligationStatus, Severity
+    from verification_core.domain.models import VerificationObligation
+    from verification_core.domain.state_machine import schedule_obligation
+    from verification_core.phase_three import IngestedPullRequestEvidence, reconcile_authenticated_obligation
+
+    commit = identity()
+    proposed = VerificationObligation.propose(
+        obligation_id="OBL-AUTH-2",
+        category="authorization",
+        description="A caller must not access another tenant's data.",
+        severity=Severity.HIGH,
+        source=ObligationSource.DETERMINISTIC_POLICY,
+        affected_files=("src/auth.py",),
+        candidate_test_id="tests.test_auth::test_access",
+    )
+    scheduled = schedule_obligation(proposed)
+    ingested = IngestedPullRequestEvidence(ingest(), "d" * 64)
+    result = reconcile_authenticated_obligation(
+        ingested=ingested,
+        obligation=scheduled,
+        expected_commit=commit,
+        target_lines={"src/auth.py": {10}},
+        target_branches={"src/auth.py": {"10:0"}},
+        trusted_assertion_bindings={"OBL-AUTH-2": "tests.test_auth::test_access"},
+    )
+    assert result.status is ObligationStatus.PASSED
+    assert result.evidence is not None
+    assert result.evidence.behavioral_assertion_verified
+
+
+def test_reconciliation_missing_target_coverage_stays_inconclusive() -> None:
+    from verification_core.domain.enums import ObligationSource, ObligationStatus, Severity
+    from verification_core.domain.models import VerificationObligation
+    from verification_core.domain.state_machine import schedule_obligation
+    from verification_core.phase_three import IngestedPullRequestEvidence, reconcile_authenticated_obligation
+
+    proposed = VerificationObligation.propose(
+        obligation_id="OBL-AUTH-3",
+        category="authorization",
+        description="A caller must not access another tenant's data.",
+        severity=Severity.HIGH,
+        source=ObligationSource.DETERMINISTIC_POLICY,
+        affected_files=("src/auth.py",),
+        candidate_test_id="tests.test_auth::test_access",
+    )
+    result = reconcile_authenticated_obligation(
+        ingested=IngestedPullRequestEvidence(ingest(), "d" * 64),
+        obligation=schedule_obligation(proposed),
+        expected_commit=identity(),
+        target_lines={"src/auth.py": {11}},
+        target_branches={"src/auth.py": {"11:0"}},
+        trusted_assertion_bindings={"OBL-AUTH-3": "tests.test_auth::test_access"},
+    )
+    assert result.status is ObligationStatus.INCONCLUSIVE

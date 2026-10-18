@@ -63,3 +63,18 @@ check before recording metadata and returns the ledger record key. The ledger st
 metadata and digests, starts records as `INCONCLUSIVE`, and treats repeated identical ingestion as
 idempotent. A stale PR discovered during collection is rejected before persistence. These changes
 do not publish a Check Run or substitute for the pending obligation reconciliation stage.
+
+
+## Deterministic obligation reconciliation (initial integration)
+
+`verification_core.phase_three.reconcile_authenticated_obligation` now connects the authenticated
+artifact to the Phase I coverage evaluator and obligation state machine. It requires the exact
+candidate test node ID, commit-bound workflow provenance, target line/branch sets from trusted
+analysis, and a separate `trusted_assertion_bindings` mapping. The artifact's own
+`behavioral_assertion_verified` field is never treated as authority to pass an obligation.
+
+A missing trusted assertion binding or missing target coverage results in an inconclusive obligation;
+contradictory outcomes fail closed through the existing state machine. The caller remains responsible
+for deriving target locations and assertion bindings from trusted base-policy/deterministic analysis.
+This helper is not yet connected to Check Run publication, and the ledger decision write remains a
+separate explicit step.
