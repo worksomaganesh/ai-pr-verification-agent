@@ -419,7 +419,9 @@ class GitHubRESTClient(GitHubReadClient):
                             selector = f"{path}::{node.name}::{member.name}"
                             try:
                                 entries.append(
-                                    InventoryEntry(selector=validate_test_selector(selector), path=path)
+                                    InventoryEntry(
+                                        selector=validate_test_selector(selector), path=path
+                                    )
                                 )
                             except ValueError:
                                 continue
@@ -442,7 +444,13 @@ class GitHubRESTClient(GitHubReadClient):
         if not _SHA_RE.fullmatch(head_sha):
             raise ValueError("head_sha must be a lowercase 40-character SHA")
         if conclusion not in {
-            "success", "neutral", "action_required", "failure", "cancelled", "timed_out", "skipped"
+            "success",
+            "neutral",
+            "action_required",
+            "failure",
+            "cancelled",
+            "timed_out",
+            "skipped",
         }:
             raise ValueError("unsupported GitHub Check Run conclusion")
         safe_title = scrub_secrets(title)[:255]
