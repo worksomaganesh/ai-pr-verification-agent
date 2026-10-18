@@ -291,7 +291,7 @@ def _safe_repo_path(path: str) -> None:
         or len(path) > 1_000
         or candidate.is_absolute()
         or "\\" in path
-        or "\x00" in path
+        or any(ord(char) < 32 or ord(char) == 127 for char in path)
         or ":" in path
         or any(part in {"", ".", ".."} for part in path.split("/"))
         or path.startswith("-")
