@@ -332,6 +332,9 @@ def test_token_expiry_must_be_timezone_aware() -> None:
 
     with pytest.raises(ValueError):
         InstallationToken(token="ghs_token", expires_at=datetime.now())
-    assert InstallationToken(
-        token="ghs_token", expires_at=datetime.now(UTC) + timedelta(hours=1)
-    ).token == "ghs_token"
+    assert (
+        InstallationToken(
+            token="ghs_token", expires_at=datetime.now(UTC) + timedelta(hours=1)
+        ).token
+        == "ghs_token"
+    )
