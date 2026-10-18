@@ -27,9 +27,9 @@ from sqlalchemy import (
 )
 from sqlalchemy.exc import SQLAlchemyError
 
+from verification_core.actions_evidence import AuthenticatedEvidenceArtifact
 from verification_core.delivery_store import DeliveryStoreError
 from verification_core.domain.models import CommitIdentity
-from verification_core.actions_evidence import AuthenticatedEvidenceArtifact
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _RUN_IDENTITY_RE = re.compile(r"^[0-9a-f]{64}$")
