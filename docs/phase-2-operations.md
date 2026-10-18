@@ -6,10 +6,11 @@ Phase II connects authenticated GitHub events to bounded planning and a determin
 
 1. **Webhook ingress** (verification_core.webhook_app) verifies X-Hub-Signature-256 against the original raw request bytes before JSON parsing. It rejects oversized streamed bodies, duplicate JSON object keys, malformed events, and events without an installation ID.
 2. **Durable delivery ledger** (verification_core.delivery_store) stores normalized event identity in SQLite. A delivery ID is unique, and reusing it with different event content is rejected. The endpoint returns HTTP 202 only after the delivery is committed.
-3. **GitHub App transport** (verification_core.github_app) creates a short-lived RS256 App JWT and exchanges it for an installation token. The token request explicitly limits permissions to contents: read, pull_requests: read, and checks: write. Metadata is inherently readable. There is no actions: write or pull_requests: write.
-4. **Trusted context assembly** re-reads PR metadata, checks the exact base/head SHAs, reads .verification-policy.yml at the base SHA, and consumes all bounded changed-file pages.
-5. **Planning** runs deterministic path rules first. The optional Gemini adapter can add structured hypotheses only; invalid output and provider errors fall back to deterministic planning. No model can mark an obligation passed or choose the Check Run conclusion.
-6. **Check Run publication** publishes the deterministic result against the exact head SHA. An external ID makes retries update the same check rather than intentionally create a new one. Output is bounded and secret-scrubbed.
+3. **Run and obligation ledger** (verification_core.run_ledger) persists exact commit/policy identity, planner mode, deterministic conclusion, summary, Check Run ID, and obligation records. Set VERIFICATION_RUNS_DATABASE_URL to a PostgreSQL URL for shared run/obligation persistence; omit it to use the local SQLite store.
+4. **GitHub App transport** (verification_core.github_app) creates a short-lived RS256 App JWT and exchanges it for an installation token. The token request explicitly limits permissions to contents: read, pull_requests: read, and checks: write. Metadata is inherently readable. There is no actions: write or pull_requests: write.
+5. **Trusted context assembly** re-reads PR metadata, checks the exact base/head SHAs, reads .verification-policy.yml at the base SHA, and consumes all bounded changed-file pages.
+6. **Planning** runs deterministic path rules first. The optional Gemini adapter can add structured hypotheses only; invalid output and provider errors fall back to deterministic planning. No model can mark an obligation passed or choose the Check Run conclusion.
+7. **Check Run publication** publishes the deterministic result against the exact head SHA. An external ID makes retries update the same check rather than intentionally create a new one. Output is bounded and secret-scrubbed.
 
 ## Install and run
 
@@ -73,6 +74,8 @@ A Phase II Check Run does not establish:
 - that line/branch coverage or assertions prove the required behavior.
 
 Those require Phase III platform-anchored workflow/job/artifact metadata and evidence reconciliation. Phase II does not dispatch workflows, execute PR code, comment on PRs, alter PR descriptions, or auto-merge.
+
+CI maintains a 95% coverage gate over the Phase I deterministic core, an 80% gate over the Phase II integration modules, and a 90% overall floor. This separates the mature safety core from newer external-service adapters without excluding either from tests.
 
 ## Permission and deployment caveats
 
