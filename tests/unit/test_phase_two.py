@@ -44,7 +44,9 @@ obligations: []
 """
 
 
-def event(delivery_id: str = "phase-two-1", *, installation_id: int | None = 42) -> PullRequestWebhookEvent:
+def event(
+    delivery_id: str = "phase-two-1", *, installation_id: int | None = 42
+) -> PullRequestWebhookEvent:
     return PullRequestWebhookEvent(
         delivery_id=delivery_id,
         action="opened",
@@ -164,9 +166,7 @@ def test_processor_returns_none_when_queue_is_empty(tmp_path: Any) -> None:
 
 def test_processor_retries_missing_installation_identity(tmp_path: Any) -> None:
     store = make_store(tmp_path, event("missing-installation", installation_id=None))
-    processor = phase_two.PhaseTwoProcessor(
-        store=store, authenticator=FakeAuthenticator()
-    )
+    processor = phase_two.PhaseTwoProcessor(store=store, authenticator=FakeAuthenticator())
     result = processor.process_next()
     assert result is not None
     assert result.status == "retrying"
