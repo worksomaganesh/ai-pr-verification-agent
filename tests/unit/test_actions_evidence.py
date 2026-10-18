@@ -17,24 +17,33 @@ BASE = "1" * 40
 HEAD = "2" * 40
 POLICY = "a" * 64
 REPO = "acme/service"
-JUNIT = b'<testsuite tests="1"><testcase classname="tests.test_auth" name="test_access"/></testsuite>'
+JUNIT = (
+    b'<testsuite tests="1"><testcase classname="tests.test_auth" name="test_access"/></testsuite>'
+)
 NODE = "tests.test_auth::test_access"
-MANIFEST = json.dumps({
-    "version": 1,
-    "head_sha": HEAD,
-    "tests": [{
-        "node_id": NODE,
-        "outcome": "passed",
-        "lines": {"src/auth.py": [10]},
-        "branches": {"src/auth.py": ["10:0"]},
-        "behavioral_assertion_verified": True,
-    }],
-}).encode()
+MANIFEST = json.dumps(
+    {
+        "version": 1,
+        "head_sha": HEAD,
+        "tests": [
+            {
+                "node_id": NODE,
+                "outcome": "passed",
+                "lines": {"src/auth.py": [10]},
+                "branches": {"src/auth.py": ["10:0"]},
+                "behavioral_assertion_verified": True,
+            }
+        ],
+    }
+).encode()
 
 
 def identity() -> CommitIdentity:
     return CommitIdentity(
-        repo_full_name=REPO, pr_number=7, base_sha=BASE, head_sha=HEAD,
+        repo_full_name=REPO,
+        pr_number=7,
+        base_sha=BASE,
+        head_sha=HEAD,
         policy_sha256=POLICY,
     )
 
@@ -59,7 +68,9 @@ def metadata(payload: bytes, *, digest: str | None = None) -> dict[str, object]:
     }
 
 
-def run(*, head: str = HEAD, path: str = ".github/workflows/ci.yml@refs/heads/main") -> dict[str, object]:
+def run(
+    *, head: str = HEAD, path: str = ".github/workflows/ci.yml@refs/heads/main"
+) -> dict[str, object]:
     return {
         "id": 99,
         "workflow_id": 12,
@@ -75,11 +86,19 @@ def run(*, head: str = HEAD, path: str = ".github/workflows/ci.yml@refs/heads/ma
 
 
 def jobs() -> list[dict[str, object]]:
-    return [{
-        "status": "completed",
-        "conclusion": "success",
-        "steps": [{"name": "Upload verification evidence", "status": "completed", "conclusion": "success"}],
-    }]
+    return [
+        {
+            "status": "completed",
+            "conclusion": "success",
+            "steps": [
+                {
+                    "name": "Upload verification evidence",
+                    "status": "completed",
+                    "conclusion": "success",
+                }
+            ],
+        }
+    ]
 
 
 def ingest(payload: bytes | None = None, **overrides: object):
@@ -91,7 +110,11 @@ def ingest(payload: bytes | None = None, **overrides: object):
         "artifact_metadata": metadata(data),
         "archive_bytes": data,
         "trusted_workflow_paths": [".github/workflows/ci.yml"],
-        "harness_sensitive_paths": [".github/workflows/", ".verification-policy.yml", "conftest.py"],
+        "harness_sensitive_paths": [
+            ".github/workflows/",
+            ".verification-policy.yml",
+            "conftest.py",
+        ],
         "changed_paths": ["src/auth.py"],
     }
     args.update(overrides)
@@ -108,12 +131,15 @@ def test_ingest_binds_run_artifact_and_reports_to_exact_commit() -> None:
     assert result.coverage_manifest.head_sha == HEAD
 
 
-@pytest.mark.parametrize("payload", [
-    run(head="3" * 40),
-    run(path=".github/workflows/untrusted.yml@refs/heads/main"),
-    {**run(), "event": "push"},
-    {**run(), "conclusion": "failure"},
-])
+@pytest.mark.parametrize(
+    "payload",
+    [
+        run(head="3" * 40),
+        run(path=".github/workflows/untrusted.yml@refs/heads/main"),
+        {**run(), "event": "push"},
+        {**run(), "conclusion": "failure"},
+    ],
+)
 def test_rejects_stale_untrusted_or_unsuccessful_workflow(payload: dict[str, object]) -> None:
     with pytest.raises(ActionsEvidenceError):
         ingest(run_payload=payload)
@@ -134,7 +160,9 @@ def test_rejects_forged_digest_wrong_run_or_stale_manifest() -> None:
     wrong_run["workflow_run"] = {"id": 100, "repository_id": 123}
     with pytest.raises(ActionsEvidenceError, match="different workflow run"):
         ingest(artifact_metadata=wrong_run)
-    stale = archive({"junit.xml": JUNIT, "coverage-manifest.json": MANIFEST.replace(HEAD.encode(), b"3" * 40)})
+    stale = archive(
+        {"junit.xml": JUNIT, "coverage-manifest.json": MANIFEST.replace(HEAD.encode(), b"3" * 40)}
+    )
     with pytest.raises(ActionsEvidenceError, match="SHA-256 digest|stale"):
         ingest(stale)
 
@@ -148,16 +176,21 @@ def test_rejects_extra_files_traversal_and_contradictory_reports() -> None:
         ingest(archive({"junit.xml": JUNIT, "coverage-manifest.json": contradictory}))
 
 
-@pytest.mark.parametrize("url", [
-    "http://evil.example/artifact",
-    "https://user:pass@githubusercontent.com/artifact",
-    "https://evil.example/artifact",
-    "https://githubusercontent.com:444/artifact",
-    "//githubusercontent.com/artifact",
-])
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://evil.example/artifact",
+        "https://user:pass@githubusercontent.com/artifact",
+        "https://evil.example/artifact",
+        "https://githubusercontent.com:444/artifact",
+        "//githubusercontent.com/artifact",
+    ],
+)
 def test_artifact_redirect_rejects_untrusted_urls(url: str) -> None:
     assert not _artifact_redirect_is_allowed(url)
 
 
 def test_artifact_redirect_allows_https_signed_storage_url() -> None:
-    assert _artifact_redirect_is_allowed("https://pipelines.actions.githubusercontent.com/signed/path")
+    assert _artifact_redirect_is_allowed(
+        "https://pipelines.actions.githubusercontent.com/signed/path"
+    )

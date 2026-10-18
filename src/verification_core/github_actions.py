@@ -93,7 +93,10 @@ class GitHubActionsClient:
     ) -> None:
         if not isinstance(installation_token, str) or not installation_token.strip():
             raise ValueError("installation_token must not be empty")
-        if type(max_archive_bytes) is not int or not 1 <= max_archive_bytes <= MAX_ARTIFACT_ARCHIVE_BYTES:
+        if (
+            type(max_archive_bytes) is not int
+            or not 1 <= max_archive_bytes <= MAX_ARTIFACT_ARCHIVE_BYTES
+        ):
             raise ValueError("max_archive_bytes must be within the configured artifact limit")
         self._authorization = f"Bearer {installation_token}"
         self._client = http_client or _make_http_client(timeout_seconds)
@@ -104,7 +107,9 @@ class GitHubActionsClient:
     def _repo(repository: str) -> str:
         return _repository(repository)
 
-    def _get(self, path: str, *, params: Mapping[str, str | int] | None = None) -> Mapping[str, object]:
+    def _get(
+        self, path: str, *, params: Mapping[str, str | int] | None = None
+    ) -> Mapping[str, object]:
         value = _request_json(
             self._client,
             "GET",
@@ -120,7 +125,9 @@ class GitHubActionsClient:
         _positive_id(run_id, "run_id")
         result = self._get(f"/repos/{repo}/actions/runs/{run_id}")
         if result.get("id") != run_id:
-            raise GitHubActionsAPIError("GitHub Actions run response did not match the requested ID.")
+            raise GitHubActionsAPIError(
+                "GitHub Actions run response did not match the requested ID."
+            )
         return result
 
     def _list_paginated(
@@ -159,14 +166,22 @@ class GitHubActionsClient:
             for item in raw_items:
                 collected.append(_mapping(item, f"Actions {resource} item"))
             if len(collected) > _MAX_ACTIONS_ITEMS:
-                raise GitHubActionsAPIError("GitHub Actions result exceeds the configured item limit.")
+                raise GitHubActionsAPIError(
+                    "GitHub Actions result exceeds the configured item limit."
+                )
             if len(collected) >= expected_total:
                 if len(collected) != expected_total:
-                    raise GitHubActionsAPIError("GitHub Actions pagination returned duplicate or excess items.")
+                    raise GitHubActionsAPIError(
+                        "GitHub Actions pagination returned duplicate or excess items."
+                    )
                 return tuple(collected)
             if not raw_items and len(collected) < expected_total:
-                raise GitHubActionsAPIError("GitHub Actions pagination ended before all items were retrieved.")
-        raise GitHubActionsAPIError("GitHub Actions pagination limit reached; result is incomplete.")
+                raise GitHubActionsAPIError(
+                    "GitHub Actions pagination ended before all items were retrieved."
+                )
+        raise GitHubActionsAPIError(
+            "GitHub Actions pagination limit reached; result is incomplete."
+        )
 
     def list_workflow_run_jobs(
         self, repository: str, run_id: int
@@ -193,7 +208,9 @@ class GitHubActionsClient:
             workflow_run = artifact.get("workflow_run")
             run = _mapping(workflow_run, "artifact workflow_run")
             if run.get("id") != run_id:
-                raise GitHubActionsAPIError("Artifact metadata was not bound to the requested workflow run.")
+                raise GitHubActionsAPIError(
+                    "Artifact metadata was not bound to the requested workflow run."
+                )
         return artifacts
 
     def download_workflow_artifact(self, repository: str, artifact_id: int) -> bytes:

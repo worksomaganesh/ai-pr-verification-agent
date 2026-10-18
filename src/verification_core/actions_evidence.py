@@ -16,7 +16,11 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import PurePosixPath
 
-from verification_core.coverage import CoverageManifest, CoverageManifestError, parse_coverage_manifest
+from verification_core.coverage import (
+    CoverageManifest,
+    CoverageManifestError,
+    parse_coverage_manifest,
+)
 from verification_core.domain.models import CommitIdentity, WorkflowProvenance
 from verification_core.evidence import JUnitReport, EvidenceParseError, parse_junit
 
@@ -110,7 +114,9 @@ def _find_pr_binding(run: Mapping[str, object], commit: CommitIdentity) -> None:
         head = _object(item.get("head"), "workflow pull-request head")
         if base.get("sha") == commit.base_sha and head.get("sha") == commit.head_sha:
             return
-    raise ActionsEvidenceError("Workflow run is stale or is not bound to the exact PR base/head SHAs.")
+    raise ActionsEvidenceError(
+        "Workflow run is stale or is not bound to the exact PR base/head SHAs."
+    )
 
 
 def _validate_jobs(jobs: Sequence[Mapping[str, object]], required_step_name: str) -> None:
@@ -127,8 +133,10 @@ def _validate_jobs(jobs: Sequence[Mapping[str, object]], required_step_name: str
             for step in raw_steps
             if isinstance(step, Mapping) and step.get("name") == required_step_name
         ]
-        if any(step.get("status") == "completed" and step.get("conclusion") == "success"
-               for step in matching_steps):
+        if any(
+            step.get("status") == "completed" and step.get("conclusion") == "success"
+            for step in matching_steps
+        ):
             return
     raise ActionsEvidenceError(
         "No successful completed Actions job contains the required evidence-upload step."
@@ -170,7 +178,8 @@ def verify_workflow_provenance(
         for path in trusted_workflow_paths
     )
     sensitive_paths = tuple(
-        rule for rule in harness_sensitive_paths
+        rule
+        for rule in harness_sensitive_paths
         if isinstance(rule, str) and rule and len(rule) <= 1000
     )
     if not trusted_paths or workflow_path not in trusted_paths:
@@ -178,7 +187,9 @@ def verify_workflow_provenance(
     if not sensitive_paths or not any(
         _matches_policy_path(workflow_path, rule) for rule in sensitive_paths
     ):
-        raise ActionsEvidenceError("Trusted workflow must also be protected by harness-sensitive policy.")
+        raise ActionsEvidenceError(
+            "Trusted workflow must also be protected by harness-sensitive policy."
+        )
     normalized_changes = tuple(
         _safe_repository_path(path, "changed path") for path in changed_paths
     )
@@ -221,7 +232,9 @@ def _validate_artifact_metadata(
         raise ActionsEvidenceError("Expired or malformed evidence artifacts are rejected.")
     size = artifact.get("size_in_bytes")
     if type(size) is not int or not 1 <= size <= MAX_ARTIFACT_ARCHIVE_BYTES:
-        raise ActionsEvidenceError("Artifact metadata size is invalid or exceeds the configured limit.")
+        raise ActionsEvidenceError(
+            "Artifact metadata size is invalid or exceeds the configured limit."
+        )
     digest = artifact.get("digest")
     match = _DIGEST_RE.fullmatch(digest) if isinstance(digest, str) else None
     if match is None:
@@ -262,7 +275,9 @@ def _read_zip_members(archive_bytes: bytes) -> dict[str, bytes]:
             if not raw_name or len(raw_name) > 300 or "\\" in raw_name or "\x00" in raw_name:
                 raise ActionsEvidenceError("Artifact archive contains an unsafe member path.")
             path = PurePosixPath(raw_name)
-            if path.is_absolute() or any(part in {"", ".", ".."} for part in raw_name.rstrip("/").split("/")):
+            if path.is_absolute() or any(
+                part in {"", ".", ".."} for part in raw_name.rstrip("/").split("/")
+            ):
                 raise ActionsEvidenceError("Artifact archive contains a path-traversal member.")
             mode = (member.external_attr >> 16) & 0o170000
             if mode == stat.S_IFLNK or mode not in {0, stat.S_IFREG, stat.S_IFDIR}:
@@ -276,23 +291,34 @@ def _read_zip_members(archive_bytes: bytes) -> dict[str, bytes]:
             if raw_name in contents:
                 raise ActionsEvidenceError("Artifact archive contains duplicate file names.")
             if member.file_size < 1 or member.file_size > MAX_ARTIFACT_MEMBER_BYTES:
-                raise ActionsEvidenceError("Artifact file is empty or exceeds its configured size limit.")
-            if member.compress_size == 0 or member.file_size / member.compress_size > MAX_COMPRESSION_RATIO:
+                raise ActionsEvidenceError(
+                    "Artifact file is empty or exceeds its configured size limit."
+                )
+            if (
+                member.compress_size == 0
+                or member.file_size / member.compress_size > MAX_COMPRESSION_RATIO
+            ):
                 raise ActionsEvidenceError("Artifact member exceeds the allowed compression ratio.")
             expanded_total += member.file_size
             if expanded_total > MAX_ARTIFACT_EXPANDED_BYTES:
-                raise ActionsEvidenceError("Artifact archive expands beyond the configured size limit.")
+                raise ActionsEvidenceError(
+                    "Artifact archive expands beyond the configured size limit."
+                )
             try:
                 data = zip_file.read(member)
             except (zipfile.BadZipFile, OSError, RuntimeError) as exc:
-                raise ActionsEvidenceError("Artifact ZIP member failed integrity validation.") from exc
+                raise ActionsEvidenceError(
+                    "Artifact ZIP member failed integrity validation."
+                ) from exc
             if len(data) != member.file_size:
                 raise ActionsEvidenceError("Artifact member size disagrees with its ZIP metadata.")
             contents[raw_name] = data
     finally:
         zip_file.close()
     if set(contents) != _REQUIRED_MEMBERS:
-        raise ActionsEvidenceError("Artifact archive must contain junit.xml and coverage-manifest.json.")
+        raise ActionsEvidenceError(
+            "Artifact archive must contain junit.xml and coverage-manifest.json."
+        )
     return contents
 
 
@@ -339,13 +365,17 @@ def ingest_authenticated_artifact(
     )
     actual_digest = hashlib.sha256(archive_bytes).hexdigest()
     if actual_digest != expected_digest:
-        raise ActionsEvidenceError("Downloaded artifact bytes do not match GitHub's SHA-256 digest.")
+        raise ActionsEvidenceError(
+            "Downloaded artifact bytes do not match GitHub's SHA-256 digest."
+        )
     files = _read_zip_members(archive_bytes)
     try:
         junit_report = parse_junit(files["junit.xml"])
         coverage_manifest = parse_coverage_manifest(files["coverage-manifest.json"])
     except (EvidenceParseError, CoverageManifestError) as exc:
-        raise ActionsEvidenceError("Artifact contains a malformed JUnit or coverage report.") from exc
+        raise ActionsEvidenceError(
+            "Artifact contains a malformed JUnit or coverage report."
+        ) from exc
     if coverage_manifest.head_sha != commit.head_sha:
         raise ActionsEvidenceError("Coverage manifest is stale or bound to a different commit.")
     junit_nodes: dict[str, object] = {}
@@ -356,7 +386,9 @@ def ingest_authenticated_artifact(
     manifest_nodes = {case.node_id: case for case in coverage_manifest.cases}
     if set(junit_nodes) != set(manifest_nodes):
         raise ActionsEvidenceError("JUnit and coverage manifest test inventories do not match.")
-    if any(junit_nodes[node_id].outcome != manifest_nodes[node_id].outcome for node_id in junit_nodes):
+    if any(
+        junit_nodes[node_id].outcome != manifest_nodes[node_id].outcome for node_id in junit_nodes
+    ):
         raise ActionsEvidenceError("JUnit and coverage manifest outcomes contradict each other.")
     return AuthenticatedEvidenceArtifact(
         repository_full_name=commit.repo_full_name,
