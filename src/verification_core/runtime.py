@@ -12,6 +12,7 @@ from verification_core.delivery_store import SQLiteDeliveryStore
 from verification_core.gemini_planner import gemini_model_from_environment
 from verification_core.github_app import GitHubAppAuthenticator
 from verification_core.phase_two import PhaseTwoProcessor
+from verification_core.run_ledger import SQLAlchemyRunLedger
 from verification_core.webhook_app import create_app_from_environment
 
 
@@ -48,10 +49,13 @@ def create_processor_from_environment(
         _private_key(environment),
     )
     model = gemini_model_from_environment(environment)
+    run_database_url = environment.get("VERIFICATION_RUNS_DATABASE_URL", "")
+    run_ledger = SQLAlchemyRunLedger(run_database_url) if run_database_url else store
     processor = PhaseTwoProcessor(
         store=store,
         authenticator=authenticator,
         model_factory=lambda: model,
+        run_ledger=run_ledger,
     )
     return processor, store, authenticator
 
