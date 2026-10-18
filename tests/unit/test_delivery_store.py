@@ -118,3 +118,16 @@ def test_retry_limit_marks_expired_delivery_failed(tmp_path: object) -> None:
 def test_store_rejects_invalid_configuration(tmp_path: object) -> None:
     with pytest.raises(ValueError):
         SQLiteDeliveryStore(str(tmp_path / "x.sqlite"), busy_timeout_ms=0)
+
+
+def test_store_rejects_in_memory_database(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="durable file path"):
+        SQLiteDeliveryStore(":memory:")
+
+
+def test_mark_failed_rejects_invalid_retry_limit(tmp_path: Path) -> None:
+    ledger = store(tmp_path)
+    ledger.enqueue(event(), now=1)
+    assert ledger.claim_next(now=2) is not None
+    with pytest.raises(ValueError, match="max_attempts"):
+        ledger.mark_failed("delivery-1", error_code="temporary_error", max_attempts=0, now=3)
