@@ -444,7 +444,11 @@ def test_phase_three_service_binds_base_workflow_and_rechecks_pr() -> None:
         (
             TRUSTED_WORKFLOW.replace(
                 "          if-no-files-found: error\n",
-                "          if-no-files-found: error\n      - name: Extra uploader\n        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02\n        with:\n          name: extra-artifact\n          path: extra.txt\n          if-no-files-found: error\n",
+                "          if-no-files-found: error\n"
+            "      - name: Extra uploader\n"
+            "        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02\n"
+            "        with:\n          name: extra-artifact\n          path: extra.txt\n"
+            "          if-no-files-found: error\n",
             ),
             "exactly one required step",
         ),

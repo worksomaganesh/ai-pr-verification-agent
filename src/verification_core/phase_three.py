@@ -129,8 +129,9 @@ def _validate_trusted_workflow_upload_contract(
         raise EvidenceIngestionServiceError("Expected evidence artifact name is invalid.")
 
     try:
-        workflow_value = yaml.load(  # noqa: S506 — this loader subclasses SafeLoader
-            workflow_source, Loader=_UniqueKeySafeLoader
+        workflow_value = yaml.load(
+            workflow_source,
+            Loader=_UniqueKeySafeLoader,  # noqa: S506 — subclass of yaml.SafeLoader
         )
     except (yaml.YAMLError, RecursionError, TypeError, ValueError) as exc:
         raise EvidenceIngestionServiceError(

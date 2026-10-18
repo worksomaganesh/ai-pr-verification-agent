@@ -264,3 +264,8 @@ Run [#39149971965](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 ## Ruff findings and explicit fixes — 2026-10-19
 
 Run [#39168709842](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39168709842) passed formatting and failed Ruff with eight findings. The corrections preserve strict linting: the duplicate-key YAML parser remains a `SafeLoader` subclass and has a narrow `S506` suppression on the loader invocation; trigger logic now explicitly groups mixed boolean operators; error text is wrapped; regex-based `pytest.raises(match=...)` values are raw strings; the duplicate ZIP fixture combines context managers; and the trusted workflow fixture string is split into adjacent literals. Strict mypy and tests were skipped in that run and remain unverified until CI executes them.
+
+
+## Follow-up Ruff suppression and fixture corrections — 2026-10-19
+
+Run [#39169027616](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39169027616) passed formatting but Ruff found three issues: the `S506` suppression was attached to the wrong line and was consequently unused, the custom-loader argument itself was flagged, and a long embedded workflow fixture line exceeded the configured line length. The suppression is now attached to the `Loader=_UniqueKeySafeLoader` argument with a comment documenting that it subclasses `yaml.SafeLoader`; the fixture is split into adjacent literals without changing the YAML bytes. Strict typing/tests were skipped in that run and remain pending.
