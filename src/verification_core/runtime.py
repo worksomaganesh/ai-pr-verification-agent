@@ -56,7 +56,7 @@ def create_processor_from_environment(
     return processor, store, authenticator
 
 
-def create_webhook_app_from_environment(environ: dict[str, str] | None = None):
+def create_webhook_app_from_environment(environ: Mapping[str, str] | None = None) -> FastAPI:
     """Create the ASGI ingress app with the configured durable SQLite store."""
     environment = os.environ if environ is None else environ
     return create_app_from_environment(
