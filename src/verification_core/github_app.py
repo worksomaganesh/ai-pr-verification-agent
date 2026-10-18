@@ -120,12 +120,16 @@ def _request_json(
         raise GitHubAPIError("Refusing an unsafe GitHub API path.")
     headers = {"Authorization": authorization}
     try:
-        with client.stream(method, path, params=params, json=json_body, headers=headers) as response:
+        with client.stream(
+            method, path, params=params, json=json_body, headers=headers
+        ) as response:
             if response.status_code in (403, 429):
                 retry_after = response.headers.get("Retry-After")
                 remaining = response.headers.get("X-RateLimit-Remaining")
                 if response.status_code == 429 or retry_after is not None or remaining == "0":
-                    parsed_retry = int(retry_after) if retry_after and retry_after.isdigit() else None
+                    parsed_retry = (
+                        int(retry_after) if retry_after and retry_after.isdigit() else None
+                    )
                     raise GitHubRateLimitError(
                         "GitHub API rate limit reached.",
                         status_code=response.status_code,
@@ -305,14 +309,19 @@ class GitHubRESTClient(GitHubReadClient):
         if data.get("type") != "file" or data.get("encoding") != "base64":
             raise GitHubAPIError("GitHub content response was not a base64 encoded file.")
         encoded = data.get("content")
-        if not isinstance(encoded, str) or len(encoded) > ((_MAX_POLICY_RESPONSE_BYTES + 2) // 3) * 4 + 4096:
+        if (
+            not isinstance(encoded, str)
+            or len(encoded) > ((_MAX_POLICY_RESPONSE_BYTES + 2) // 3) * 4 + 4096
+        ):
             raise GitHubResponseTooLarge("GitHub file content exceeded the configured size limit.")
         try:
             raw = base64.b64decode("".join(encoded.split()), validate=True)
             text = raw.decode("utf-8")
         except (ValueError, UnicodeDecodeError):
             raise GitHubAPIError("GitHub file content was not valid base64 UTF-8.") from None
-        max_content = MAX_POLICY_BYTES if safe_path == ".verification-policy.yml" else _MAX_TEST_SOURCE_BYTES
+        max_content = (
+            MAX_POLICY_BYTES if safe_path == ".verification-policy.yml" else _MAX_TEST_SOURCE_BYTES
+        )
         if len(raw) > max_content:
             raise GitHubResponseTooLarge("GitHub file content exceeded the configured size limit.")
         return text
