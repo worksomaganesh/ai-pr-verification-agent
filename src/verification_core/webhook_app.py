@@ -13,7 +13,6 @@ from fastapi.responses import JSONResponse, Response
 from verification_core.delivery_store import DeliveryStoreError, SQLiteDeliveryStore
 from verification_core.webhooks import (
     DEFAULT_MAX_WEBHOOK_BODY_BYTES,
-    WebhookPayloadError,
     parse_pull_request_webhook,
     verify_github_signature,
 )
