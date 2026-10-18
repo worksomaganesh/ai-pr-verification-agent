@@ -290,3 +290,20 @@ the reconciliation logic itself has not yet been tested by CI.
 
 The formatter retry [#39144294366](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39144294366) found
 one remaining extra blank line before the first new reconciliation test. That exact whitespace correction is applied.
+
+
+## Phase III publication and contradiction safeguards — 2026-10-18
+
+The current green baseline is `54498841ad391442f6746cd4e0cc52a6aaf0c1e6`, verified by
+[CI #39144389166](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39144389166):
+formatting, Ruff, strict mypy, tests/property tests, Phase I coverage, and Phase II coverage all passed.
+That baseline included a temporary `I001` suppression. This commit removes it now that the original
+module-level import causing the issue has been moved into the fixture; the new CI run must confirm
+the suppression is no longer necessary.
+
+This commit adds a concrete publication boundary: deterministic Phase I evaluation is computed first;
+the current PR open/base/head is re-read immediately before publishing; if stale, no Check Run call is
+made. It also preserves `CONTRADICTORY` sufficiency instead of recalculating it into a possible pass.
+Regression tests cover stale-PR suppression, action-required for unverified obligations, success only
+for already-passed obligations, and contradiction fail-closed behavior. This is a meaningful code
+milestone, but is not verified until its own CI run passes.

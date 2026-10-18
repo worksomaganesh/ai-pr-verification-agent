@@ -486,3 +486,137 @@ def test_reconciliation_missing_target_coverage_stays_inconclusive() -> None:
         trusted_assertion_bindings={"OBL-AUTH-3": "tests.test_auth::test_access"},
     )
     assert result.status is ObligationStatus.INCONCLUSIVE
+
+
+
+class _FakeCheckPublisher(_FakePRReader):
+    def __init__(self, *, stale: bool = False) -> None:
+        super().__init__()
+        self.stale = stale
+        self.published: list[dict[str, object]] = []
+
+    def get_pull_request(self, repository: str, pr_number: int) -> dict[str, object]:
+        if self.stale:
+            return {
+                "state": "open",
+                "base": {"sha": BASE},
+                "head": {"sha": "3" * 40},
+                "html_url": "https://github.com/acme/service/pull/7",
+            }
+        return {
+            "state": "open",
+            "base": {"sha": BASE},
+            "head": {"sha": HEAD},
+            "html_url": "https://github.com/acme/service/pull/7",
+        }
+
+    def publish_check_run(self, **kwargs: object) -> int:
+        self.published.append(kwargs)
+        return 123
+
+
+def _scheduled_high_obligation(obligation_id: str = "OBL-PUBLISH-1"):
+    from verification_core.domain.enums import ObligationSource, Severity
+    from verification_core.domain.models import VerificationObligation
+    from verification_core.domain.state_machine import schedule_obligation
+
+    return schedule_obligation(
+        VerificationObligation.propose(
+            obligation_id=obligation_id,
+            category="authorization",
+            description="A caller must not access another tenant's data.",
+            severity=Severity.HIGH,
+            source=ObligationSource.DETERMINISTIC_POLICY,
+            affected_files=("src/auth.py",),
+            candidate_test_id="tests.test_auth::test_access",
+        )
+    )
+
+
+def test_publication_rejects_stale_pr_before_any_check_run() -> None:
+    from verification_core.phase_three import (
+        EvidenceIngestionServiceError,
+        publish_reconciled_verification,
+    )
+
+    publisher = _FakeCheckPublisher(stale=True)
+    with pytest.raises(EvidenceIngestionServiceError, match="commits changed"):
+        publish_reconciled_verification(
+            github=publisher,
+            commit=identity(),
+            obligations=(_scheduled_high_obligation(),),
+        )
+    assert publisher.published == []
+
+
+def test_publication_uses_state_machine_conclusion_for_unverified_obligations() -> None:
+    from verification_core.domain.enums import GitHubCheckConclusion
+    from verification_core.phase_three import publish_reconciled_verification
+
+    publisher = _FakeCheckPublisher()
+    result = publish_reconciled_verification(
+        github=publisher,
+        commit=identity(),
+        obligations=(_scheduled_high_obligation(),),
+    )
+    assert result.evaluation.github_conclusion is GitHubCheckConclusion.ACTION_REQUIRED
+    assert result.check_run_id == 123
+    assert publisher.published[0]["conclusion"] == "action_required"
+    assert publisher.published[0]["head_sha"] == HEAD
+
+
+def test_publication_passes_only_from_a_passed_phase_one_obligation() -> None:
+    from verification_core.domain.enums import GitHubCheckConclusion
+    from verification_core.phase_three import (
+        IngestedPullRequestEvidence,
+        publish_reconciled_verification,
+        reconcile_authenticated_obligation,
+    )
+
+    commit = identity()
+    scheduled = _scheduled_high_obligation("OBL-PUBLISH-PASS")
+    passed = reconcile_authenticated_obligation(
+        ingested=IngestedPullRequestEvidence(ingest(), "d" * 64),
+        obligation=scheduled,
+        expected_commit=commit,
+        target_lines={"src/auth.py": {10}},
+        target_branches={"src/auth.py": {"10:0"}},
+        trusted_assertion_bindings={"OBL-PUBLISH-PASS": "tests.test_auth::test_access"},
+    )
+    result = publish_reconciled_verification(
+        github=_FakeCheckPublisher(),
+        commit=commit,
+        obligations=(passed,),
+    )
+    assert result.evaluation.github_conclusion is GitHubCheckConclusion.SUCCESS
+    assert result.check_run_id == 123
+
+
+def test_contradictory_coverage_result_is_never_turned_into_a_pass(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from verification_core.coverage import ReconciledTestEvidence
+    from verification_core.domain.enums import EvidenceSufficiency, ObligationStatus
+    import verification_core.phase_three as phase_three
+
+    monkeypatch.setattr(
+        phase_three,
+        "reconcile_test_coverage",
+        lambda **_kwargs: ReconciledTestEvidence(
+            node_id="tests.test_auth::test_access",
+            outcome=ExecutionOutcome.PASSED,
+            target_lines_exercised=True,
+            target_branches_exercised=True,
+            behavioral_assertion_verified=True,
+            sufficiency=EvidenceSufficiency.CONTRADICTORY,
+        ),
+    )
+    result = phase_three.reconcile_authenticated_obligation(
+        ingested=phase_three.IngestedPullRequestEvidence(ingest(), "d" * 64),
+        obligation=_scheduled_high_obligation("OBL-CONTRADICTORY"),
+        expected_commit=identity(),
+        target_lines={"src/auth.py": {10}},
+        target_branches={"src/auth.py": {"10:0"}},
+        trusted_assertion_bindings={"OBL-CONTRADICTORY": "tests.test_auth::test_access"},
+    )
+    assert result.status is ObligationStatus.FAILED

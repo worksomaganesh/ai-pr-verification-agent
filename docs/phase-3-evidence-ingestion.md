@@ -27,11 +27,11 @@ A JSON field such as `behavioral_assertion_verified: true` is still a claim insi
 ## Remaining Phase III release gates
 
 - [x] Wire the Actions API client into worker-facing evidence ingestion and persist authenticated metadata in the durable evidence ledger (initial slice; requires full CI verification).
-- [ ] Revalidate current PR base/head immediately before publishing any Check Run; stale runs must not publish a success.
+- [x] Revalidate current PR base/head immediately before publishing a Phase III Check Run; stale runs are rejected before any Check Run API call (covered by regression test).
 - [ ] Bind each workflow ID/path and evidence-upload step to the exact trusted workflow file from the base SHA, not just a string in a run response.
 - [ ] Resolve workflow reruns, multiple artifacts, shard aggregation, missing artifacts, and contradictory outcomes with fail-closed rules.
 - [ ] Validate GitHub artifact digest semantics against live API responses and supported artifact service versions.
-- [ ] Reconcile changed-line and branch targets with coverage data and the existing obligation state machine.
+- [x] Add an initial deterministic obligation-to-evidence reconciliation bridge using exact test IDs, trusted target locations, an independent trusted assertion binding, and the Phase I state machine. End-to-end trusted target/assertion derivation still belongs to the caller.
 - [ ] Add adversarial tests for pagination races, truncated results, artifact redirect hosts, oversized/changing streams, duplicate ZIP entries, compression bombs, symlinks, stale PR heads, forged digest, and partial shard evidence.
 - [ ] Add deployment configuration, retention and redaction rules for evidence records.
 - [ ] Run format, lint, strict typing, complete tests, and coverage gates on the exact merge candidate.
@@ -78,3 +78,18 @@ contradictory outcomes fail closed through the existing state machine. The calle
 for deriving target locations and assertion bindings from trusted base-policy/deterministic analysis.
 This helper is not yet connected to Check Run publication, and the ledger decision write remains a
 separate explicit step.
+
+
+## Deterministic publication bridge
+
+`publish_reconciled_verification` evaluates the supplied reconciled obligations using the Phase I
+state machine and publishes its conclusion only after a final live PR open/base/head comparison. A
+stale PR is rejected before the Check Run API call. The summary is generated from the deterministic
+evaluation and obligation states; no model or artifact conclusion is accepted.
+
+If a durable evidence record key is supplied, successful Check Run publication is followed by a
+separate ledger terminal-decision write. Only deterministic `success`, `failure`, and `cancelled`
+conclusions map to `PASSED`, `FAILED`, and `STALE` evidence reconciliation statuses. An
+`action_required` or `neutral` conclusion leaves the evidence record `INCONCLUSIVE`. If the
+post-publication ledger write fails, the result explicitly reports `ledger_persisted=False` so the
+decision can be retried idempotently; the code does not claim durable completion.

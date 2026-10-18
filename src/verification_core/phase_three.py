@@ -8,6 +8,7 @@ the base SHA, rejects ambiguous artifacts, and returns validated evidence for re
 from __future__ import annotations
 
 import hashlib
+import json
 from collections.abc import Mapping, Sequence
 from typing import Protocol
 
@@ -17,13 +18,25 @@ from verification_core.actions_evidence import (
     ingest_authenticated_artifact,
 )
 from verification_core.coverage import CoverageManifestError, reconcile_test_coverage
-from verification_core.domain.enums import EvidenceSufficiency, ExecutionOutcome
+from verification_core.domain.enums import (
+    AnalysisCompleteness,
+    EvidenceSufficiency,
+    ExecutionOutcome,
+    GitHubCheckConclusion,
+    ObligationStatus,
+)
 from verification_core.domain.models import (
     CommitIdentity,
+    ConclusionPolicyConfig,
     ExecutionEvidence,
     VerificationObligation,
+    VerificationRunEvaluation,
 )
-from verification_core.domain.state_machine import reconcile_obligation_evidence
+from verification_core.domain.state_machine import (
+    evaluate_verification_run,
+    reconcile_obligation_evidence,
+)
+from verification_core.security import scrub_secrets
 from verification_core.evidence import assess_evidence_sufficiency
 
 
@@ -94,7 +107,9 @@ def _mapping(value: object, field: str) -> Mapping[str, object]:
     return value
 
 
-def _assert_current_pull_request(github: PullRequestReader, commit: CommitIdentity) -> None:
+def _assert_current_pull_request(
+    github: PullRequestReader, commit: CommitIdentity
+) -> Mapping[str, object]:
     pr = _mapping(github.get_pull_request(commit.repo_full_name, commit.pr_number), "pull request")
     base = _mapping(pr.get("base"), "pull request base")
     head = _mapping(pr.get("head"), "pull request head")
@@ -104,6 +119,7 @@ def _assert_current_pull_request(github: PullRequestReader, commit: CommitIdenti
         raise EvidenceIngestionServiceError(
             "Pull request commits changed during evidence ingestion; discard this evidence."
         )
+    return pr
 
 
 def ingest_pull_request_run(
@@ -234,25 +250,37 @@ def reconcile_authenticated_obligation(
             "Evidence cannot be reconciled against the expected test and target locations."
         ) from exc
 
-    # The artifact can report coverage and outcomes, but cannot certify its own assertion quality.
-    assertion_verified = trusted_assertion_bindings.get(obligation.obligation_id) == node_id
-    sufficiency = (
+    # Contradictions must never be overwritten by an optimistic assertion binding.
+    if reconciled.sufficiency is EvidenceSufficiency.CONTRADICTORY:
+        sufficiency = EvidenceSufficiency.CONTRADICTORY
+        assertion_verified = False
+    else:
+        assertion_verified = trusted_assertion_bindings.get(obligation.obligation_id) == node_id
+        sufficiency = (
         assess_evidence_sufficiency(
             total_tests=evidence.junit_report.total_tests,
             target_lines_exercised=reconciled.target_lines_exercised,
             target_branches_exercised=reconciled.target_branches_exercised,
             behavioral_assertion_verified=assertion_verified,
         )
-        if reconciled.outcome is ExecutionOutcome.PASSED
-        else EvidenceSufficiency.UNVERIFIED
-    )
+            if reconciled.outcome is ExecutionOutcome.PASSED
+            else EvidenceSufficiency.UNVERIFIED
+        )
     execution = ExecutionEvidence(
         test_node_id=node_id,
         outcome=reconciled.outcome,
         sufficiency=sufficiency,
         provenance=evidence.provenance,
-        target_lines_exercised=reconciled.target_lines_exercised,
-        target_branches_exercised=reconciled.target_branches_exercised,
+        target_lines_exercised=(
+            reconciled.target_lines_exercised
+            if sufficiency is not EvidenceSufficiency.CONTRADICTORY
+            else False
+        ),
+        target_branches_exercised=(
+            reconciled.target_branches_exercised
+            if sufficiency is not EvidenceSufficiency.CONTRADICTORY
+            else False
+        ),
         behavioral_assertion_verified=assertion_verified,
         total_tests_in_report=evidence.junit_report.total_tests,
         failure_summary=None,
@@ -261,4 +289,167 @@ def reconcile_authenticated_obligation(
         obligation,
         evidence=execution,
         expected_commit=expected_commit,
+    )
+
+
+
+class CheckRunPublisher(PullRequestReader, Protocol):
+    """GitHub adapter that can re-read PR state and publish a completed Check Run."""
+
+    def publish_check_run(
+        self,
+        *,
+        repository: str,
+        head_sha: str,
+        name: str,
+        conclusion: str,
+        title: str,
+        summary: str,
+        external_id: str,
+        details_url: str | None = None,
+    ) -> int: ...
+
+
+class ReconciliationLedgerPort(Protocol):
+    """Optional durable sink for a verifier-computed terminal decision."""
+
+    def record_reconciliation(
+        self,
+        record_key: str,
+        *,
+        status: str,
+        reason: str,
+        decision_sha256: str,
+        now: float | None = None,
+    ) -> None: ...
+
+
+class PhaseThreePublicationResult:
+    """Result of a deterministic final evaluation and its Check Run publication."""
+
+    __slots__ = ("evaluation", "check_run_id", "ledger_persisted")
+
+    def __init__(
+        self,
+        *,
+        evaluation: VerificationRunEvaluation,
+        check_run_id: int,
+        ledger_persisted: bool | None,
+    ) -> None:
+        self.evaluation = evaluation
+        self.check_run_id = check_run_id
+        self.ledger_persisted = ledger_persisted
+
+
+def publish_reconciled_verification(
+    *,
+    github: CheckRunPublisher,
+    commit: CommitIdentity,
+    obligations: Sequence[VerificationObligation],
+    analysis_completeness: AnalysisCompleteness = AnalysisCompleteness.COMPLETE,
+    policy_config: ConclusionPolicyConfig | None = None,
+    policy_valid: bool = True,
+    has_unsupported_critical_changes: bool = False,
+    check_name: str = "AI PR Verification Agent",
+    summary_context: str = "",
+    decision_ledger: ReconciliationLedgerPort | None = None,
+    ledger_record_key: str | None = None,
+) -> PhaseThreePublicationResult:
+    """Evaluate reconciled obligations and publish only after a last-moment PR SHA check.
+
+    The caller must reconcile every obligation against authenticated evidence first. This function
+    never reads a conclusion from the artifact or a model: the Phase I state machine is the only
+    source of the GitHub conclusion. If PR base/head/state changed, no Check Run is published.
+    A terminal ledger decision is written only after the Check Run API call succeeds.
+    """
+    if not isinstance(check_name, str) or not check_name.strip() or len(check_name) > 100:
+        raise EvidenceIngestionServiceError("Check Run name must contain 1-100 characters.")
+    if len(summary_context) > 30_000:
+        raise EvidenceIngestionServiceError("Check Run summary context exceeds its size limit.")
+
+    evaluation = evaluate_verification_run(
+        commit=commit,
+        obligations=obligations,
+        analysis_completeness=analysis_completeness,
+        policy_config=policy_config or ConclusionPolicyConfig(),
+        policy_valid=policy_valid,
+        has_unsupported_critical_changes=has_unsupported_critical_changes,
+    )
+    obligation_lines = [
+        f"- `{obligation.obligation_id}`: `{obligation.status.value}`"
+        for obligation in obligations
+    ]
+    summary_parts = [evaluation.summary_rationale]
+    if obligation_lines:
+        summary_parts.append("## Obligation states\n" + "\n".join(obligation_lines))
+    if summary_context.strip():
+        summary_parts.append(scrub_secrets(summary_context.strip()))
+    summary = scrub_secrets("\n\n".join(summary_parts))[:60_000]
+    external_id = f"ai-pr-verification-agent:phase3:{commit.pr_number}:{commit.head_sha}"
+
+    # This must remain immediately adjacent to the external publish call. Do not insert ledger,
+    # network, model, or other slow work between this exact-SHA check and publishing.
+    fresh_pr = _assert_current_pull_request(github, commit)
+    raw_url = fresh_pr.get("html_url")
+    details_url = (
+        raw_url
+        if isinstance(raw_url, str)
+        and raw_url.startswith("https://github.com/")
+        and len(raw_url) <= 2_000
+        else None
+    )
+    check_run_id = github.publish_check_run(
+        repository=commit.repo_full_name,
+        head_sha=commit.head_sha,
+        name=check_name,
+        conclusion=evaluation.github_conclusion.value,
+        title=evaluation.summary_title,
+        summary=summary,
+        external_id=external_id,
+        details_url=details_url,
+    )
+    if type(check_run_id) is not int or check_run_id < 1:
+        raise EvidenceIngestionServiceError("GitHub returned an invalid Check Run identifier.")
+
+    ledger_persisted: bool | None = None
+    status_by_conclusion = {
+        GitHubCheckConclusion.SUCCESS: "PASSED",
+        GitHubCheckConclusion.FAILURE: "FAILED",
+        GitHubCheckConclusion.CANCELLED: "STALE",
+    }
+    ledger_status = status_by_conclusion.get(evaluation.github_conclusion)
+    if decision_ledger is not None and ledger_record_key is not None and ledger_status is not None:
+        decision_payload = {
+            "repo_full_name": commit.repo_full_name,
+            "pr_number": commit.pr_number,
+            "base_sha": commit.base_sha,
+            "head_sha": commit.head_sha,
+            "policy_sha256": commit.policy_sha256,
+            "conclusion": evaluation.github_conclusion.value,
+            "obligations": sorted(
+                (item.obligation_id, item.status.value) for item in obligations
+            ),
+        }
+        decision_digest = hashlib.sha256(
+            json.dumps(
+                decision_payload, sort_keys=True, separators=(",", ":")
+            ).encode("utf-8")
+        ).hexdigest()
+        try:
+            decision_ledger.record_reconciliation(
+                ledger_record_key,
+                status=ledger_status,
+                reason=evaluation.summary_rationale[:10_000],
+                decision_sha256=decision_digest,
+            )
+            ledger_persisted = True
+        except Exception:
+            # The Check Run was already published. Keep the result visible and explicitly report
+            # that durable decision recording needs an idempotent retry; do not leak exception text.
+            ledger_persisted = False
+
+    return PhaseThreePublicationResult(
+        evaluation=evaluation,
+        check_run_id=check_run_id,
+        ledger_persisted=ledger_persisted,
     )

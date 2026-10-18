@@ -163,3 +163,17 @@ in the new tests. Those exact changes are applied; no behavioral test result is 
 
 The second formatter retry found only one extra blank line before the first newly added reconciliation test;
 it is corrected without changing test behavior.
+
+
+## Publication boundary and contradictory-result hardening — 2026-10-18
+
+The latest previously green commit, `54498841ad391442f6746cd4e0cc52a6aaf0c1e6`, passed every existing
+CI gate [#39144389166](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39144389166).
+It still carried a temporary module-scoped Ruff suppression. The next slice removes that suppression
+and adds the first Check Run publication API around the Phase I deterministic evaluation.
+
+The publishing helper re-reads PR state/base/head immediately before its one Check Run side effect and
+refuses to publish when any identity is stale. Another defensive fix keeps `CONTRADICTORY` evidence
+contradictory all the way into the Phase I state machine, rather than allowing subsequent sufficiency
+calculation to overlook the contradiction. New adversarial tests exercise these contracts; CI for the
+new SHA remains the required validation.
