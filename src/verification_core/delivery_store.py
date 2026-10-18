@@ -439,7 +439,7 @@ class SQLiteDeliveryStore:
         try:
             with self._connection() as connection:
                 cursor = connection.execute(
-                    "UPDATE verification_runs SET check_run_id = ?, updated_at = ? WHERE run_key = ?",
+                    "UPDATE verification_runs SET check_run_id = ?, updated_at = ? " "WHERE run_key = ?",
                     (check_run_id, timestamp, run_key),
                 )
                 if cursor.rowcount != 1:
