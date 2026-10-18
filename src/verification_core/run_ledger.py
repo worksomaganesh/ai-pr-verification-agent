@@ -244,19 +244,19 @@ class SQLAlchemyRunLedger:
         try:
             with self._engine.begin() as connection:
                 if self._engine.dialect.name == "postgresql":
-                    statement = (
+                    postgres_statement = (
                         postgres_insert(_RUNS)
                         .values(**values)
                         .on_conflict_do_update(index_elements=[_RUNS.c.run_key], set_=update_values)
                     )
-                    connection.execute(statement)
+                    connection.execute(postgres_statement)
                 elif self._engine.dialect.name == "sqlite":
-                    statement = (
+                    sqlite_statement = (
                         sqlite_insert(_RUNS)
                         .values(**values)
                         .on_conflict_do_update(index_elements=[_RUNS.c.run_key], set_=update_values)
                     )
-                    connection.execute(statement)
+                    connection.execute(sqlite_statement)
                 else:
                     existing = connection.execute(
                         select(_RUNS.c.run_key).where(_RUNS.c.run_key == run_key)
