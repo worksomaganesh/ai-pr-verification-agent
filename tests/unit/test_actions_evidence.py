@@ -526,6 +526,7 @@ def test_phase_three_trusted_workflow_input_validation(
             expected_artifact_name=artifact_name,
         )
 
+
 def test_phase_three_workflow_source_size_is_bounded() -> None:
     from verification_core.phase_three import (
         EvidenceIngestionServiceError,
