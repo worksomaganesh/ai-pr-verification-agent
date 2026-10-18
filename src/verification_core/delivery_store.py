@@ -9,6 +9,8 @@ from __future__ import annotations
 import json
 import sqlite3
 import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -59,12 +61,14 @@ class SQLiteDeliveryStore:
 
     def __init__(self, database_path: str | Path, *, busy_timeout_ms: int = 5_000) -> None:
         self._path = str(database_path)
+        if self._path == ":memory:":
+            raise ValueError("SQLiteDeliveryStore requires a durable file path, not :memory:.")
         if busy_timeout_ms < 1 or busy_timeout_ms > 60_000:
             raise ValueError("busy_timeout_ms must be between 1 and 60000")
         self._busy_timeout_ms = busy_timeout_ms
         if self._path != ":memory:":
             Path(self._path).parent.mkdir(parents=True, exist_ok=True)
-        with self._connect() as connection:
+        with self._connection() as connection:
             connection.executescript(_SCHEMA)
 
     def _connect(self) -> sqlite3.Connection:
@@ -80,6 +84,16 @@ class SQLiteDeliveryStore:
             connection.execute("PRAGMA journal_mode = WAL")
             connection.execute("PRAGMA synchronous = FULL")
         return connection
+
+    @contextmanager
+    def _connection(self) -> Iterator[sqlite3.Connection]:
+        """Scope and close each SQLite connection, including exceptional paths."""
+        connection = self._connect()
+        try:
+            with connection:
+                yield connection
+        finally:
+            connection.close()
 
     @staticmethod
     def _event_json(event: PullRequestWebhookEvent) -> str:
