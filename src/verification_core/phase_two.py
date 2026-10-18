@@ -13,7 +13,6 @@ from verification_core.domain import (
 )
 from verification_core.github_app import GitHubAPIError, GitHubRESTClient, InstallationToken
 from verification_core.github_context import assemble_pull_request_context
-from verification_core.run_ledger import VerificationRunLedger
 from verification_core.planning import (
     PlanningResult,
     VerificationModelPort,
@@ -21,6 +20,7 @@ from verification_core.planning import (
     plan_verification,
 )
 from verification_core.policy import VerificationPolicy
+from verification_core.run_ledger import VerificationRunLedger
 from verification_core.security import scrub_secrets
 
 
