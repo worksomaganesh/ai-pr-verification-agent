@@ -136,7 +136,9 @@ def create_app_from_environment(
     secret = environment.get("GITHUB_WEBHOOK_SECRET", "")
     if not secret:
         raise RuntimeError("GITHUB_WEBHOOK_SECRET must be configured.")
-    path = database_path or environment.get("VERIFICATION_DATABASE_PATH", "verification-events.sqlite3")
+    path = database_path or environment.get(
+        "VERIFICATION_DATABASE_PATH", "verification-events.sqlite3"
+    )
     return create_webhook_app(
         webhook_secret=secret,
         delivery_store=SQLiteDeliveryStore(path),
