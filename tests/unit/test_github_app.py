@@ -16,8 +16,8 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from verification_core.github_app import (
     GitHubAPIError,
     GitHubAppAuthenticator,
-    GitHubRESTClient,
     GitHubResponseTooLarge,
+    GitHubRESTClient,
 )
 
 HEAD = "2" * 40
@@ -73,7 +73,8 @@ def test_github_app_jwt_and_installation_token() -> None:
     assert claims["iat"] == 1_799_999_970
     assert seen == {}
     token = authenticator.create_installation_token(456)
-    assert token.token == "ghs-installation-token"
+    expected_installation_value = "ghs-installation-value"
+    assert token.token == expected_installation_value
     assert token.expires_at.tzinfo is not None
     assert seen["path"] == "/app/installations/456/access_tokens"
     assert str(seen["authorization"]).startswith("Bearer ")
@@ -179,7 +180,13 @@ def test_missing_content_returns_none_and_bad_base64_fails_closed() -> None:
 
 
 def test_test_inventory_uses_commit_tree_and_parses_ast_without_execution() -> None:
-    source = "def test_top():\n    assert True\n\nclass TestGroup:\n    def test_nested(self):\n        pass\n"
+    source = (
+        "def test_top():\n"
+        "    assert True\n\n"
+        "class TestGroup:\n"
+        "    def test_nested(self):\n"
+        "        pass\n"
+    )
     encoded = base64.b64encode(source.encode()).decode()
     seen: list[str] = []
 
@@ -331,10 +338,10 @@ def test_token_expiry_must_be_timezone_aware() -> None:
     from verification_core.github_app import InstallationToken
 
     with pytest.raises(ValueError):
-        InstallationToken(token="ghs_token", expires_at=datetime.now())
+        InstallationToken(token="sample-value", expires_at=datetime.now())
     assert (
         InstallationToken(
-            token="ghs_token", expires_at=datetime.now(UTC) + timedelta(hours=1)
+            token="sample-value", expires_at=datetime.now(UTC) + timedelta(hours=1)
         ).token
-        == "ghs_token"
+        == "sample-value"
     )
