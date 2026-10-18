@@ -195,11 +195,118 @@ def test_artifact_redirect_allows_https_signed_storage_url() -> None:
         "https://pipelines.actions.githubusercontent.com/signed/path"
     )
 
-
-
 def test_rejects_archive_size_that_disagrees_with_api_metadata() -> None:
     data = archive()
     artifact = metadata(data)
     artifact["size_in_bytes"] = len(data) + 1
     with pytest.raises(ActionsEvidenceError, match="size does not match"):
         ingest(artifact_metadata=artifact)
+
+
+
+class _FakePRReader:
+    def __init__(self, *, move_head_after_first_read: bool = False) -> None:
+        self.calls = 0
+        self.move_head_after_first_read = move_head_after_first_read
+
+    def get_pull_request(self, repository: str, pr_number: int) -> dict[str, object]:
+        assert repository == REPO
+        assert pr_number == 7
+        self.calls += 1
+        head = HEAD
+        if self.move_head_after_first_read and self.calls > 1:
+            head = "3" * 40
+        return {"state": "open", "base": {"sha": BASE}, "head": {"sha": head}}
+
+    def get_file_content(self, repository: str, path: str, ref: str) -> str | None:
+        assert repository == REPO
+        assert path == ".github/workflows/ci.yml"
+        assert ref == BASE
+        return "name: trusted-ci\non: pull_request\njobs: {}\n"
+
+
+class _FakeActionsReader:
+    def __init__(self, *, artifacts: list[dict[str, object]] | None = None) -> None:
+        self.artifacts = artifacts
+        self.run_payload = run()
+
+    def get_workflow_run(self, repository: str, run_id: int) -> dict[str, object]:
+        assert repository == REPO
+        assert run_id == 99
+        return self.run_payload
+
+    def list_workflow_run_jobs(
+        self, repository: str, run_id: int
+    ) -> tuple[dict[str, object], ...]:
+        return tuple(jobs())
+
+    def list_workflow_run_artifacts(
+        self, repository: str, run_id: int
+    ) -> tuple[dict[str, object], ...]:
+        data = archive()
+        return tuple(self.artifacts) if self.artifacts is not None else (metadata(data),)
+
+    def download_workflow_artifact(self, repository: str, artifact_id: int) -> bytes:
+        assert repository == REPO
+        assert artifact_id == 55
+        return archive()
+
+
+def test_phase_three_service_binds_base_workflow_and_rechecks_pr() -> None:
+    from verification_core.phase_three import ingest_pull_request_run
+
+    pr_reader = _FakePRReader()
+    result = ingest_pull_request_run(
+        github=pr_reader,
+        actions=_FakeActionsReader(),
+        commit=identity(),
+        workflow_run_id=99,
+        trusted_workflow_paths=(".github/workflows/ci.yml",),
+        harness_sensitive_paths=(
+            ".github/workflows/",
+            ".verification-policy.yml",
+            "conftest.py",
+        ),
+        changed_paths=("src/auth.py",),
+    )
+    assert result.evidence.workflow_run_id == 99
+    assert result.evidence.artifact_id == 55
+    assert len(result.workflow_definition_sha256) == 64
+    assert pr_reader.calls == 2
+
+
+def test_phase_three_service_rejects_missing_or_ambiguous_artifacts() -> None:
+    from verification_core.phase_three import EvidenceIngestionServiceError, ingest_pull_request_run
+
+    data = archive()
+    one = metadata(data)
+    common = {
+        "github": _FakePRReader(),
+        "commit": identity(),
+        "workflow_run_id": 99,
+        "trusted_workflow_paths": (".github/workflows/ci.yml",),
+        "harness_sensitive_paths": (".github/workflows/", "conftest.py"),
+        "changed_paths": ("src/auth.py",),
+    }
+    with pytest.raises(EvidenceIngestionServiceError, match="exactly one"):
+        ingest_pull_request_run(**common, actions=_FakeActionsReader(artifacts=[]))
+    with pytest.raises(EvidenceIngestionServiceError, match="exactly one"):
+        ingest_pull_request_run(
+            **common,
+            actions=_FakeActionsReader(artifacts=[one, {**one, "id": 56}]),
+        )
+
+
+def test_phase_three_service_rejects_pr_head_moving_during_ingestion() -> None:
+    from verification_core.phase_three import EvidenceIngestionServiceError, ingest_pull_request_run
+
+    with pytest.raises(EvidenceIngestionServiceError, match="changed during"):
+        ingest_pull_request_run(
+            github=_FakePRReader(move_head_after_first_read=True),
+            actions=_FakeActionsReader(),
+            commit=identity(),
+            workflow_run_id=99,
+            trusted_workflow_paths=(".github/workflows/ci.yml",),
+            harness_sensitive_paths=(".github/workflows/", "conftest.py"),
+            changed_paths=("src/auth.py",),
+        )

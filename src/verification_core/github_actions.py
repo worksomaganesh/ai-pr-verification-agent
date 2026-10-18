@@ -143,6 +143,7 @@ class GitHubActionsClient:
         if resource not in {"jobs", "artifacts"}:
             raise ValueError("unsupported Actions resource")
         collected: list[Mapping[str, object]] = []
+        seen_ids: set[int] = set()
         expected_total: int | None = None
         for page in range(1, MAX_ACTIONS_API_PAGES + 1):
             result = self._get(
@@ -164,7 +165,18 @@ class GitHubActionsClient:
             if len(raw_items) > _MAX_PAGE_SIZE:
                 raise GitHubActionsAPIError("GitHub Actions returned more items than requested.")
             for item in raw_items:
-                collected.append(_mapping(item, f"Actions {resource} item"))
+                record = _mapping(item, f"Actions {resource} item")
+                identifier = record.get("id")
+                if type(identifier) is not int or identifier < 1:
+                    raise GitHubActionsAPIError(
+                        f"GitHub Actions {resource} item has an invalid identifier."
+                    )
+                if identifier in seen_ids:
+                    raise GitHubActionsAPIError(
+                        f"GitHub Actions {resource} pagination returned duplicate identifiers."
+                    )
+                seen_ids.add(identifier)
+                collected.append(record)
             if len(collected) > _MAX_ACTIONS_ITEMS:
                 raise GitHubActionsAPIError(
                     "GitHub Actions result exceeds the configured item limit."
