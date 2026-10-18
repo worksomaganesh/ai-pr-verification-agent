@@ -235,9 +235,9 @@ def test_archive_reader_rejects_duplicate_members() -> None:
         pytest.warns(UserWarning, match="Duplicate name"),
         zipfile.ZipFile(output, "w", zipfile.ZIP_STORED) as zip_file,
     ):
-            zip_file.writestr("junit.xml", JUNIT)
-            zip_file.writestr("junit.xml", JUNIT)
-            zip_file.writestr("coverage-manifest.json", MANIFEST)
+        zip_file.writestr("junit.xml", JUNIT)
+        zip_file.writestr("junit.xml", JUNIT)
+        zip_file.writestr("coverage-manifest.json", MANIFEST)
     with pytest.raises(ActionsEvidenceError, match="duplicate file names"):
         _read_zip_members(output.getvalue())
 

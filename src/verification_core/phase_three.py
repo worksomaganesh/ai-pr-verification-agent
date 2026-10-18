@@ -142,9 +142,7 @@ def _validate_trusted_workflow_upload_contract(
     triggers = workflow.get("on", workflow.get(True))
     has_pull_request_trigger = (
         triggers == "pull_request"
-        or (
-            isinstance(triggers, list) and "pull_request" in triggers
-        )
+        or (isinstance(triggers, list) and "pull_request" in triggers)
         or (
             isinstance(triggers, Mapping)
             and "pull_request" in triggers
