@@ -159,3 +159,7 @@ PASSED obligation. The new reconciliation code and tests require their own full 
 Run #39144197581 failed only at `ruff format --check` before any lint, type, or test step. Its exact
 diff showed an extra blank line before `reconcile_authenticated_obligation` and three long imports
 in the new tests. Those exact changes are applied; no behavioral test result is inferred from this run.
+
+
+The second formatter retry found only one extra blank line before the first newly added reconciliation test;
+it is corrected without changing test behavior.

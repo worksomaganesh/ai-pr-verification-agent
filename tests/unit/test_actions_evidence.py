@@ -391,7 +391,6 @@ def test_stale_pr_is_rejected_before_persisting_evidence() -> None:
     assert ledger.calls == 0
 
 
-
 def test_reconciliation_never_trusts_artifact_assertion_claim_alone() -> None:
     from verification_core.domain.enums import ObligationSource, ObligationStatus, Severity
     from verification_core.domain.models import VerificationObligation
