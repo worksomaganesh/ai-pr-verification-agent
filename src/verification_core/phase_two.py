@@ -152,9 +152,7 @@ class PhaseTwoProcessor:
             client = GitHubRESTClient(installation_token.token)
             try:
                 context = assemble_pull_request_context(event, client)
-                inventory = client.list_test_inventory(
-                    event.repository_full_name, event.head_sha
-                )
+                inventory = client.list_test_inventory(event.repository_full_name, event.head_sha)
                 analysis = analyze_changed_files(
                     commit=context.commit,
                     changed_files=context.changed_files,
@@ -173,9 +171,7 @@ class PhaseTwoProcessor:
                     policy_config=_policy_config(context.policy),
                     policy_valid=True,
                 )
-                pull_request = client.get_pull_request(
-                    event.repository_full_name, event.pr_number
-                )
+                pull_request = client.get_pull_request(event.repository_full_name, event.pr_number)
                 html_url = pull_request.get("html_url")
                 details_url = (
                     html_url
