@@ -1,4 +1,4 @@
-name: Phase 1 CI
+name: Phase II CI
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: phase-1-${{ github.workflow }}-${{ github.ref }}
+  group: phase-2-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
