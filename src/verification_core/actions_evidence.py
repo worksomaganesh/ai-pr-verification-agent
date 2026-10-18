@@ -22,7 +22,7 @@ from verification_core.coverage import (
     parse_coverage_manifest,
 )
 from verification_core.domain.models import CommitIdentity, WorkflowProvenance
-from verification_core.evidence import JUnitReport, EvidenceParseError, parse_junit
+from verification_core.evidence import EvidenceParseError, JUnitReport, parse_junit
 
 MAX_ARTIFACT_ARCHIVE_BYTES = 20 * 1024 * 1024
 MAX_ARTIFACT_MEMBERS = 16
@@ -158,8 +158,8 @@ def verify_workflow_provenance(
     """Validate API-sourced run/job metadata against policy and exact PR commit identity."""
     run = _object(run_payload, "workflow run")
     run_id = _positive_integer(run.get("id"), "workflow run id")
-    workflow_id = _positive_integer(run.get("workflow_id"), "workflow id")
-    attempt = _positive_integer(run.get("run_attempt"), "workflow run attempt")
+    _positive_integer(run.get("workflow_id"), "workflow id")
+    _positive_integer(run.get("run_attempt"), "workflow run attempt")
     if expected_run_id is not None and run_id != expected_run_id:
         raise ActionsEvidenceError("Workflow run ID does not match the requested run.")
     repository = _object(run.get("repository"), "workflow repository")
@@ -339,8 +339,9 @@ def ingest_authenticated_artifact(
 ) -> AuthenticatedEvidenceArtifact:
     """Bind GitHub API metadata, archive digest, JUnit, and per-test coverage to one commit.
 
-    The caller must obtain run_payload, jobs, and artifact_metadata directly from an authenticated
-    GitHub Actions API client. Webhook fields or artifact-embedded identity fields are not authority.
+    The caller must obtain run_payload, jobs, and artifact_metadata directly from an
+    authenticated GitHub Actions API client. Webhook fields or artifact-embedded identity fields
+    are not authority.
     """
     run = _object(run_payload, "workflow run")
     run_id = _positive_integer(run.get("id"), "workflow run id")

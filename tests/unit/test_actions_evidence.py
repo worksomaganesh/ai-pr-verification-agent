@@ -9,9 +9,9 @@ import zipfile
 
 import pytest
 
-from verification_core.domain.models import CommitIdentity
-from verification_core.github_actions import GitHubActionsAPIError, _artifact_redirect_is_allowed
 from verification_core.actions_evidence import ActionsEvidenceError, ingest_authenticated_artifact
+from verification_core.domain.models import CommitIdentity
+from verification_core.github_actions import _artifact_redirect_is_allowed
 
 BASE = "1" * 40
 HEAD = "2" * 40
@@ -163,7 +163,7 @@ def test_rejects_forged_digest_wrong_run_or_stale_manifest() -> None:
     stale = archive(
         {"junit.xml": JUNIT, "coverage-manifest.json": MANIFEST.replace(HEAD.encode(), b"3" * 40)}
     )
-    with pytest.raises(ActionsEvidenceError, match="SHA-256 digest|stale"):
+    with pytest.raises(ActionsEvidenceError, match=r"SHA-256 digest|stale"):
         ingest(stale)
 
 
