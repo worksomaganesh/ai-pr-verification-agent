@@ -404,14 +404,18 @@ class GitHubRESTClient(GitHubReadClient):
                     if node.name.startswith("test_"):
                         selector = f"{path}::{node.name}"
                         try:
-                            entries.append(InventoryEntry(selector=validate_test_selector(selector), path=path))
+                            entries.append(
+                                InventoryEntry(selector=validate_test_selector(selector), path=path)
+                            )
                         except ValueError:
                             continue
                 elif isinstance(node, ast.ClassDef):
                     if not node.name.startswith("Test"):
                         continue
                     for member in node.body:
-                        if isinstance(member, (ast.FunctionDef, ast.AsyncFunctionDef)) and member.name.startswith("test_"):
+                        if isinstance(
+                            member, (ast.FunctionDef, ast.AsyncFunctionDef)
+                        ) and member.name.startswith("test_"):
                             selector = f"{path}::{node.name}::{member.name}"
                             try:
                                 entries.append(
