@@ -339,7 +339,13 @@ class SQLiteDeliveryStore:
         if not planner_mode or len(planner_mode) > 80:
             raise ValueError("planner_mode must contain 1-80 characters")
         if conclusion not in {
-            "success", "neutral", "action_required", "failure", "cancelled", "timed_out", "skipped"
+            "success",
+            "neutral",
+            "action_required",
+            "failure",
+            "cancelled",
+            "timed_out",
+            "skipped",
         }:
             raise ValueError("unsupported Check Run conclusion")
         if not isinstance(summary, str) or len(summary) > 60_000:
@@ -417,7 +423,9 @@ class SQLiteDeliveryStore:
                 connection.commit()
                 return run_key
         except sqlite3.Error:
-            raise DeliveryStoreError("Could not persist the verification run and obligations.") from None
+            raise DeliveryStoreError(
+                "Could not persist the verification run and obligations."
+            ) from None
 
     def set_check_run_id(
         self, run_key: str, check_run_id: int, *, now: float | None = None
