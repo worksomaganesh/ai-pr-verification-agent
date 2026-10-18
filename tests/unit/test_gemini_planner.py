@@ -48,7 +48,13 @@ harness_sensitive_paths:
   - pytest.ini
   - pyproject.toml
   - package.json
-obligations: []
+obligations:
+  - id: OBL-WHK-01
+    category: webhook_idempotency
+    severity: critical
+    claim: Duplicate webhook event IDs must not process the same event twice.
+    runner_profile: pytest_targeted
+    selector: tests/test_webhooks.py::test_duplicate_event_is_ignored
 """
 
 
