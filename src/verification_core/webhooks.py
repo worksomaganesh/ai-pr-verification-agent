@@ -42,6 +42,7 @@ class PullRequestWebhookEvent:
     head_sha: str
     base_ref: str
     head_ref: str
+    installation_id: int | None = None
 
     def __post_init__(self) -> None:
         if not _DELIVERY_ID_RE.fullmatch(self.delivery_id):
@@ -60,6 +61,8 @@ class PullRequestWebhookEvent:
             raise WebhookPayloadError("base_sha and head_sha must be distinct.")
         if not self.base_ref.strip() or not self.head_ref.strip():
             raise WebhookPayloadError("base_ref and head_ref must be non-empty.")
+        if self.installation_id is not None and (type(self.installation_id) is not int or self.installation_id < 1):
+            raise WebhookPayloadError("installation_id must be a positive integer when present.")
 
     @property
     def idempotency_key(self) -> str:
@@ -138,6 +141,15 @@ def parse_pull_request_webhook(
     if not _REPOSITORY_RE.fullmatch(repository_full_name):
         raise WebhookPayloadError("repository.full_name must match owner/repository.")
 
+    installation_value = top.get("installation")
+    installation_id: int | None = None
+    if installation_value is not None:
+        installation = _mapping(installation_value, "installation")
+        candidate_id = installation.get("id")
+        if type(candidate_id) is not int or candidate_id < 1:
+            raise WebhookPayloadError("installation.id must be a positive integer.")
+        installation_id = candidate_id
+
     pull_request = _mapping(top.get("pull_request"), "pull_request")
     number = pull_request.get("number")
     if type(number) is not int or number < 1:
@@ -162,4 +174,5 @@ def parse_pull_request_webhook(
         head_sha=_required_string(head.get("sha"), "pull_request.head.sha"),
         base_ref=_required_string(base.get("ref"), "pull_request.base.ref"),
         head_ref=_required_string(head.get("ref"), "pull_request.head.ref"),
+        installation_id=installation_id,
     )
