@@ -7,14 +7,15 @@ from pathlib import Path
 
 import pytest
 
-import verification_core.evidence_ledger as evidence_ledger
-
 from verification_core.actions_evidence import AuthenticatedEvidenceArtifact
 from verification_core.coverage import CoverageCase, CoverageManifest
 from verification_core.domain.enums import ExecutionOutcome
 from verification_core.domain.models import CommitIdentity, WorkflowProvenance
 from verification_core.evidence import JUnitCase, JUnitReport
-import verification_core.evidence_ledger as evidence_ledger
+from verification_core.evidence_ledger import (
+    EvidenceLedgerConflict,
+    SQLAlchemyEvidenceLedger,
+)
 
 
 BASE = "1" * 40
@@ -89,11 +90,11 @@ def make_evidence() -> AuthenticatedEvidenceArtifact:
     )
 
 
-def make_ledger(tmp_path: Path) -> evidence_ledger.SQLAlchemyEvidenceLedger:
-    return evidence_ledger.SQLAlchemyEvidenceLedger(f"sqlite:///{tmp_path / 'evidence.sqlite3'}")
+def make_ledger(tmp_path: Path) -> SQLAlchemyEvidenceLedger:
+    return SQLAlchemyEvidenceLedger(f"sqlite:///{tmp_path / 'evidence.sqlite3'}")
 
 
-def record_evidence(ledger: evidence_ledger.SQLAlchemyEvidenceLedger, *, now: float = 10) -> str:
+def record_evidence(ledger: SQLAlchemyEvidenceLedger, *, now: float = 10) -> str:
     return ledger.record_ingestion(
         commit=make_commit(),
         evidence=make_evidence(),
@@ -104,9 +105,9 @@ def record_evidence(ledger: evidence_ledger.SQLAlchemyEvidenceLedger, *, now: fl
 
 def test_ledger_rejects_invalid_database_url() -> None:
     with pytest.raises(ValueError, match="database_url"):
-        evidence_ledger.SQLAlchemyEvidenceLedger("")
+        SQLAlchemyEvidenceLedger("")
     with pytest.raises(ValueError, match="database_url"):
-        evidence_ledger.SQLAlchemyEvidenceLedger("mysql://invalid")
+        SQLAlchemyEvidenceLedger("mysql://invalid")
 
 
 def test_ledger_recording_starts_inconclusive_and_is_idempotent(tmp_path: Path) -> None:
@@ -145,7 +146,7 @@ def test_ledger_rejects_same_identity_with_conflicting_artifact_digest(tmp_path:
         junit_report=conflicting.junit_report,
         coverage_manifest=conflicting.coverage_manifest,
     )
-    with pytest.raises(evidence_ledger.EvidenceLedgerConflict, match="conflicting contents"):
+    with pytest.raises(EvidenceLedgerConflict, match="conflicting contents"):
         ledger.record_ingestion(
             commit=make_commit(),
             evidence=conflicting,
@@ -165,7 +166,7 @@ def test_ledger_records_terminal_reconciliation_once(tmp_path: Path) -> None:
     ledger.record_reconciliation(
         key, status="FAILED", reason="test failed", decision_sha256=digest, now=12
     )
-    with pytest.raises(evidence_ledger.EvidenceLedgerConflict, match="immutable"):
+    with pytest.raises(EvidenceLedgerConflict, match="immutable"):
         ledger.record_reconciliation(
             key, status="PASSED", reason="changed", decision_sha256="c" * 64, now=13
         )
