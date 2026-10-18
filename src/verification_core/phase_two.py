@@ -6,7 +6,11 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from verification_core.delivery_store import DeliveryStoreError, SQLiteDeliveryStore
-from verification_core.domain import ConclusionPolicyConfig, evaluate_verification_run
+from verification_core.domain import (
+    ConclusionPolicyConfig,
+    VerificationRunEvaluation,
+    evaluate_verification_run,
+)
 from verification_core.github_app import (
     GitHubAPIError,
     GitHubAppAuthenticator,
@@ -14,10 +18,12 @@ from verification_core.github_app import (
 )
 from verification_core.github_context import assemble_pull_request_context
 from verification_core.planning import (
+    PlanningResult,
     VerificationModelPort,
     analyze_changed_files,
     plan_verification,
 )
+from verification_core.policy import VerificationPolicy
 from verification_core.security import scrub_secrets
 
 
@@ -38,9 +44,9 @@ class ProcessingResult:
     reason_code: str | None = None
 
 
-def _policy_config(policy: object) -> ConclusionPolicyConfig:
+def _policy_config(policy: VerificationPolicy) -> ConclusionPolicyConfig:
     """Translate the validated trusted-base policy into deterministic conclusion settings."""
-    severity_rule = getattr(policy, "severity_rule")
+    severity_rule = policy.severity_rule
     critical = severity_rule("critical")
     high = severity_rule("high")
     medium = severity_rule("medium")
@@ -62,16 +68,16 @@ def _inline(value: object) -> str:
 
 def _summary(
     *,
-    planning: object,
-    evaluation: object,
+    planning: PlanningResult,
+    evaluation: VerificationRunEvaluation,
     analysis_issues: tuple[str, ...],
     model_mode: str,
     degradation_reason: str | None,
 ) -> str:
     """Render bounded, secret-scrubbed Check Run evidence and outstanding obligations."""
-    obligations = tuple(getattr(planning, "obligations"))
-    completeness = getattr(planning, "analysis_completeness")
-    commit = getattr(planning, "commit")
+    obligations = planning.obligations
+    completeness = planning.analysis_completeness
+    commit = planning.commit
     lines = [
         "## Verification planning result",
         "",
@@ -98,9 +104,8 @@ def _summary(
                 f"{_inline(obligation.description)}"
             )
             lines.append(f"  - Status: {obligation.status.value} (proposed; not executed)")
-            lines.append(
-                f"  - Changed files: {', '.join(_inline(path) for path in obligation.affected_files)}"
-            )
+            changed_files = ", ".join(_inline(path) for path in obligation.affected_files)
+            lines.append(f"  - Changed files: {changed_files}")
             lines.append(f"  - Candidate test: {_inline(selector)}")
     if analysis_issues:
         lines.extend(["", "## Analysis limitations", ""])
@@ -112,8 +117,8 @@ def _summary(
             "",
             "## Deterministic conclusion",
             "",
-            f"- **Conclusion:** {getattr(evaluation, 'github_conclusion').value}",
-            f"- **Reason:** {_inline(getattr(evaluation, 'summary_rationale'))}",
+            f"- **Conclusion:** {evaluation.github_conclusion.value}",
+            f"- **Reason:** {_inline(evaluation.summary_rationale)}",
         ]
     )
     return scrub_secrets("\n".join(lines))[:59_000]
