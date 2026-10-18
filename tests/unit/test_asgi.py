@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 import importlib
+from pathlib import Path
+
+import pytest
 
 from fastapi import FastAPI
 
 
-def test_asgi_entrypoint_builds_only_after_configuration(monkeypatch, tmp_path) -> None:
+def test_asgi_entrypoint_builds_only_after_configuration(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     monkeypatch.setenv("GITHUB_WEBHOOK_SECRET", "asgi-test-secret")
     monkeypatch.setenv("VERIFICATION_DATABASE_PATH", str(tmp_path / "asgi.sqlite3"))
     module = importlib.import_module("verification_core.asgi")
