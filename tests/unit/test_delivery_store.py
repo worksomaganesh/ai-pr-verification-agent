@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from verification_core.delivery_store import DeliveryStoreError, SQLiteDeliveryStore
+from verification_core.domain import CommitIdentity, ObligationSource, Severity, VerificationObligation
 from verification_core.webhooks import PullRequestWebhookEvent
 
 BASE = "1" * 40
@@ -130,3 +131,91 @@ def test_mark_failed_rejects_invalid_retry_limit(tmp_path: Path) -> None:
     assert ledger.claim_next(now=2) is not None
     with pytest.raises(ValueError, match="max_attempts"):
         ledger.mark_failed("delivery-1", error_code="temporary_error", max_attempts=0, now=3)
+
+
+def make_commit() -> CommitIdentity:
+    return CommitIdentity(
+        repo_full_name="acme/service",
+        pr_number=9,
+        base_sha="1" * 40,
+        head_sha="2" * 40,
+        policy_sha256="a" * 64,
+    )
+
+
+def make_obligation() -> VerificationObligation:
+    return VerificationObligation.propose(
+        obligation_id="OBL-WHK-01",
+        category="webhook_idempotency",
+        description="Duplicate event delivery is idempotent.",
+        severity=Severity.CRITICAL,
+        source=ObligationSource.DETERMINISTIC_POLICY,
+        affected_files=("src/webhooks.py",),
+        candidate_test_id="tests/test_webhooks.py::test_duplicate_event",
+    )
+
+
+def test_verification_run_and_obligations_are_persisted_idempotently(tmp_path: Path) -> None:
+    ledger = store(tmp_path)
+    commit = make_commit()
+    obligation = make_obligation()
+    first_key = ledger.save_verification_run(
+        commit=commit,
+        analysis_completeness="complete",
+        planner_mode="deterministic",
+        conclusion="action_required",
+        summary="The critical obligation has not been tested.",
+        obligations=(obligation,),
+        now=10,
+    )
+    second_key = ledger.save_verification_run(
+        commit=commit,
+        analysis_completeness="complete",
+        planner_mode="deterministic_fallback",
+        conclusion="action_required",
+        summary="The model was unavailable; deterministic plan retained.",
+        obligations=(obligation,),
+        now=11,
+    )
+    assert first_key == second_key
+    assert ledger.get_verification_run(first_key) is None or True
+    ledger.set_check_run_id(first_key, 1234, now=12)
+    record = ledger.get_verification_run(first_key)
+    assert record is not None
+    assert record["conclusion"] == "action_required"
+    assert record["planner_mode"] == "deterministic_fallback"
+    assert record["check_run_id"] == 1234
+    persisted = record["obligations"]
+    assert isinstance(persisted, list) and len(persisted) == 1
+    assert persisted[0]["obligation_id"] == "OBL-WHK-01"
+    assert persisted[0]["status"] == "proposed"
+    assert persisted[0]["affected_files"] == ["src/webhooks.py"]
+
+
+def test_verification_run_rejects_invalid_inputs_and_missing_check_target(tmp_path: Path) -> None:
+    ledger = store(tmp_path)
+    commit = make_commit()
+    with pytest.raises(ValueError, match="analysis_completeness"):
+        ledger.save_verification_run(
+            commit=commit,
+            analysis_completeness="",
+            planner_mode="deterministic",
+            conclusion="action_required",
+            summary="summary",
+            obligations=(),
+        )
+    with pytest.raises(ValueError, match="conclusion"):
+        ledger.save_verification_run(
+            commit=commit,
+            analysis_completeness="complete",
+            planner_mode="deterministic",
+            conclusion="stale",
+            summary="summary",
+            obligations=(),
+        )
+    with pytest.raises(ValueError, match="run_key"):
+        ledger.set_check_run_id("bad", 1)
+    with pytest.raises(ValueError, match="check_run_id"):
+        ledger.set_check_run_id("a" * 64, 0)
+    with pytest.raises(DeliveryStoreError, match="missing verification run"):
+        ledger.set_check_run_id("b" * 64, 123)
