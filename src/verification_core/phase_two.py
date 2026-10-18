@@ -98,7 +98,9 @@ def _summary(
                 f"{_inline(obligation.description)}"
             )
             lines.append(f"  - Status: {obligation.status.value} (proposed; not executed)")
-            lines.append(f"  - Changed files: {', '.join(_inline(path) for path in obligation.affected_files)}")
+            lines.append(
+                f"  - Changed files: {', '.join(_inline(path) for path in obligation.affected_files)}"
+            )
             lines.append(f"  - Candidate test: {_inline(selector)}")
     if analysis_issues:
         lines.extend(["", "## Analysis limitations", ""])
