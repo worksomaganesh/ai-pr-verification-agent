@@ -48,6 +48,9 @@ jobs:
       - name: Run unit and property-based tests with coverage
         run: pytest --cov=src/verification_core --cov-report=term-missing --cov-report=xml
 
+      - name: Enforce overall coverage gate
+        run: coverage report --fail-under=90
+
       - name: Enforce Phase I core coverage gate
         run: >-
           coverage report

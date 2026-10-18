@@ -324,7 +324,7 @@ class _FakePRReader:
         self,
         *,
         move_head_after_first_read: bool = False,
-        workflow_source: str = TRUSTED_WORKFLOW,
+        workflow_source: str | None = TRUSTED_WORKFLOW,
     ) -> None:
         self.calls = 0
         self.move_head_after_first_read = move_head_after_first_read
@@ -620,6 +620,98 @@ def test_phase_three_rejects_invalid_original_workflow_attempt() -> None:
     original = {**actions.run_payload, "run_attempt": True}
     with pytest.raises(EvidenceIngestionServiceError, match="attempt is missing or invalid"):
         _assert_workflow_run_unchanged(actions, REPO, 99, original)
+
+
+
+@pytest.mark.parametrize("invalid_run_id", [0, -1, True])
+def test_phase_three_rejects_invalid_workflow_run_identifiers(invalid_run_id: int) -> None:
+    from verification_core.phase_three import EvidenceIngestionServiceError, ingest_pull_request_run
+
+    with pytest.raises(EvidenceIngestionServiceError, match="positive integer"):
+        ingest_pull_request_run(
+            github=_FakePRReader(),
+            actions=_FakeActionsReader(),
+            commit=identity(),
+            workflow_run_id=invalid_run_id,
+            trusted_workflow_paths=(".github/workflows/ci.yml",),
+            harness_sensitive_paths=(".github/workflows/", "conftest.py"),
+            changed_paths=("src/auth.py",),
+        )
+
+
+def test_phase_three_rejects_empty_trusted_workflow_policy() -> None:
+    from verification_core.phase_three import EvidenceIngestionServiceError, ingest_pull_request_run
+
+    with pytest.raises(EvidenceIngestionServiceError, match="policy is empty"):
+        ingest_pull_request_run(
+            github=_FakePRReader(),
+            actions=_FakeActionsReader(),
+            commit=identity(),
+            workflow_run_id=99,
+            trusted_workflow_paths=(),
+            harness_sensitive_paths=(".github/workflows/", "conftest.py"),
+            changed_paths=("src/auth.py",),
+        )
+
+
+@pytest.mark.parametrize(
+    ("path", "workflow_source", "message"),
+    [
+        (None, TRUSTED_WORKFLOW, "path is missing"),
+        (
+            ".github/workflows/not-trusted.yml@refs/heads/main",
+            TRUSTED_WORKFLOW,
+            "not present in the trusted base policy",
+        ),
+        (".github/workflows/ci.yml@refs/heads/main", None, "does not exist at the exact base SHA"),
+    ],
+)
+def test_phase_three_rejects_missing_or_untrusted_workflow_source(
+    path: str | None, workflow_source: str | None, message: str
+) -> None:
+    from verification_core.phase_three import EvidenceIngestionServiceError, ingest_pull_request_run
+
+    actions = _FakeActionsReader()
+    actions.run_payload = {**actions.run_payload, "path": path}
+    with pytest.raises(EvidenceIngestionServiceError, match=message):
+        ingest_pull_request_run(
+            github=_FakePRReader(workflow_source=workflow_source),
+            actions=actions,
+            commit=identity(),
+            workflow_run_id=99,
+            trusted_workflow_paths=(".github/workflows/ci.yml",),
+            harness_sensitive_paths=(".github/workflows/", "conftest.py"),
+            changed_paths=("src/auth.py",),
+        )
+
+
+@pytest.mark.parametrize("bad_digest", ["", "D" * 64, "x" * 64, "d" * 63])
+def test_ingested_evidence_requires_lowercase_sha256_workflow_digest(bad_digest: str) -> None:
+    from verification_core.phase_three import IngestedPullRequestEvidence
+
+    with pytest.raises(ValueError, match="lowercase SHA-256 digest"):
+        IngestedPullRequestEvidence(ingest(), bad_digest)
+
+
+def test_phase_three_rejects_closed_pull_request_before_actions_reads() -> None:
+    from verification_core.phase_three import EvidenceIngestionServiceError, ingest_pull_request_run
+
+    class ClosedPRReader(_FakePRReader):
+        def get_pull_request(self, repository: str, pr_number: int) -> dict[str, object]:
+            return {"state": "closed", "base": {"sha": BASE}, "head": {"sha": HEAD}}
+
+    actions = _FakeActionsReader()
+    with pytest.raises(EvidenceIngestionServiceError, match="no longer open"):
+        ingest_pull_request_run(
+            github=ClosedPRReader(),
+            actions=actions,
+            commit=identity(),
+            workflow_run_id=99,
+            trusted_workflow_paths=(".github/workflows/ci.yml",),
+            harness_sensitive_paths=(".github/workflows/", "conftest.py"),
+            changed_paths=("src/auth.py",),
+        )
+    assert actions.run_reads == 0
 
 
 def test_phase_three_service_rejects_attempt_change_during_ingestion() -> None:

@@ -58,3 +58,10 @@ Run [#39169277725](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 ## Overall coverage gate correction — 2026-10-19
 
 Run [#39169688736](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39169688736) passed formatting, Ruff, strict mypy, 433 tests, and both phase-specific gates (Phase I 96%, Phase II 86%). Its report nevertheless showed 89.77% total coverage. Inspection of the workflow confirmed that `coverage.report.fail_under=90` is not enforced by the existing `pytest --cov` invocation, because pytest-cov needs `--cov-fail-under=90` explicitly. Added that flag to the project's pytest default options and added direct regression tests for missing/malformed/oversized trusted workflow inputs. The next exact-head run must prove both the tests and the total gate; this change is not yet verified.
+
+
+## Explicit overall-coverage enforcement and ingestion precondition tests — 2026-10-19
+
+The latest green run [#39170237791](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39170237791) passed formatter, Ruff, strict mypy, 438 tests, and the Phase I (96%) / Phase II (86%) gates. However, its report displayed 89.91% overall, below the intended 90% floor. The workflow lacked a dedicated overall `coverage report --fail-under=90` step, and the attempted pytest addopts flag did not cause the workflow to fail. The workflow now has an explicit total-coverage gate immediately after tests; no green overall result is claimed until a later run proves it.
+
+New tests cover invalid workflow-run IDs (including bool-as-int), empty trust policy, missing/untrusted workflow paths and base-SHA workflow source, malformed workflow digest validation, and closed-PR rejection before any Actions API reads. The next CI iteration must show whether these meaningful negative cases raise overall coverage over the floor. Branch/PR heads and CI SHA must be checked together before assigning a completion percentage.

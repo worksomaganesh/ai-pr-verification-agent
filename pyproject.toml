@@ -47,7 +47,7 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-addopts = "-ra -q --strict-markers --strict-config --cov-fail-under=90"
+addopts = "-ra -q --strict-markers --strict-config"
 
 [tool.coverage.run]
 branch = true
