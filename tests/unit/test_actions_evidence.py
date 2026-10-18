@@ -44,7 +44,7 @@ MANIFEST = json.dumps(
 ).encode()
 
 
-TRUSTED_WORKFLOW = """\\
+TRUSTED_WORKFLOW = """
 name: trusted-ci
 on: pull_request
 jobs:
