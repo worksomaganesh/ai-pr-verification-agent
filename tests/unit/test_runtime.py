@@ -74,3 +74,18 @@ def test_worker_rejects_invalid_app_id(app_id: str, tmp_path: Path) -> None:
                 "VERIFICATION_DATABASE_PATH": str(tmp_path / "events.sqlite3"),
             }
         )
+
+
+def test_worker_can_use_a_separate_sqlalchemy_run_ledger(tmp_path: Path) -> None:
+    processor, store, authenticator = create_processor_from_environment(
+        {
+            "GITHUB_APP_ID": "123",
+            "GITHUB_APP_PRIVATE_KEY": "-----BEGIN PRIVATE KEY-----\\nfake\\n",
+            "VERIFICATION_DATABASE_PATH": str(tmp_path / "queue.sqlite3"),
+            "VERIFICATION_RUNS_DATABASE_URL": f"sqlite:///{tmp_path / 'runs.sqlite3'}",
+        }
+    )
+    assert processor is not None
+    assert store is not None
+    processor.close()
+    authenticator.close()
