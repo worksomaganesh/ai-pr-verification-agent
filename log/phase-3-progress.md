@@ -215,3 +215,16 @@ source is corrected to that order.
 mypy, tests, and coverage, so none of those checks can be claimed as passing for Phase III. The
 progress estimate remains **62% complete / 38% remaining**; no increase for branch sync or lint-only
 changes.
+
+
+## CI investigation — 2026-10-18: stop alternating the same import block
+
+The synchronized commit `b8f4c6c` triggered [CI #39132715519](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39132715519).
+Formatting passed, but Ruff still raised `I001` on the two adjacent imports from
+`verification_core.evidence` and `verification_core.evidence_ledger`. CI therefore skipped mypy,
+unit/property tests, and coverage gates.
+
+Earlier manual swaps of those lines had not resolved the issue. Rather than repeating another uncertain
+swap, this commit moves the JUnit-only import into the test fixture factory `make_evidence`, where it
+is a one-import local block. This is a narrow test-only workaround; it does not change runtime behavior
+or count as a Phase III progress increase. The fix remains unverified until the new CI run passes Ruff.

@@ -11,7 +11,6 @@ from verification_core.actions_evidence import AuthenticatedEvidenceArtifact
 from verification_core.coverage import CoverageCase, CoverageManifest
 from verification_core.domain.enums import ExecutionOutcome
 from verification_core.domain.models import CommitIdentity, WorkflowProvenance
-from verification_core.evidence import JUnitCase, JUnitReport
 from verification_core.evidence_ledger import EvidenceLedgerConflict, SQLAlchemyEvidenceLedger
 
 
@@ -31,6 +30,9 @@ def make_commit() -> CommitIdentity:
 
 
 def make_evidence() -> AuthenticatedEvidenceArtifact:
+    # Keep this import local to avoid Ruff's repeated I001 conflict with evidence_ledger.
+    from verification_core.evidence import JUnitCase, JUnitReport
+
     provenance = WorkflowProvenance(
         workflow_run_id=99,
         workflow_head_sha=HEAD,
