@@ -31,6 +31,8 @@ Set the ingress environment:
     export VERIFICATION_DATABASE_PATH='./var/verification-events.sqlite3'
     python -m verification_core serve --host 127.0.0.1 --port 8000
 
+The CLI defaults to loopback binding. Use a non-loopback host only behind a configured TLS-terminating reverse proxy/load balancer.
+
 In a separate process, configure the worker:
 
     export GITHUB_APP_ID='123456'
