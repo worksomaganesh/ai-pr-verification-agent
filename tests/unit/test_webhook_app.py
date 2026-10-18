@@ -147,7 +147,7 @@ def test_empty_secret_and_invalid_body_bound_are_rejected(tmp_path: object) -> N
     else:
         raise AssertionError("empty secret should be rejected")
     try:
-        create_webhook_app(webhook_secret=SECRET, delivery_store=store, max_body_bytes=0)
+        create_webhook_app(webhook_secret=SIGNING_VALUE, delivery_store=store, max_body_bytes=0)
     except ValueError:
         pass
     else:
