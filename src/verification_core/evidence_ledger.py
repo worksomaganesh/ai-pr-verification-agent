@@ -191,16 +191,32 @@ class SQLAlchemyEvidenceLedger:
         }
         try:
             with self._engine.begin() as connection:
-                existing = connection.execute(
-                    select(_EVIDENCE).where(_EVIDENCE.c.record_key == key)
-                ).mappings().first()
+                existing = (
+                    connection.execute(select(_EVIDENCE).where(_EVIDENCE.c.record_key == key))
+                    .mappings()
+                    .first()
+                )
                 if existing is not None:
                     immutable = (
-                        "repository_full_name", "pr_number", "base_sha", "head_sha",
-                        "policy_sha256", "workflow_run_id", "workflow_id", "workflow_attempt",
-                        "workflow_path", "workflow_definition_sha256", "artifact_id",
-                        "artifact_name", "artifact_sha256", "junit_total", "junit_passed",
-                        "junit_failed", "junit_errors", "junit_skipped", "coverage_test_count",
+                        "repository_full_name",
+                        "pr_number",
+                        "base_sha",
+                        "head_sha",
+                        "policy_sha256",
+                        "workflow_run_id",
+                        "workflow_id",
+                        "workflow_attempt",
+                        "workflow_path",
+                        "workflow_definition_sha256",
+                        "artifact_id",
+                        "artifact_name",
+                        "artifact_sha256",
+                        "junit_total",
+                        "junit_passed",
+                        "junit_failed",
+                        "junit_errors",
+                        "junit_skipped",
+                        "coverage_test_count",
                         "test_inventory_sha256",
                     )
                     if any(existing[field] != values[field] for field in immutable):
