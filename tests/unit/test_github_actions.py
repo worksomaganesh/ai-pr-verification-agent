@@ -8,10 +8,8 @@ import pytest
 from verification_core.github_app import GitHubResponseTooLarge
 from verification_core.github_actions import GitHubActionsAPIError, GitHubActionsClient
 
-
 REPO = "acme/service"
 TOKEN = "test-installation-token"
-
 
 def test_get_workflow_run_uses_authenticated_api_and_checks_id() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
@@ -27,7 +25,6 @@ def test_get_workflow_run_uses_authenticated_api_and_checks_id() -> None:
         client = GitHubActionsClient(TOKEN, http_client=raw)
         assert client.get_workflow_run(REPO, 99)["id"] == 99
 
-
 def test_get_workflow_run_rejects_mismatched_response_id() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json={"id": 100})
@@ -38,7 +35,6 @@ def test_get_workflow_run_rejects_mismatched_response_id() -> None:
         client = GitHubActionsClient(TOKEN, http_client=raw)
         with pytest.raises(GitHubActionsAPIError, match="requested ID"):
             client.get_workflow_run(REPO, 99)
-
 
 def test_job_listing_retrieves_every_page() -> None:
     requests: list[httpx.Request] = []
@@ -61,7 +57,6 @@ def test_job_listing_retrieves_every_page() -> None:
     assert [item["id"] for item in result] == [1, 2, 3]
     assert [int(req.url.params["page"]) for req in requests] == [1, 2]
     assert all(req.url.params["per_page"] == "100" for req in requests)
-
 
 def test_pagination_rejects_count_changes_and_missing_pages() -> None:
     def changing_count(request: httpx.Request) -> httpx.Response:
@@ -87,7 +82,6 @@ def test_pagination_rejects_count_changes_and_missing_pages() -> None:
         with pytest.raises(GitHubActionsAPIError, match="ended before"):
             client.list_workflow_run_jobs(REPO, 99)
 
-
 def test_artifact_listing_rejects_artifact_from_another_run() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
@@ -104,7 +98,6 @@ def test_artifact_listing_rejects_artifact_from_another_run() -> None:
         client = GitHubActionsClient(TOKEN, http_client=raw)
         with pytest.raises(GitHubActionsAPIError, match="requested workflow run"):
             client.list_workflow_run_artifacts(REPO, 99)
-
 
 def test_artifact_download_does_not_forward_installation_token() -> None:
     signed_url = "https://pipelines.actions.githubusercontent.com/signed/archive"
@@ -130,7 +123,6 @@ def test_artifact_download_does_not_forward_installation_token() -> None:
         ("pipelines.actions.githubusercontent.com", None),
     ]
 
-
 def test_artifact_download_rejects_untrusted_redirect_and_oversize_body() -> None:
     def bad_redirect(request: httpx.Request) -> httpx.Response:
         return httpx.Response(302, headers={"Location": "https://evil.example/archive"})
@@ -152,7 +144,6 @@ def test_artifact_download_rejects_untrusted_redirect_and_oversize_body() -> Non
         with pytest.raises(GitHubResponseTooLarge):
             client.download_workflow_artifact(REPO, 7)
 
-
 def test_client_rejects_invalid_ids_and_repository_paths() -> None:
     with httpx.Client(
         base_url="https://api.github.com",
@@ -163,7 +154,6 @@ def test_client_rejects_invalid_ids_and_repository_paths() -> None:
             client.get_workflow_run(REPO, 0)
         with pytest.raises(GitHubActionsAPIError, match="owner/name"):
             client.get_workflow_run("../acme/service", 1)
-
 
 def test_artifact_redirect_is_not_auto_followed_even_with_redirects_enabled() -> None:
     visited: list[str] = []

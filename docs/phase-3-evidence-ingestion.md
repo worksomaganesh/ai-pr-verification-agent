@@ -39,3 +39,18 @@ A JSON field such as `behavioral_assertion_verified: true` is still a claim insi
 ## Security note
 
 The current API client uses an explicit timeout, bounded JSON bodies, and no automatic redirects. Artifact signed URLs are bearer capabilities: never log them, persist them, or forward the GitHub installation token to the storage host. Keep artifact contents inert; never extract them to the filesystem or execute code from them.
+
+
+## Durable evidence ledger (initial implementation)
+
+`verification_core.evidence_ledger.SQLAlchemyEvidenceLedger` stores authenticated evidence metadata
+and test-inventory digests in SQLite or PostgreSQL. It intentionally does not store artifact ZIPs,
+JUnit bodies, signed download URLs, or secrets. A record is keyed by repository, PR, exact base/head,
+policy digest, workflow run/attempt, and artifact ID. Replays of the same identity are idempotent;
+conflicting content for that identity is rejected.
+
+Every newly ingested record starts with reconciliation status `INCONCLUSIVE`. A separate
+`record_reconciliation` call is required to persist a terminal decision and its digest, and terminal
+decisions are immutable. This is persistence infrastructure only: the caller must still run the
+deterministic obligation reconciliation and state machine before recording a result. The ledger
+does not independently prove behavioral assertions.

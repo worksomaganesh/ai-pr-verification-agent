@@ -78,8 +78,12 @@ def test_ledger_records_terminal_reconciliation_once(tmp_path: Path) -> None:
         now=10,
     )
     digest = "b" * 64
-    ledger.record_reconciliation(key, status="FAILED", reason="test failed", decision_sha256=digest, now=11)
-    ledger.record_reconciliation(key, status="FAILED", reason="test failed", decision_sha256=digest, now=12)
+    ledger.record_reconciliation(
+        key, status="FAILED", reason="test failed", decision_sha256=digest, now=11
+    )
+    ledger.record_reconciliation(
+        key, status="FAILED", reason="test failed", decision_sha256=digest, now=12
+    )
     with pytest.raises(EvidenceLedgerConflict, match="immutable"):
         ledger.record_reconciliation(
             key, status="PASSED", reason="changed", decision_sha256="c" * 64, now=13
