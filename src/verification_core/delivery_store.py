@@ -202,7 +202,7 @@ class SQLiteDeliveryStore:
                 try:
                     payload: Any = json.loads(row["event_json"])
                     event = PullRequestWebhookEvent(**payload)
-                except (TypeError, ValueError, json.JSONDecodeError):
+                except (TypeError, ValueError):
                     self.mark_failed(
                         str(row["delivery_id"]),
                         error_code="stored_event_invalid",
