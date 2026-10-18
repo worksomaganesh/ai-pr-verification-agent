@@ -12,9 +12,8 @@ from verification_core.github_app import (
     GitHubAppAuthenticator,
     GitHubRESTClient,
 )
-from verification_core.github_context import GitHubContextError, assemble_pull_request_context
+from verification_core.github_context import assemble_pull_request_context
 from verification_core.planning import (
-    DiffAnalysisError,
     VerificationModelPort,
     analyze_changed_files,
     plan_verification,
