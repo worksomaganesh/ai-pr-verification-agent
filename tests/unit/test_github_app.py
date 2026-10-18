@@ -42,10 +42,14 @@ def test_github_app_jwt_and_installation_token() -> None:
         format=serialization.PrivateFormat.PKCS8,
         encryption_algorithm=serialization.NoEncryption(),
     ).decode()
-    public_pem = private_key.public_key().public_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo,
-    ).decode()
+    public_pem = (
+        private_key.public_key()
+        .public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+        .decode()
+    )
     seen: dict[str, Any] = {}
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -56,9 +60,7 @@ def test_github_app_jwt_and_installation_token() -> None:
             {"token": "ghs-installation-token", "expires_at": "2030-01-01T00:00:00Z"}
         )
 
-    raw = httpx.Client(
-        transport=httpx.MockTransport(handler), base_url="https://api.github.com"
-    )
+    raw = httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com")
     authenticator = GitHubAppAuthenticator(123, private_pem, http_client=raw)
     app_jwt = authenticator.create_app_jwt(now=1_800_000_000)
     claims = jwt.decode(
@@ -127,7 +129,10 @@ def test_pull_request_and_paginated_files_are_parsed() -> None:
 
     client, raw = make_client(handler)
     assert client.get_pull_request("acme/repo", 5)["state"] == "open"
-    assert client.list_pull_request_files("acme/repo", 5, page=1, per_page=100)[0]["filename"] == "src/a.py"
+    assert (
+        client.list_pull_request_files("acme/repo", 5, page=1, per_page=100)[0]["filename"]
+        == "src/a.py"
+    )
     assert client.list_pull_request_files("acme/repo", 5, page=2, per_page=100) == ()
     assert len(seen) == 3
     with pytest.raises(ValueError):
