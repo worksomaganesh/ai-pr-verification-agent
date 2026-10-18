@@ -12,10 +12,7 @@ from verification_core.coverage import CoverageCase, CoverageManifest
 from verification_core.domain.enums import ExecutionOutcome
 from verification_core.domain.models import CommitIdentity, WorkflowProvenance
 from verification_core.evidence import JUnitCase, JUnitReport
-from verification_core.evidence_ledger import (
-    EvidenceLedgerConflict,
-    SQLAlchemyEvidenceLedger,
-)
+from verification_core.evidence_ledger import EvidenceLedgerConflict, SQLAlchemyEvidenceLedger
 
 
 BASE = "1" * 40
