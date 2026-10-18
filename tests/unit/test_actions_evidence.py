@@ -485,7 +485,12 @@ def test_phase_three_rejects_unverifiable_base_workflow_contract(source: str, me
     ("workflow_source", "required_step_name", "artifact_name", "message"),
     [
         ("", "Upload verification evidence", "verification-evidence", "source is missing"),
-        ("name: safe", "Upload verification evidence", "verification-evidence", "pull_request trigger"),
+        (
+            "name: safe",
+            "Upload verification evidence",
+            "verification-evidence",
+            "pull_request trigger",
+        ),
         (
             TRUSTED_WORKFLOW,
             "",
