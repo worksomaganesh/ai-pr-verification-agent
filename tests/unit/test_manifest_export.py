@@ -80,6 +80,30 @@ def test_exporter_emits_exact_per_test_lines_and_stable_branch_ids(tmp_path: Pat
     assert true_branches != false_branches
 
 
+def test_junit_node_id_preserves_scope_separator_inside_parameter_id(tmp_path: Path) -> None:
+    assert (
+        _junit_node_id(
+            "tests/unit/test_policy.py::test_selector[tests/test_authz.txt::test_case]",
+            tmp_path,
+        )
+        == "tests.unit.test_policy::test_selector[tests/test_authz.txt::test_case]"
+    )
+
+
+@pytest.mark.parametrize(
+    "node_id",
+    [
+        "tests/unit/test_policy.py::test_selector[unclosed",
+        "tests/unit/test_policy.py::test_selector[closed]]",
+    ],
+)
+def test_junit_node_id_rejects_unbalanced_parameter_brackets(
+    node_id: str, tmp_path: Path
+) -> None:
+    with pytest.raises(ManifestExportError, match="invalid pytest node ID"):
+        _junit_node_id(node_id, tmp_path)
+
+
 def test_exporter_rejects_invalid_sha_and_missing_junit_context_match(tmp_path: Path) -> None:
     coverage_path, junit = _prepare_run(tmp_path)
     with pytest.raises(ManifestExportError, match="40-character Git SHA"):

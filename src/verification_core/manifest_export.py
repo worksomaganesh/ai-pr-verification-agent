@@ -23,10 +23,41 @@ class ManifestExportError(ValueError):
     """Raised when per-test coverage cannot be safely correlated to the JUnit inventory."""
 
 
+def _split_pytest_node_id(pytest_node_id: str) -> list[str]:
+    """Split pytest scope separators but preserve literal separators inside parameter IDs."""
+    parts: list[str] = []
+    start = 0
+    bracket_depth = 0
+    index = 0
+    while index < len(pytest_node_id):
+        char = pytest_node_id[index]
+        if char == "[":
+            bracket_depth += 1
+        elif char == "]":
+            bracket_depth -= 1
+            if bracket_depth < 0:
+                raise ManifestExportError("Coverage context contains an invalid pytest node ID.")
+        if (
+            char == ":"
+            and index + 1 < len(pytest_node_id)
+            and pytest_node_id[index + 1] == ":"
+            and bracket_depth == 0
+        ):
+            parts.append(pytest_node_id[start:index])
+            index += 2
+            start = index
+            continue
+        index += 1
+    if bracket_depth != 0:
+        raise ManifestExportError("Coverage context contains an invalid pytest node ID.")
+    parts.append(pytest_node_id[start:])
+    return parts
+
+
 def _junit_node_id(pytest_node_id: str, root: Path) -> str:
     """Translate pytest's file::class::test ID into JUnit's classname::name ID."""
-    parts = pytest_node_id.split("::")
-    if len(parts) < 2 or not parts[-1]:
+    parts = _split_pytest_node_id(pytest_node_id)
+    if len(parts) < 2 or not parts[-1] or not parts[0]:
         raise ManifestExportError("Coverage context contains an invalid pytest node ID.")
     test_path = PurePosixPath(parts[0])
     if (

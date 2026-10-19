@@ -479,3 +479,8 @@ Run [#39219463813](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 ## Policy-fixture JUnit context name fixed — 2026-10-19
 
 Run [#39219692769](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39219692769) passed the entire quality job and its coverage gates, but evidence export failed because JUnit testcase 335 represented the full policy YAML inside the `test_invalid_policies_fail_closed` parameter ID. That value is large but valid as a negative test input; the generated JUnit node ID was the issue. Added stable concise IDs to each of the 13 parametrized policy-failure cases, without trimming test input or weakening the 10,000-character field limit. The subsequent exact-head CI must verify this correction and artifact upload.
+
+
+## Parameter IDs containing scope separators — 2026-10-19
+
+Run [#39220114379](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39220114379) passed all quality and coverage gates, but manifest export rejected the test ID `tests/unit/test_policy.py::test_unsafe_or_ambiguous_selectors_are_rejected[tests/test_authz.txt::test_case]`. The parser used a plain split on `::`, which also split the literal separator inside the bracketed parameter ID. Added a bracket-aware node-ID splitter that recognizes pytest scope separators only outside parameter brackets and rejects unbalanced brackets. Added regression coverage for both a parameter containing `::` and malformed bracket nesting. The exporter remains unverified until a new run successfully exports and uploads both files.
