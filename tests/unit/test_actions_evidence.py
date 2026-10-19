@@ -622,7 +622,6 @@ def test_phase_three_rejects_invalid_original_workflow_attempt() -> None:
         _assert_workflow_run_unchanged(actions, REPO, 99, original)
 
 
-
 @pytest.mark.parametrize("invalid_run_id", [0, -1, True])
 def test_phase_three_rejects_invalid_workflow_run_identifiers(invalid_run_id: int) -> None:
     from verification_core.phase_three import EvidenceIngestionServiceError, ingest_pull_request_run
