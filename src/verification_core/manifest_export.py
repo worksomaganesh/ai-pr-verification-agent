@@ -42,14 +42,9 @@ def _junit_node_id(pytest_node_id: str, root: Path) -> str:
     except ValueError as exc:
         raise ManifestExportError("Coverage context escapes the repository root.") from exc
 
-    # Pytest's import name follows Python package boundaries: directories without __init__.py
-    # are not included when pytest uses its default prepend import mode.
-    module_parts = [test_path.stem]
-    parent = root.joinpath(*test_path.parts[:-1])
-    while parent != root and (parent / "__init__.py").is_file():
-        module_parts.insert(0, parent.name)
-        parent = parent.parent
-    module_name = ".".join(module_parts)
+    # The trusted workflow uses pytest's JUnit XML format, which preserves the repository-
+    # relative path as a dotted classname (for example, tests.unit.test_auth).
+    module_name = test_path.with_suffix("").as_posix().replace("/", ".")
     scopes = parts[1:-1]
     classname = module_name if not scopes else f"{module_name}.{'.'.join(scopes)}"
     return f"{classname}::{parts[-1]}"

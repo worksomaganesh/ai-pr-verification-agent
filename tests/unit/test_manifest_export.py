@@ -29,8 +29,8 @@ def _prepare_run(tmp_path: Path) -> tuple[Path, Path]:
     junit = tmp_path / "junit.xml"
     junit.write_text(
         '<testsuite tests="2">'
-        '<testcase classname="test_sample" name="test_choose[true]"/>'
-        '<testcase classname="test_sample" name="test_choose[false]"/>'
+        '<testcase classname="tests.test_sample" name="test_choose[true]"/>'
+        '<testcase classname="tests.test_sample" name="test_choose[false]"/>'
         "</testsuite>",
         encoding="utf-8",
     )
@@ -61,8 +61,8 @@ def test_exporter_emits_exact_per_test_lines_and_stable_branch_ids(tmp_path: Pat
     )
     raw_cases = cast(list[dict[str, object]], document["tests"])
     cases = {str(item["node_id"]): item for item in raw_cases}
-    true_case = cases["test_sample::test_choose[true]"]
-    false_case = cases["test_sample::test_choose[false]"]
+    true_case = cases["tests.test_sample::test_choose[true]"]
+    false_case = cases["tests.test_sample::test_choose[false]"]
     assert true_case["outcome"] == "passed"
     assert false_case["outcome"] == "passed"
     assert true_case["behavioral_assertion_verified"] is False
@@ -91,7 +91,7 @@ def test_exporter_rejects_invalid_sha_and_missing_junit_context_match(tmp_path: 
         )
 
     junit.write_text(
-        '<testsuite tests="1"><testcase classname="test_sample" name="test_missing"/></testsuite>',
+        '<testsuite tests="1"><testcase classname="tests.test_sample" name="test_missing"/></testsuite>',
         encoding="utf-8",
     )
     with pytest.raises(ManifestExportError, match="no matching JUnit testcase"):
@@ -128,7 +128,7 @@ def test_exporter_rejects_coverage_without_branch_data(tmp_path: Path) -> None:
     source.write_text("value = 1\n", encoding="utf-8")
     junit = tmp_path / "junit.xml"
     junit.write_text(
-        '<testsuite tests="1"><testcase classname="plain" name="test_plain"/></testsuite>',
+        '<testsuite tests="1"><testcase classname="tests.plain" name="test_plain"/></testsuite>',
         encoding="utf-8",
     )
     cov_path = tmp_path / ".coverage-no-branches"
