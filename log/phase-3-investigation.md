@@ -317,3 +317,8 @@ CI run [#39219163228](https://github.com/worksomaganesh/ai-pr-verification-agent
 
 
 Run [#39219463813](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39219463813) stopped at format-check on one quote-style difference in `tests/unit/test_manifest_export.py` line 96. All later quality gates and the artifact job were skipped. The exact Ruff correction is applied; this run does not verify functional behavior.
+
+
+## Policy-fixture JUnit context name fixed — 2026-10-19
+
+Run [#39219692769](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39219692769) passed the entire quality job and its coverage gates, but evidence export failed because JUnit testcase 335 represented the full policy YAML inside the `test_invalid_policies_fail_closed` parameter ID. That value is large but valid as a negative test input; the generated JUnit node ID was the issue. Added stable concise IDs to each of the 13 parametrized policy-failure cases, without trimming test input or weakening the 10,000-character field limit. The subsequent exact-head CI must verify this correction and artifact upload.
