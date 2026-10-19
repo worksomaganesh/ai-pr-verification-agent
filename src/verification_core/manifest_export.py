@@ -11,8 +11,7 @@ import json
 import re
 from pathlib import Path, PurePosixPath
 
-from coverage import Coverage
-from coverage import CoverageData
+from coverage import Coverage, CoverageData
 
 from verification_core.coverage import parse_coverage_manifest
 from verification_core.evidence import parse_junit
@@ -146,7 +145,8 @@ def build_coverage_manifest(
         junit_node_id = _junit_node_id(pytest_node_id, root)
         if junit_node_id not in junit_by_node:
             raise ManifestExportError(
-                "A per-test coverage context has no matching JUnit testcase; refusing partial evidence."
+                "A per-test coverage context has no matching JUnit testcase; "
+                "refusing partial evidence."
             )
         if junit_node_id in run_context_by_junit_node:
             raise ManifestExportError("JUnit testcase maps to multiple run-phase contexts.")
@@ -157,7 +157,8 @@ def build_coverage_manifest(
         context = run_context_by_junit_node.get(case.node_id)
         if context is None and case.outcome.value not in {"skipped", "error"}:
             raise ManifestExportError(
-                "A non-skipped JUnit testcase has no run-phase coverage context; refusing partial evidence."
+                "A non-skipped JUnit testcase has no run-phase coverage context; "
+                "refusing partial evidence."
             )
         lines_by_path: dict[str, set[int]] = {}
         branches_by_path: dict[str, set[str]] = {}

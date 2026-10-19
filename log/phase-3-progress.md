@@ -434,3 +434,6 @@ Run [#39194526404](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 
 
 Follow-up run [#39194649771](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39194649771) stopped at `ruff format --check` on one JUnit fixture string (all downstream steps skipped). This second formatter-only issue is fixed in a separate commit; no functional pass is claimed.
+
+
+Run [#39194755446](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39194755446): formatter passed; Ruff stopped on import ordering and two E501 lines in `manifest_export.py`; all later steps skipped. These findings are fixed directly; next run must reach strict mypy and tests before evaluating exporter correctness.

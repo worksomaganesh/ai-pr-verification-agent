@@ -80,3 +80,6 @@ Run [#39171029125](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 
 
 CI follow-up [#39194649771](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39194649771) again stopped at formatting, now on one JUnit fixture string in `tests/unit/test_manifest_export.py`. All downstream checks and the dependent evidence job were skipped. The formatter-requested single-line fixture correction is committed separately; exporter behavior remains unverified.
+
+
+CI run [#39194755446](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39194755446) passed formatting but failed Ruff on one import-order issue and two long lines in the new exporter. Strict mypy, tests, coverage gates, and the dependent evidence job were skipped. Those three static-analysis findings are corrected in the next commit; no functional verification is claimed.
