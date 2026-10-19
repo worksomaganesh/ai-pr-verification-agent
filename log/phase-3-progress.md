@@ -417,3 +417,12 @@ New tests cover invalid workflow-run IDs (including bool-as-int), empty trust po
 ## Current CI exact-head failure — 2026-10-19
 
 Run [#39171029125](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39171029125) tested `b4e43eb0111e80be060d7665e403b0fccd223f1c`. The overall-coverage workflow addition and test expansion were not yet evaluated: the run failed at `ruff format --check src tests` because `tests/unit/test_actions_evidence.py` needed one additional blank line before `test_phase_three_rejects_invalid_workflow_run_identifiers`. Ruff, strict mypy, tests, the overall 90% gate, and phase-specific gates were skipped on this SHA. This formatting-only correction is recorded separately; the next run must prove downstream checks on its own exact SHA.
+
+
+## Trusted per-test artifact producer — 2026-10-19 (first implementation, CI pending)
+
+The previously green exact-head run [#39193333525](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39193333525) passed 450 tests, 90.22% overall coverage, Phase I at 96%, Phase II at 86%, formatting, Ruff, and strict mypy. That milestone verified the ingestion/reconciliation library but did not provide a live artifact producer.
+
+This slice adds `verification_core.manifest_export`, which maps pytest-cov run contexts to JUnit test cases and exports per-test line/branch evidence only when the inventories line up. It never claims the behavioral assertion was verified; that remains a separate trusted binding. The CI workflow gets a least-privilege exact-PR-head job with pinned checkout/setup/upload actions, `--cov-context=test`, JUnit output, bounded-manifest export, and fail-on-missing artifact upload.
+
+The exporter, its tests, and the evidence job are not considered complete until CI validates them on the new exact SHA and the generated artifact is inspected. The trusted workflow must still land on `main` before the base-SHA ingestion validator can accept live evidence.
