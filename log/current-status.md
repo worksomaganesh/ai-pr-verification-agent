@@ -115,3 +115,6 @@ Run [#39197824251](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 
 
 CI run [#39219163228](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39219163228) stopped at Ruff after formatting passed. The only lint finding was E501 at line 94 of `tests/unit/test_manifest_export.py`: a single long JUnit XML string. Strict mypy, tests, coverage gates, and the evidence job were skipped. The string is split into adjacent literals preserving the exact XML bytes; this correction is pending verification.
+
+
+Run [#39219463813](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39219463813) stopped at format-check on one quote-style difference in `tests/unit/test_manifest_export.py` line 96. All later quality gates and the artifact job were skipped. The exact Ruff correction is applied; this run does not verify functional behavior.
