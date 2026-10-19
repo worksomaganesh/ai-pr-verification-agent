@@ -148,6 +148,7 @@ def build_coverage_manifest(
         if junit_node_id not in junit_by_node:
             raise ManifestExportError(
                 "A per-test coverage context has no matching JUnit testcase; "
+                f"context node ID {pytest_node_id!r} mapped to {junit_node_id!r}; "
                 "refusing partial evidence."
             )
         if junit_node_id in run_context_by_junit_node:
