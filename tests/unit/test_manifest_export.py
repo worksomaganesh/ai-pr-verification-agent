@@ -87,9 +87,7 @@ def test_exporter_rejects_invalid_sha_and_missing_junit_context_match(tmp_path: 
         )
 
     junit.write_text(
-        '<testsuite tests="1">'
-        '<testcase classname="test_sample" name="test_missing"/>'
-        "</testsuite>",
+        '<testsuite tests="1"><testcase classname="test_sample" name="test_missing"/></testsuite>',
         encoding="utf-8",
     )
     with pytest.raises(ManifestExportError, match="no matching JUnit testcase"):
