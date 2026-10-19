@@ -437,3 +437,6 @@ Follow-up run [#39194649771](https://github.com/worksomaganesh/ai-pr-verificatio
 
 
 Run [#39194755446](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39194755446): formatter passed; Ruff stopped on import ordering and two E501 lines in `manifest_export.py`; all later steps skipped. These findings are fixed directly; next run must reach strict mypy and tests before evaluating exporter correctness.
+
+
+Run [#39194881289](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39194881289) passed formatting and Ruff, then strict mypy failed on three issues in `manifest_export.py`: unused ignore and a context variable reused with incompatible optionality. Tests and coverage were skipped. Corrected via explicit context naming and removal of the unnecessary ignore.

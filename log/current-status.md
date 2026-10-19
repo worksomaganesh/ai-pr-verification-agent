@@ -83,3 +83,6 @@ CI follow-up [#39194649771](https://github.com/worksomaganesh/ai-pr-verification
 
 
 CI run [#39194755446](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39194755446) passed formatting but failed Ruff on one import-order issue and two long lines in the new exporter. Strict mypy, tests, coverage gates, and the dependent evidence job were skipped. Those three static-analysis findings are corrected in the next commit; no functional verification is claimed.
+
+
+CI run [#39194881289](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39194881289) passed formatting and Ruff; strict mypy then found three exporter typing issues (an unnecessary ignore and variable reuse that made an optional context appear non-optional). Tests and coverage gates were skipped. The fix removes the stale ignore and gives raw versus per-test contexts distinct names; functional verification remains pending.

@@ -76,7 +76,7 @@ def _branch_indices(
     """
     output: dict[str, dict[int, dict[int, int]]] = {}
     for filename in filenames:
-        analysis = coverage._analyze(filename)  # type: ignore[attr-defined]
+        analysis = coverage._analyze(filename)
         stats = analysis.branch_stats()
         executed = analysis.executed_branch_arcs()
         missing = analysis.missing_branch_arcs()
@@ -136,10 +136,10 @@ def build_coverage_manifest(
         raise ManifestExportError("JUnit report contains duplicate testcase node IDs.")
 
     run_context_by_junit_node: dict[str, str] = {}
-    for context in data.measured_contexts():
-        if not context:
+    for raw_context in data.measured_contexts():
+        if not raw_context:
             continue
-        pytest_node_id, separator, phase = context.rpartition("|")
+        pytest_node_id, separator, phase = raw_context.rpartition("|")
         if not separator or phase != "run":
             continue
         junit_node_id = _junit_node_id(pytest_node_id, root)
@@ -150,20 +150,20 @@ def build_coverage_manifest(
             )
         if junit_node_id in run_context_by_junit_node:
             raise ManifestExportError("JUnit testcase maps to multiple run-phase contexts.")
-        run_context_by_junit_node[junit_node_id] = context
+        run_context_by_junit_node[junit_node_id] = raw_context
 
     output_cases: list[dict[str, object]] = []
     for case in junit_report.cases:
-        context = run_context_by_junit_node.get(case.node_id)
-        if context is None and case.outcome.value not in {"skipped", "error"}:
+        run_context = run_context_by_junit_node.get(case.node_id)
+        if run_context is None and case.outcome.value not in {"skipped", "error"}:
             raise ManifestExportError(
                 "A non-skipped JUnit testcase has no run-phase coverage context; "
                 "refusing partial evidence."
             )
         lines_by_path: dict[str, set[int]] = {}
         branches_by_path: dict[str, set[str]] = {}
-        if context is not None:
-            data.set_query_context(context)
+        if run_context is not None:
+            data.set_query_context(run_context)
             for path, filename in files_by_name.items():
                 lines = data.lines(filename) or []
                 if lines:
