@@ -97,3 +97,8 @@ CI run [#39195221364](https://github.com/worksomaganesh/ai-pr-verification-agent
 ## Latest CI exact-head formatter result — 2026-10-19
 
 Run [#39195545167](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39195545167) failed at `ruff format --check src tests` on one line in `src/verification_core/coverage.py` (the node-ID length validation error). Formatter output named no other files. Ruff, strict mypy, tests, total coverage, phase-specific gates and the dependent evidence job were skipped. This correction applies that exact formatter diff; it does not change semantics and does not count as verified functional progress.
+
+
+## Evidence-producer root cause and correction — 2026-10-19
+
+Exact quality CI [#39195904599](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39195904599) passed formatting, Ruff, strict mypy, 455 tests, and all overall/phase-specific coverage gates. The producer pytest step passed, but manifest export rejected JUnit testcase 42 because its name exceeded the 10,000-character parser limit. The source of the huge name was the parametrized workflow-input test whose parameter included a 256 KiB synthetic YAML string; pytest embeds parameter representations in JUnit testcase names by default. This was not a genuine test node needing a larger parser limit. The safe fix is to give those five parameterized cases short explicit IDs, preserving the strict 10,000-character bound and avoiding shipping arbitrary large parameter representations in JUnit. Exporter verification is pending the next run.

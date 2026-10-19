@@ -509,6 +509,13 @@ def test_phase_three_rejects_unverifiable_base_workflow_contract(source: str, me
             "size limit",
         ),
     ],
+    ids=(
+        "empty-source",
+        "missing-trigger",
+        "empty-step-name",
+        "empty-artifact-name",
+        "oversized-source",
+    ),
 )
 def test_phase_three_trusted_workflow_input_validation(
     workflow_source: str, required_step_name: str, artifact_name: str, message: str
