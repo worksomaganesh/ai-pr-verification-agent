@@ -171,6 +171,7 @@ def test_command_rejects_disabled_profile_and_missing_selector() -> None:
         "version: 1\x00",
         "\ud800",
     ],
+    ids=("oversized-policy", "nul-policy", "invalid-unicode-policy"),
 )
 def test_input_size_nul_and_invalid_unicode_are_rejected(invalid_text: str) -> None:
     with pytest.raises(PolicyValidationError):
