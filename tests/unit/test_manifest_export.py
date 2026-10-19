@@ -19,10 +19,7 @@ def _prepare_run(tmp_path: Path) -> tuple[Path, Path]:
     tests_dir.mkdir()
     source = tests_dir / "test_sample.py"
     source.write_text(
-        "def choose(flag):\n"
-        "    if flag:\n"
-        "        return 'yes'\n"
-        "    return 'no'\n",
+        "def choose(flag):\n    if flag:\n        return 'yes'\n    return 'no'\n",
         encoding="utf-8",
     )
     junit = tmp_path / "junit.xml"

@@ -426,3 +426,8 @@ The previously green exact-head run [#39193333525](https://github.com/worksomaga
 This slice adds `verification_core.manifest_export`, which maps pytest-cov run contexts to JUnit test cases and exports per-test line/branch evidence only when the inventories line up. It never claims the behavioral assertion was verified; that remains a separate trusted binding. The CI workflow gets a least-privilege exact-PR-head job with pinned checkout/setup/upload actions, `--cov-context=test`, JUnit output, bounded-manifest export, and fail-on-missing artifact upload.
 
 The exporter, its tests, and the evidence job are not considered complete until CI validates them on the new exact SHA and the generated artifact is inspected. The trusted workflow must still land on `main` before the base-SHA ingestion validator can accept live evidence.
+
+
+## Exporter first CI failure and correction — 2026-10-19
+
+Run [#39194526404](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39194526404) tested PR merge SHA `5068d52b67e93f0ba4a2ef8c65dd6b602709ec07`, containing head `9b42aba85e0979af86ac704f4cb5926f298859bf`. Installation succeeded. Formatting stopped the job on two Ruff-format differences; all downstream checks were skipped, and the evidence job did not run because it depends on the quality job. The fixes are limited to formatter-requested line wrapping. Do not treat this as a functional test result.

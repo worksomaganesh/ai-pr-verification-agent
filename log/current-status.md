@@ -70,3 +70,10 @@ New tests cover invalid workflow-run IDs (including bool-as-int), empty trust po
 ## Current CI exact-head failure — 2026-10-19
 
 Run [#39171029125](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39171029125) tested `b4e43eb0111e80be060d7665e403b0fccd223f1c`. The overall-coverage workflow addition and test expansion were not yet evaluated: the run failed at `ruff format --check src tests` because `tests/unit/test_actions_evidence.py` needed one additional blank line before `test_phase_three_rejects_invalid_workflow_run_identifiers`. Ruff, strict mypy, tests, the overall 90% gate, and phase-specific gates were skipped on this SHA. This formatting-only correction is recorded separately; the next run must prove downstream checks on its own exact SHA.
+
+
+## Evidence exporter CI result — 2026-10-19
+
+- Commit `9b42aba85e0979af86ac704f4cb5926f298859bf` triggered [CI #39194526404](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39194526404).
+- The quality job failed at `ruff format --check src tests` on two formatting-only locations in `manifest_export.py` and `test_manifest_export.py`. Ruff, strict mypy, tests, total coverage, and phase coverage gates were skipped; the new evidence job was skipped because it depends on quality.
+- A formatting-only fix is being committed separately. The exporter remains unverified until the next exact-head CI completes.

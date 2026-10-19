@@ -126,7 +126,9 @@ def build_coverage_manifest(
         if relative is not None:
             files_by_name[relative] = filename
     if not files_by_name:
-        raise ManifestExportError("Coverage data contains no measured Python files in the repository.")
+        raise ManifestExportError(
+            "Coverage data contains no measured Python files in the repository."
+        )
     filenames = tuple(files_by_name.values())
     branches_by_file = _branch_indices(coverage, filenames, root)
 
