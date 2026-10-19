@@ -291,3 +291,8 @@ New tests cover invalid workflow-run IDs (including bool-as-int), empty trust po
 ## Current CI exact-head failure — 2026-10-19
 
 Run [#39171029125](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39171029125) tested `b4e43eb0111e80be060d7665e403b0fccd223f1c`. The overall-coverage workflow addition and test expansion were not yet evaluated: the run failed at `ruff format --check src tests` because `tests/unit/test_actions_evidence.py` needed one additional blank line before `test_phase_three_rejects_invalid_workflow_run_identifiers`. Ruff, strict mypy, tests, the overall 90% gate, and phase-specific gates were skipped on this SHA. This formatting-only correction is recorded separately; the next run must prove downstream checks on its own exact SHA.
+
+
+## Latest CI exact-head formatter result — 2026-10-19
+
+Run [#39195545167](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39195545167) failed at `ruff format --check src tests` on one line in `src/verification_core/coverage.py` (the node-ID length validation error). Formatter output named no other files. Ruff, strict mypy, tests, total coverage, phase-specific gates and the dependent evidence job were skipped. This correction applies that exact formatter diff; it does not change semantics and does not count as verified functional progress.

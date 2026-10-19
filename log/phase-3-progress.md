@@ -448,3 +448,8 @@ Run [#39195030380](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 ## Evidence producer integration finding — 2026-10-19
 
 Run [#39195221364](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39195221364): the quality job passed all checks and tests; the producer job's pytest step also passed. Manifest export then failed because the strict JUnit parser rejected a generated testcase name longer than 2,000 characters. To preserve exact node-ID correlation without weakening total resource bounds, the JUnit field and manifest node-ID caps are being raised consistently to 10,000 characters while both documents remain capped at 5 MiB. The artifact upload step was skipped; this is not yet a complete producer milestone.
+
+
+## Latest CI exact-head formatter result — 2026-10-19
+
+Run [#39195545167](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39195545167) failed at `ruff format --check src tests` on one line in `src/verification_core/coverage.py` (the node-ID length validation error). Formatter output named no other files. Ruff, strict mypy, tests, total coverage, phase-specific gates and the dependent evidence job were skipped. This correction applies that exact formatter diff; it does not change semantics and does not count as verified functional progress.

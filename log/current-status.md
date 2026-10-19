@@ -92,3 +92,8 @@ CI run [#39195030380](https://github.com/worksomaganesh/ai-pr-verification-agent
 
 
 CI run [#39195221364](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39195221364) passed every quality gate (455 tests, total coverage ≥90%, Phase I and Phase II gates green). The evidence job ran pytest successfully but the exporter rejected the generated JUnit report because one legitimate parameterized testcase name exceeded the 2,000-character bound. This is an integration failure, not a test-suite failure. The parser and manifest node-ID bounds are being raised together to 10,000 characters; the XML and manifest remain independently capped at 5 MiB, so total input size remains bounded. Artifact upload has not succeeded yet.
+
+
+## Latest CI exact-head formatter result — 2026-10-19
+
+Run [#39195545167](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39195545167) failed at `ruff format --check src tests` on one line in `src/verification_core/coverage.py` (the node-ID length validation error). Formatter output named no other files. Ruff, strict mypy, tests, total coverage, phase-specific gates and the dependent evidence job were skipped. This correction applies that exact formatter diff; it does not change semantics and does not count as verified functional progress.
