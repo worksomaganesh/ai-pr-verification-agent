@@ -11,7 +11,7 @@ from verification_core.security import scrub_secrets
 
 MAX_JUNIT_BYTES = 5 * 1024 * 1024
 MAX_TEST_CASES = 50_000
-MAX_FIELD_LENGTH = 2_000
+MAX_FIELD_LENGTH = 10_000
 
 
 class EvidenceParseError(ValueError):

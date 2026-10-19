@@ -443,3 +443,8 @@ Run [#39194881289](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 
 
 Run [#39195030380](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39195030380): formatting, Ruff, and strict mypy passed. Tests reached 455 total (453 passed, 2 failed); failures were mismatched exporter error expectations, and overall coverage was 89.54% (<90%). Fixed the empty-coverage diagnostic and made the traversal test exercise the path validator directly. Evidence job remained skipped.
+
+
+## Evidence producer integration finding — 2026-10-19
+
+Run [#39195221364](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39195221364): the quality job passed all checks and tests; the producer job's pytest step also passed. Manifest export then failed because the strict JUnit parser rejected a generated testcase name longer than 2,000 characters. To preserve exact node-ID correlation without weakening total resource bounds, the JUnit field and manifest node-ID caps are being raised consistently to 10,000 characters while both documents remain capped at 5 MiB. The artifact upload step was skipped; this is not yet a complete producer milestone.
