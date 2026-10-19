@@ -86,3 +86,6 @@ CI run [#39194755446](https://github.com/worksomaganesh/ai-pr-verification-agent
 
 
 CI run [#39194881289](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39194881289) passed formatting and Ruff; strict mypy then found three exporter typing issues (an unnecessary ignore and variable reuse that made an optional context appear non-optional). Tests and coverage gates were skipped. The fix removes the stale ignore and gives raw versus per-test contexts distinct names; functional verification remains pending.
+
+
+CI run [#39195030380](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39195030380) passed formatting, Ruff, and strict mypy, then ran 455 tests: 453 passed and two exporter tests failed because the test expectations did not match actual fail-closed behavior. Total coverage was 89.54%, below 90%. The next commit adds an explicit empty-coverage-data rejection, tests path traversal directly at the boundary, and preserves the overall coverage gate. The new evidence job was skipped because quality failed.

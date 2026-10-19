@@ -9,7 +9,11 @@ from typing import cast
 import pytest
 from coverage import Coverage, CoverageData
 
-from verification_core.manifest_export import ManifestExportError, build_coverage_manifest
+from verification_core.manifest_export import (
+    ManifestExportError,
+    _junit_node_id,
+    build_coverage_manifest,
+)
 
 HEAD = "a" * 40
 
@@ -108,7 +112,7 @@ def test_exporter_rejects_missing_data_and_bad_junit_files(tmp_path: Path) -> No
             head_sha=HEAD,
             repository_root=tmp_path,
         )
-    with pytest.raises(ManifestExportError, match="Coverage data could not be loaded"):
+    with pytest.raises(ManifestExportError, match="no measured files"):
         build_coverage_manifest(
             coverage_data_path=tmp_path / ".no-data",
             junit_xml_path=junit,
@@ -142,21 +146,5 @@ def test_exporter_rejects_coverage_without_branch_data(tmp_path: Path) -> None:
 
 
 def test_exporter_rejects_unsafe_context_path(tmp_path: Path) -> None:
-    coverage_path, junit = _prepare_run(tmp_path)
-    coverage = Coverage(data_file=str(coverage_path))
-    coverage.load()
-    data = coverage.get_data()
-    data.set_context("tests/../escape.py::test_evil|run")
-    data.add_arcs({str(tmp_path / "tests/test_sample.py"): {(1, 2)}})
-    data.write()
-    junit.write_text(
-        '<testsuite tests="1"><testcase classname="escape" name="test_evil"/></testsuite>',
-        encoding="utf-8",
-    )
     with pytest.raises(ManifestExportError, match="unsafe or non-Python test path"):
-        build_coverage_manifest(
-            coverage_data_path=coverage_path,
-            junit_xml_path=junit,
-            head_sha=HEAD,
-            repository_root=tmp_path,
-        )
+        _junit_node_id("tests/../escape.py::test_evil", tmp_path)

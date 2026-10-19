@@ -116,6 +116,8 @@ def build_coverage_manifest(
         data: CoverageData = coverage.get_data()
     except Exception as exc:
         raise ManifestExportError("Coverage data could not be loaded.") from exc
+    if not data.measured_files():
+        raise ManifestExportError("Coverage data contains no measured files.")
     if not data.has_arcs():
         raise ManifestExportError("Coverage data has no branch arcs; branch coverage is required.")
 
