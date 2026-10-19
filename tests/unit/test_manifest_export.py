@@ -97,9 +97,7 @@ def test_junit_node_id_preserves_scope_separator_inside_parameter_id(tmp_path: P
         "tests/unit/test_policy.py::test_selector[closed]]",
     ],
 )
-def test_junit_node_id_rejects_unbalanced_parameter_brackets(
-    node_id: str, tmp_path: Path
-) -> None:
+def test_junit_node_id_rejects_unbalanced_parameter_brackets(node_id: str, tmp_path: Path) -> None:
     with pytest.raises(ManifestExportError, match="invalid pytest node ID"):
         _junit_node_id(node_id, tmp_path)
 
