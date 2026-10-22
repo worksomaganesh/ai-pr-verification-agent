@@ -80,6 +80,34 @@ def test_exporter_emits_exact_per_test_lines_and_stable_branch_ids(tmp_path: Pat
     assert true_branches != false_branches
 
 
+
+def test_exporter_keeps_passed_tests_with_no_measured_production_coverage(tmp_path: Path) -> None:
+    coverage_path, junit = _prepare_run(tmp_path)
+    junit.write_text(
+        '<testsuite tests="3">'
+        '<testcase classname="tests.test_sample" name="test_choose[true]"/>'
+        '<testcase classname="tests.test_sample" name="test_choose[false]"/>'
+        '<testcase classname="tests.test_sample" name="test_policy_only"/>'
+        '</testsuite>',
+        encoding="utf-8",
+    )
+    document = build_coverage_manifest(
+        coverage_data_path=coverage_path,
+        junit_xml_path=junit,
+        head_sha=HEAD,
+        repository_root=tmp_path,
+    )
+    cases = {
+        str(item["node_id"]): item
+        for item in cast(list[dict[str, object]], document["tests"])
+    }
+    unmeasured = cases["tests.test_sample::test_policy_only"]
+    assert unmeasured["outcome"] == "passed"
+    assert unmeasured["lines"] == {}
+    assert unmeasured["branches"] == {}
+    assert unmeasured["behavioral_assertion_verified"] is False
+
+
 def test_junit_node_id_preserves_scope_separator_inside_parameter_id(tmp_path: Path) -> None:
     assert (
         _junit_node_id(

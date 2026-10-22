@@ -133,3 +133,8 @@ Run [#39220114379](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 ## Exporter parameter-ID parser correction — 2026-10-22
 
 Exact-head CI [#39224141676](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39224141676) passed every quality and coverage gate, but the artifact producer failed with `Coverage context contains an invalid pytest node ID`. The prior parser enforced balanced brackets, but pytest parameter IDs are opaque and can contain unbalanced-looking text from representations, nested brackets, and scope separators. The parser now identifies the source file boundary at `.py::`, splits scope markers only before the first parameter opener, and preserves the full parameter suffix verbatim. Replaced the incorrect balanced-bracket tests with opaque-suffix cases. Still require exact match against JUnit inventory; no unmatched evidence is dropped. This new correction requires fresh exact-SHA CI plus artifact upload verification.
+
+
+## Zero-measured-coverage testcase fix — 2026-10-22
+
+CI run [#39812879743](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39812879743) passed quality gates and PR-head tests, but export failed because a non-skipped JUnit testcase had no coverage context. Tests can pass without touching tracked production files; exporter now retains all JUnit cases and emits empty measured line/branch maps for those without a run context. It still rejects unmatched contexts and rejects the whole run if no run contexts match any JUnit testcase. Added regression test. This fix is pending exact-SHA CI and artifact upload.

@@ -176,14 +176,16 @@ def build_coverage_manifest(
             raise ManifestExportError("JUnit testcase maps to multiple run-phase contexts.")
         run_context_by_junit_node[junit_node_id] = raw_context
 
+    if not run_context_by_junit_node:
+        raise ManifestExportError(
+            "Coverage data contains no run-phase contexts matching the JUnit inventory."
+        )
+
     output_cases: list[dict[str, object]] = []
     for case in junit_report.cases:
+        # JUnit is the full test inventory. A test may execute no tracked production code;
+        # preserve its outcome with empty measured coverage rather than fabricating evidence.
         run_context = run_context_by_junit_node.get(case.node_id)
-        if run_context is None and case.outcome.value not in {"skipped", "error"}:
-            raise ManifestExportError(
-                "A non-skipped JUnit testcase has no run-phase coverage context; "
-                "refusing partial evidence."
-            )
         lines_by_path: dict[str, set[int]] = {}
         branches_by_path: dict[str, set[str]] = {}
         if run_context is not None:
