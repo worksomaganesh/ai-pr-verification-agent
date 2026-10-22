@@ -228,7 +228,7 @@ def _validate_trusted_workflow_upload_contract(
     for record in step_records:
         name = record[2].get("name")
         if name in required_names:
-            records_by_name.setdefault(cast(str, name), []).append(record)
+            records_by_name.setdefault(name, []).append(record)
     if any(len(records_by_name.get(name, [])) != 1 for name in required_names):
         raise EvidenceIngestionServiceError(
             "Trusted workflow must define exactly one checkout, test, export, and upload step."
