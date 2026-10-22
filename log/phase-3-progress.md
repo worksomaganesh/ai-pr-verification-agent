@@ -494,3 +494,8 @@ Exact-head CI [#39224141676](https://github.com/worksomaganesh/ai-pr-verificatio
 ## Exact formatting correction — 2026-10-22
 
 Run [#39813965772](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39813965772) failed the format gate before lint/type checking/tests; Ruff requested quote style, a compact dictionary-comprehension line, and removal of one extra blank line in the new no-measured-coverage regression. These exact format changes are applied. The exporter now includes the opaque pytest-parameter suffix parser and the no-measured-production-coverage handling from the previous pushed slice; its behavior remains unverified until the next CI run reaches export and upload.
+
+
+## Trusted producer chain hardened — 2026-10-22 (CI pending)
+
+Added fail-closed validation that the base-SHA workflow contains exactly one pinned checkout of the exact PR head with credentials disabled, one pytest step using per-test coverage plus JUnit output, one exporter invocation bound to that same SHA, and one upload step. These steps must be ordered, unconditional where applicable, and in the same job. Tests now mutate checkout ref, remove the per-test coverage option, and replace the exporter module to prove those cases are rejected. This closes the gap where a workflow with a valid uploader but no trustworthy evidence-producing chain could pass the contract. The base `main` workflow still needs deployment; the new validator tests and latest exporter changes remain subject to the queued exact-head CI.

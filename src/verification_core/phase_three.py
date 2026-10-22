@@ -78,7 +78,11 @@ _UniqueKeySafeLoader.add_constructor(
 
 _MAX_TRUSTED_WORKFLOW_BYTES = 256 * 1024
 _PINNED_UPLOAD_ACTION = re.compile(r"actions/upload-artifact@[0-9a-f]{40}")
+_PINNED_CHECKOUT_ACTION = re.compile(r"actions/checkout@[0-9a-f]{40}")
 _REQUIRED_ARTIFACT_FILES = ("coverage-manifest.json", "junit.xml")
+_REQUIRED_CHECKOUT_STEP = "Check out exact PR head"
+_REQUIRED_TEST_STEP = "Run PR-head tests with per-test coverage"
+_REQUIRED_EXPORT_STEP = "Export per-test evidence manifest"
 
 
 def _workflow_mapping(value: object, field: str) -> Mapping[object, object]:
@@ -158,6 +162,7 @@ def _validate_trusted_workflow_upload_contract(
         raise EvidenceIngestionServiceError("Trusted workflow has no jobs.")
     named_steps: list[Mapping[str, object]] = []
     upload_steps: list[Mapping[str, object]] = []
+    step_records: list[tuple[str, int, Mapping[str, object]]] = []
     for job_name, raw_job in jobs.items():
         job = _workflow_string_mapping(raw_job, f"job {job_name}")
         raw_steps = job.get("steps")
@@ -169,6 +174,7 @@ def _validate_trusted_workflow_upload_contract(
             )
         for index, raw_step in enumerate(raw_steps):
             step = _workflow_string_mapping(raw_step, f"job {job_name} step {index}")
+            step_records.append((job_name, index, step))
             if step.get("name") == required_step_name:
                 named_steps.append(step)
             uses = step.get("uses")
@@ -209,6 +215,78 @@ def _validate_trusted_workflow_upload_contract(
         raise EvidenceIngestionServiceError(
             "Trusted upload step must fail when an evidence file is missing."
         )
+    # Trust the producer pipeline, not a standalone uploader. All steps must be unique,
+    # ordered, unconditional, and co-located in one job so the uploaded files are derived
+    # from the exact PR-head test invocation rather than another job or commit.
+    records_by_name: dict[str, list[tuple[str, int, Mapping[str, object]]]] = {}
+    required_names = (
+        _REQUIRED_CHECKOUT_STEP,
+        _REQUIRED_TEST_STEP,
+        _REQUIRED_EXPORT_STEP,
+        required_step_name,
+    )
+    for record in step_records:
+        name = record[2].get("name")
+        if name in required_names:
+            records_by_name.setdefault(cast(str, name), []).append(record)
+    if any(len(records_by_name.get(name, [])) != 1 for name in required_names):
+        raise EvidenceIngestionServiceError(
+            "Trusted workflow must define exactly one checkout, test, export, and upload step."
+        )
+    chain_records = [records_by_name[name][0] for name in required_names]
+    if len({record[0] for record in chain_records}) != 1 or [
+        record[1] for record in chain_records
+    ] != sorted(record[1] for record in chain_records):
+        raise EvidenceIngestionServiceError(
+            "Trusted checkout, test, export, and upload steps must be ordered in one evidence job."
+        )
+    checkout_step, test_step, export_step, _ = (record[2] for record in chain_records)
+    for step in (checkout_step, test_step, export_step):
+        if "if" in step:
+            raise EvidenceIngestionServiceError(
+                "Trusted checkout, test, and export steps must not be conditional."
+            )
+
+    checkout_ref = checkout_step.get("uses")
+    checkout_inputs = _workflow_string_mapping(
+        checkout_step.get("with"), "exact-head checkout inputs"
+    )
+    if (
+        not isinstance(checkout_ref, str)
+        or not _PINNED_CHECKOUT_ACTION.fullmatch(checkout_ref)
+        or checkout_inputs.get("repository")
+        != "${{ github.event.pull_request.head.repo.full_name }}"
+        or checkout_inputs.get("ref") != "${{ github.event.pull_request.head.sha }}"
+        or checkout_inputs.get("persist-credentials") is not False
+    ):
+        raise EvidenceIngestionServiceError(
+            "Trusted evidence job must check out the exact PR head with credentials disabled "
+            "and a pinned checkout action."
+        )
+
+    test_command = test_step.get("run")
+    if (
+        not isinstance(test_command, str)
+        or "pytest" not in test_command
+        or "--cov-context=test" not in test_command
+        or "--junitxml=junit.xml" not in test_command
+    ):
+        raise EvidenceIngestionServiceError(
+            "Trusted evidence test step must run pytest with per-test coverage and junit.xml."
+        )
+    export_command = export_step.get("run")
+    if (
+        not isinstance(export_command, str)
+        or "python -m verification_core.manifest_export" not in export_command
+        or "--coverage-data .coverage" not in export_command
+        or "--junit junit.xml" not in export_command
+        or "${{ github.event.pull_request.head.sha }}" not in export_command
+        or "--output coverage-manifest.json" not in export_command
+    ):
+        raise EvidenceIngestionServiceError(
+            "Trusted evidence export step must create the manifest for the exact PR head."
+        )
+
 
 
 class PullRequestReader(Protocol):

@@ -51,6 +51,22 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
+      - name: Check out exact PR head
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Run PR-head tests with per-test coverage
+        run: >-
+          pytest --cov=src/verification_core --cov-context=test
+          --junitxml=junit.xml --cov-report=term
+      - name: Export per-test evidence manifest
+        run: >-
+          python -m verification_core.manifest_export
+          --coverage-data .coverage --junit junit.xml
+          --head-sha "${{ github.event.pull_request.head.sha }}"
+          --output coverage-manifest.json
       - name: Upload verification evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
@@ -462,6 +478,24 @@ def test_phase_three_service_binds_base_workflow_and_rechecks_pr() -> None:
                 "name: Upload verification evidence", "name: Different display name"
             ),
             "exactly one required step",
+        ),
+        (
+            TRUSTED_WORKFLOW.replace(
+                "ref: ${{ github.event.pull_request.head.sha }}",
+                "ref: ${{ github.sha }}",
+            ),
+            "exact PR head",
+        ),
+        (
+            TRUSTED_WORKFLOW.replace(
+                "python -m verification_core.manifest_export",
+                "python -m arbitrary.exporter",
+            ),
+            "create the manifest for the exact PR head",
+        ),
+        (
+            TRUSTED_WORKFLOW.replace("--cov-context=test", ""),
+            "per-test coverage and junit.xml",
         ),
     ],
 )
