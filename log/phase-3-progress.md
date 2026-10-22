@@ -499,3 +499,15 @@ Run [#39813965772](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 ## Trusted producer chain hardened — 2026-10-22 (CI pending)
 
 Added fail-closed validation that the base-SHA workflow contains exactly one pinned checkout of the exact PR head with credentials disabled, one pytest step using per-test coverage plus JUnit output, one exporter invocation bound to that same SHA, and one upload step. These steps must be ordered, unconditional where applicable, and in the same job. Tests now mutate checkout ref, remove the per-test coverage option, and replace the exporter module to prove those cases are rejected. This closes the gap where a workflow with a valid uploader but no trustworthy evidence-producing chain could pass the contract. The base `main` workflow still needs deployment; the new validator tests and latest exporter changes remain subject to the queued exact-head CI.
+
+
+## Artifact producer verified; validator-head format failure fixed — 2026-10-22
+
+**Producer milestone verified on exact run [#39814823241](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39814823241), SHA `f721d73dea35a04889878b776b7e87f61ae0206c`:**
+- Quality job and evidence producer job succeeded; exporter step and upload step both succeeded.
+- GitHub artifact `verification-evidence`, ID `12442240904`, size 37,909 bytes, listed as not expired; SHA-256 `8373269c915d6d8bb507df9b97f10d8446154f188ea4e786c65bf4c0fc1a6f6a`.
+- Downloaded ZIP SHA-256 independently matches GitHub's artifact digest.
+- ZIP has exactly `junit.xml` and `coverage-manifest.json`. JUnit and manifest each contain 460 distinct testcase IDs and their ID sets match exactly. Manifest is version 1, bound to `f721d73dea35a04889878b776b7e87f61ae0206c`, contains 460 passed outcomes, and all 460 `behavioral_assertion_verified` flags are false.
+- A structural sanity check found zero bad path, line-number, branch-ID, or outcome entries.
+
+The newer validator-chain commit `d5540a19a17c50b9dd7457ecfa4340afdd1d2365` failed before downstream checks at Ruff formatting: one extra blank line before `PullRequestReader` in `phase_three.py`. This is corrected in the current follow-up commit. The successful producer run verifies artifact production on SHA `f721d73...`; it does **not** automatically verify the newer validator changes. CI must still pass on the corrected validator head before it counts as verified.

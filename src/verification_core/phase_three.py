@@ -288,7 +288,6 @@ def _validate_trusted_workflow_upload_contract(
         )
 
 
-
 class PullRequestReader(Protocol):
     """Minimal GitHub read port used to validate PR identity and workflow source."""
 
