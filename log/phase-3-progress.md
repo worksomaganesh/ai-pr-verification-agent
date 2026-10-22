@@ -489,3 +489,8 @@ Run [#39220114379](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 ## Exporter parameter-ID parser correction — 2026-10-22
 
 Exact-head CI [#39224141676](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39224141676) passed every quality and coverage gate, but the artifact producer failed with `Coverage context contains an invalid pytest node ID`. The prior parser enforced balanced brackets, but pytest parameter IDs are opaque and can contain unbalanced-looking text from representations, nested brackets, and scope separators. The parser now identifies the source file boundary at `.py::`, splits scope markers only before the first parameter opener, and preserves the full parameter suffix verbatim. Replaced the incorrect balanced-bracket tests with opaque-suffix cases. Still require exact match against JUnit inventory; no unmatched evidence is dropped. This new correction requires fresh exact-SHA CI plus artifact upload verification.
+
+
+## Exact formatting correction — 2026-10-22
+
+Run [#39813965772](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39813965772) failed the format gate before lint/type checking/tests; Ruff requested quote style, a compact dictionary-comprehension line, and removal of one extra blank line in the new no-measured-coverage regression. These exact format changes are applied. The exporter now includes the opaque pytest-parameter suffix parser and the no-measured-production-coverage handling from the previous pushed slice; its behavior remains unverified until the next CI run reaches export and upload.

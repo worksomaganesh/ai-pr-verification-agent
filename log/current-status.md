@@ -138,3 +138,8 @@ Exact-head CI [#39224141676](https://github.com/worksomaganesh/ai-pr-verificatio
 ## Zero-measured-coverage testcase fix — 2026-10-22
 
 CI run [#39812879743](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39812879743) passed quality gates and PR-head tests, but export failed because a non-skipped JUnit testcase had no coverage context. Tests can pass without touching tracked production files; exporter now retains all JUnit cases and emits empty measured line/branch maps for those without a run context. It still rejects unmatched contexts and rejects the whole run if no run contexts match any JUnit testcase. Added regression test. This fix is pending exact-SHA CI and artifact upload.
+
+
+## Exact formatting correction — 2026-10-22
+
+Run [#39813965772](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39813965772) failed the format gate before lint/type checking/tests; Ruff requested quote style, a compact dictionary-comprehension line, and removal of one extra blank line in the new no-measured-coverage regression. These exact format changes are applied. The exporter now includes the opaque pytest-parameter suffix parser and the no-measured-production-coverage handling from the previous pushed slice; its behavior remains unverified until the next CI run reaches export and upload.

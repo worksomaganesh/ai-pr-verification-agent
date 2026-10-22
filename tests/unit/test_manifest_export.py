@@ -80,7 +80,6 @@ def test_exporter_emits_exact_per_test_lines_and_stable_branch_ids(tmp_path: Pat
     assert true_branches != false_branches
 
 
-
 def test_exporter_keeps_passed_tests_with_no_measured_production_coverage(tmp_path: Path) -> None:
     coverage_path, junit = _prepare_run(tmp_path)
     junit.write_text(
@@ -88,7 +87,7 @@ def test_exporter_keeps_passed_tests_with_no_measured_production_coverage(tmp_pa
         '<testcase classname="tests.test_sample" name="test_choose[true]"/>'
         '<testcase classname="tests.test_sample" name="test_choose[false]"/>'
         '<testcase classname="tests.test_sample" name="test_policy_only"/>'
-        '</testsuite>',
+        "</testsuite>",
         encoding="utf-8",
     )
     document = build_coverage_manifest(
@@ -98,8 +97,7 @@ def test_exporter_keeps_passed_tests_with_no_measured_production_coverage(tmp_pa
         repository_root=tmp_path,
     )
     cases = {
-        str(item["node_id"]): item
-        for item in cast(list[dict[str, object]], document["tests"])
+        str(item["node_id"]): item for item in cast(list[dict[str, object]], document["tests"])
     }
     unmeasured = cases["tests.test_sample::test_policy_only"]
     assert unmeasured["outcome"] == "passed"
