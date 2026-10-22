@@ -24,34 +24,29 @@ class ManifestExportError(ValueError):
 
 
 def _split_pytest_node_id(pytest_node_id: str) -> list[str]:
-    """Split pytest scope separators but preserve literal separators inside parameter IDs."""
-    parts: list[str] = []
-    start = 0
-    bracket_depth = 0
-    index = 0
-    while index < len(pytest_node_id):
-        char = pytest_node_id[index]
-        if char == "[":
-            bracket_depth += 1
-        elif char == "]":
-            bracket_depth -= 1
-            if bracket_depth < 0:
-                raise ManifestExportError("Coverage context contains an invalid pytest node ID.")
-        if (
-            char == ":"
-            and index + 1 < len(pytest_node_id)
-            and pytest_node_id[index + 1] == ":"
-            and bracket_depth == 0
-        ):
-            parts.append(pytest_node_id[start:index])
-            index += 2
-            start = index
-            continue
-        index += 1
-    if bracket_depth != 0:
+    """Separate the source file and scopes without parsing opaque parameter-ID contents."""
+    marker = pytest_node_id.find(".py::")
+    if marker < 0:
         raise ManifestExportError("Coverage context contains an invalid pytest node ID.")
-    parts.append(pytest_node_id[start:])
-    return parts
+    source_path = pytest_node_id[: marker + 3]
+    remaining = pytest_node_id[marker + 5 :]
+    if not remaining:
+        raise ManifestExportError("Coverage context contains an invalid pytest node ID.")
+
+    # Parameter IDs may contain arbitrary brackets and '::'. Only separators before the first
+    # parameter opener belong to class/function scopes; the suffix must remain opaque.
+    parameter_start = remaining.find("[")
+    if parameter_start < 0:
+        scope_text = remaining
+        parameter_suffix = ""
+    else:
+        scope_text = remaining[:parameter_start]
+        parameter_suffix = remaining[parameter_start:]
+    scopes = scope_text.split("::")
+    if not scopes or any(not scope for scope in scopes):
+        raise ManifestExportError("Coverage context contains an invalid pytest node ID.")
+    scopes[-1] += parameter_suffix
+    return [source_path, *scopes]
 
 
 def _junit_node_id(pytest_node_id: str, root: Path) -> str:

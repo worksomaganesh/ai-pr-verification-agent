@@ -91,15 +91,21 @@ def test_junit_node_id_preserves_scope_separator_inside_parameter_id(tmp_path: P
 
 
 @pytest.mark.parametrize(
-    "node_id",
+    "parameter_suffix",
     [
-        "tests/unit/test_policy.py::test_selector[unclosed",
-        "tests/unit/test_policy.py::test_selector[closed]]",
+        "[unclosed",
+        "[nested[brackets::and separators]]",
+        "[closing]]",
     ],
+    ids=("open-bracket-in-value", "nested-brackets-and-separator", "closing-bracket-in-value"),
 )
-def test_junit_node_id_rejects_unbalanced_parameter_brackets(node_id: str, tmp_path: Path) -> None:
-    with pytest.raises(ManifestExportError, match="invalid pytest node ID"):
-        _junit_node_id(node_id, tmp_path)
+def test_junit_node_id_treats_parameter_suffix_as_opaque(
+    parameter_suffix: str, tmp_path: Path
+) -> None:
+    node_id = f"tests/unit/test_policy.py::test_selector{parameter_suffix}"
+    assert _junit_node_id(node_id, tmp_path) == (
+        f"tests.unit.test_policy::test_selector{parameter_suffix}"
+    )
 
 
 def test_exporter_rejects_invalid_sha_and_missing_junit_context_match(tmp_path: Path) -> None:
