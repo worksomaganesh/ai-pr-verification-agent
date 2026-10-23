@@ -165,3 +165,8 @@ The newer validator-chain commit `d5540a19a17c50b9dd7457ecfa4340afdd1d2365` fail
 ## Strict-mypy follow-up on trusted workflow chain — 2026-10-22
 
 Run [#39817064462](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39817064462) passed Ruff formatting and Ruff lint, then failed strict mypy at `src/verification_core/phase_three.py:231`: a redundant cast to `str`. Because `name` is already narrowed by membership in the tuple of string step names, the cast is unnecessary and has been removed. Unit/property tests, coverage gates and the evidence job were skipped in that run; this correction requires a new full CI result.
+
+
+## Exact Ruff formatting correction — 2026-10-23
+
+Run [#39894345129](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39894345129) stopped at formatting only: Ruff requires two blank lines between the module-level workflow-discovery test functions in `tests/unit/test_github_actions.py`. No lint/type/test/coverage/evidence step ran on that commit. Applied the exact spacing correction; the new run-discovery method still requires full CI verification.
