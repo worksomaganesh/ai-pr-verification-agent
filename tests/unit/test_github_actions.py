@@ -71,7 +71,6 @@ def test_workflow_run_listing_filters_exact_head_and_paginates() -> None:
     assert [int(request.url.params["page"]) for request in requests] == [1, 2]
 
 
-
 def test_workflow_run_listing_rejects_wrong_head_and_bad_sha() -> None:
     def handler(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(
