@@ -90,6 +90,7 @@ def test_workflow_run_listing_rejects_wrong_head_and_bad_sha() -> None:
         with pytest.raises(ValueError, match="head_sha"):
             client.list_pull_request_workflow_runs(REPO, "BAD")
 
+
 def test_job_listing_retrieves_every_page() -> None:
     requests: list[httpx.Request] = []
     pages = {
