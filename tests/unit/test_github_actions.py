@@ -39,6 +39,57 @@ def test_get_workflow_run_rejects_mismatched_response_id() -> None:
             client.get_workflow_run(REPO, 99)
 
 
+def test_workflow_run_listing_filters_exact_head_and_paginates() -> None:
+    sha = "a" * 40
+    requests: list[httpx.Request] = []
+    pages = {
+        1: [{"id": 1, "head_sha": sha}, {"id": 2, "head_sha": sha}],
+        2: [{"id": 3, "head_sha": sha}],
+    }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        assert request.url.path == f"/repos/{REPO}/actions/runs"
+        assert request.url.params["head_sha"] == sha
+        assert request.url.params["event"] == "pull_request"
+        return httpx.Response(
+            200,
+            json={
+                "total_count": 3,
+                "workflow_runs": pages[int(request.url.params["page"])],
+            },
+        )
+
+    with httpx.Client(
+        base_url="https://api.github.com",
+        transport=httpx.MockTransport(handler),
+        follow_redirects=False,
+    ) as raw:
+        client = GitHubActionsClient(INSTALLATION_FIXTURE, http_client=raw)
+        result = client.list_pull_request_workflow_runs(REPO, sha)
+    assert [item["id"] for item in result] == [1, 2, 3]
+    assert [int(request.url.params["page"]) for request in requests] == [1, 2]
+
+
+def test_workflow_run_listing_rejects_wrong_head_and_bad_sha() -> None:
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "total_count": 1,
+                "workflow_runs": [{"id": 1, "head_sha": "b" * 40}],
+            },
+        )
+
+    with httpx.Client(
+        base_url="https://api.github.com", transport=httpx.MockTransport(handler)
+    ) as raw:
+        client = GitHubActionsClient(INSTALLATION_FIXTURE, http_client=raw)
+        with pytest.raises(GitHubActionsAPIError, match="different head SHA"):
+            client.list_pull_request_workflow_runs(REPO, "a" * 40)
+        with pytest.raises(ValueError, match="head_sha"):
+            client.list_pull_request_workflow_runs(REPO, "BAD")
+
 def test_job_listing_retrieves_every_page() -> None:
     requests: list[httpx.Request] = []
     pages = {
