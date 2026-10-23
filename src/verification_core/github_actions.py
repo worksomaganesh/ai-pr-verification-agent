@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import re
 from urllib.parse import urlsplit
 
 import httpx
@@ -20,6 +21,7 @@ MAX_ACTIONS_API_PAGES = 10
 _MAX_PAGE_SIZE = 100
 _MAX_ACTIONS_ITEMS = MAX_ACTIONS_API_PAGES * _MAX_PAGE_SIZE
 MAX_ARTIFACT_ARCHIVE_BYTES = 20 * 1024 * 1024
+_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 _ALLOWED_DOWNLOAD_SUFFIXES = (".blob.core.windows.net", ".githubusercontent.com")
 _ALLOWED_DOWNLOAD_HOSTS = {
     "blob.core.windows.net",
@@ -195,6 +197,66 @@ class GitHubActionsClient:
             "GitHub Actions pagination limit reached; result is incomplete."
         )
 
+    def list_pull_request_workflow_runs(
+        self, repository: str, head_sha: str
+    ) -> tuple[Mapping[str, object], ...]:
+        """List all PR workflow runs for one exact head SHA, with bounded pagination."""
+        repo = self._repo(repository)
+        if not isinstance(head_sha, str) or not _SHA_RE.fullmatch(head_sha):
+            raise ValueError("head_sha must be a lowercase 40-character Git SHA.")
+        collected: list[Mapping[str, object]] = []
+        seen_ids: set[int] = set()
+        expected_total: int | None = None
+        for page in range(1, MAX_ACTIONS_API_PAGES + 1):
+            result = self._get(
+                f"/repos/{repo}/actions/runs",
+                params={
+                    "head_sha": head_sha,
+                    "event": "pull_request",
+                    "per_page": _MAX_PAGE_SIZE,
+                    "page": page,
+                },
+            )
+            total = result.get("total_count")
+            if type(total) is not int or total < 0:
+                raise GitHubActionsAPIError("Workflow-run listing had an invalid total_count.")
+            if expected_total is None:
+                expected_total = total
+            elif total != expected_total:
+                raise GitHubActionsAPIError("Workflow-run pagination changed during retrieval.")
+            raw_runs = result.get("workflow_runs")
+            if not isinstance(raw_runs, list) or len(raw_runs) > _MAX_PAGE_SIZE:
+                raise GitHubActionsAPIError("Workflow-run listing was malformed.")
+            for raw_run in raw_runs:
+                run = _mapping(raw_run, "workflow run listing item")
+                run_id = run.get("id")
+                if type(run_id) is not int or run_id < 1:
+                    raise GitHubActionsAPIError("Workflow-run listing contained an invalid ID.")
+                if run_id in seen_ids:
+                    raise GitHubActionsAPIError("Workflow-run listing contained duplicate IDs.")
+                if run.get("head_sha") != head_sha:
+                    raise GitHubActionsAPIError(
+                        "Workflow-run listing returned a different head SHA."
+                    )
+                seen_ids.add(run_id)
+                collected.append(run)
+                if len(collected) > _MAX_ACTIONS_ITEMS:
+                    raise GitHubActionsAPIError(
+                        "Workflow-run listing exceeds the configured item limit."
+                    )
+            if len(collected) >= expected_total:
+                if len(collected) != expected_total:
+                    raise GitHubActionsAPIError(
+                        "Workflow-run listing returned duplicate or excess items."
+                    )
+                return tuple(collected)
+            if not raw_runs:
+                raise GitHubActionsAPIError(
+                    "Workflow-run listing ended before all results were retrieved."
+                )
+        raise GitHubActionsAPIError(
+            "Workflow-run pagination limit reached; result is incomplete."
+        )
     def list_workflow_run_jobs(
         self, repository: str, run_id: int
     ) -> tuple[Mapping[str, object], ...]:
