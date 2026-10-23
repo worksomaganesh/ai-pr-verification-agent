@@ -175,3 +175,8 @@ Run [#39894345129](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 ## CI formatting fix — 2026-10-23
 
 The latest attempted run-discovery tests still had three blank lines between module-level test functions; Ruff requires two. Corrected the exact whitespace. Earlier run [#39902193903](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39902193903) failed at formatting, so no lint, strict typing, tests, coverage, or artifact-production check executed for that SHA. This is a formatting-only fix, not a verified functionality milestone.
+
+
+## Latest CI lint correction — 2026-10-23
+
+Run [#39902428152](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39902428152) passed formatting and failed Ruff lint with one import-order issue in `src/verification_core/github_actions.py`: `import re` must precede `from collections.abc import Mapping`. Strict typing, tests, coverage gates, and the evidence job were skipped. Import order is corrected in this follow-up; it still requires a fresh full CI run.
