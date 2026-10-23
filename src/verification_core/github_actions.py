@@ -254,9 +254,7 @@ class GitHubActionsClient:
                 raise GitHubActionsAPIError(
                     "Workflow-run listing ended before all results were retrieved."
                 )
-        raise GitHubActionsAPIError(
-            "Workflow-run pagination limit reached; result is incomplete."
-        )
+        raise GitHubActionsAPIError("Workflow-run pagination limit reached; result is incomplete.")
     def list_workflow_run_jobs(
         self, repository: str, run_id: int
     ) -> tuple[Mapping[str, object], ...]:
