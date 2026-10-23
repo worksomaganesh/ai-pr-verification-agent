@@ -91,6 +91,67 @@ def test_workflow_run_listing_rejects_wrong_head_and_bad_sha() -> None:
             client.list_pull_request_workflow_runs(REPO, "BAD")
 
 
+
+@pytest.mark.parametrize(
+    ("responses", "message"),
+    [
+        ([{"total_count": "1", "workflow_runs": []}], "invalid total_count"),
+        ([{"total_count": -1, "workflow_runs": []}], "invalid total_count"),
+        ([{"total_count": 1, "workflow_runs": {}}], "malformed"),
+        ([{"total_count": 1, "workflow_runs": [None]}], "workflow run listing item"),
+        (
+            [{"total_count": 1, "workflow_runs": [{"id": 0, "head_sha": "a" * 40}]}],
+            "invalid ID",
+        ),
+        (
+            [
+                {
+                    "total_count": 2,
+                    "workflow_runs": [
+                        {"id": 5, "head_sha": "a" * 40},
+                        {"id": 5, "head_sha": "a" * 40},
+                    ],
+                }
+            ],
+            "duplicate IDs",
+        ),
+        (
+            [
+                {"total_count": 2, "workflow_runs": [{"id": 1, "head_sha": "a" * 40}]},
+                {"total_count": 3, "workflow_runs": [{"id": 2, "head_sha": "a" * 40}]},
+            ],
+            "pagination changed",
+        ),
+        ([{"total_count": 1, "workflow_runs": []}], "ended before"),
+    ],
+    ids=(
+        "text-total",
+        "negative-total",
+        "non-list-runs",
+        "non-object-run",
+        "non-positive-run-id",
+        "duplicate-run-id",
+        "changing-pagination-total",
+        "missing-page-items",
+    ),
+)
+def test_workflow_run_listing_rejects_malformed_or_incomplete_api_responses(
+    responses: list[dict[str, object]], message: str
+) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        page = int(request.url.params["page"])
+        return httpx.Response(200, json=responses[min(page - 1, len(responses) - 1)])
+
+    with httpx.Client(
+        base_url="https://api.github.com",
+        transport=httpx.MockTransport(handler),
+        follow_redirects=False,
+    ) as raw:
+        client = GitHubActionsClient(INSTALLATION_FIXTURE, http_client=raw)
+        with pytest.raises(GitHubActionsAPIError, match=message):
+            client.list_pull_request_workflow_runs(REPO, "a" * 40)
+
+
 def test_job_listing_retrieves_every_page() -> None:
     requests: list[httpx.Request] = []
     pages = {

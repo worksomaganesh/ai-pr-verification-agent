@@ -374,3 +374,8 @@ The latest attempted run-discovery tests still had three blank lines between mod
 ## Latest CI lint correction — 2026-10-23
 
 Run [#39902428152](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39902428152) passed formatting and failed Ruff lint with one import-order issue in `src/verification_core/github_actions.py`: `import re` must precede `from collections.abc import Mapping`. Strict typing, tests, coverage gates, and the evidence job were skipped. Import order is corrected in this follow-up; it still requires a fresh full CI run.
+
+
+## Coverage gate blocker and response — 2026-10-23
+
+Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39907385124) passed formatting, Ruff, and strict mypy but failed the test command's total coverage threshold: **465 passed, 1 warning, 89.32% total (required 90%)**. Phase-specific coverage gates and the evidence producer were skipped after pytest returned nonzero. The newly added exact-head Actions run-discovery method introduced several defensive branches that lacked tests. Added parameterized API-boundary regressions for malformed totals, negative counts, malformed run collections, non-object items, invalid/duplicate run IDs, pagination-count changes, and missing page items. This is a targeted coverage increase, not a gate bypass; next exact-commit CI must pass all gates before counting progress.
