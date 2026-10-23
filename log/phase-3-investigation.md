@@ -95,3 +95,287 @@ and head immediately before publication.
 - [ ] Protect final Check Run publication with immediate PR freshness revalidation.
 - [ ] Align PR description and Phase III status docs with actual code.
 - [ ] Record a green merge-candidate SHA and CI URL before removing draft status.
+
+
+## Latest retry after main synchronization — 2026-10-18
+
+The sync commit `b8f4c6c` made the branch accurately inherit the root-level engineering journal from
+main and ensured CI runs against the synchronized PR head. Its run [#39132715519](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39132715519)
+still failed on Ruff `I001` for adjacent imports from `verification_core.evidence` and
+`verification_core.evidence_ledger`, despite the prior ordering attempts. Formatting passed, and
+mypy/tests/coverage were skipped.
+
+The new attempt moves the JUnit fixture imports into the `make_evidence` factory, which removes that
+two-module import-order interaction from the module-level block. This is intended to break the lint
+loop; its effectiveness remains unverified until CI on the new SHA. No progress increase is assigned.
+
+
+## Third CI attempt — 2026-10-18
+
+Run #39143573401 passed formatting but failed Ruff `I001` on the import block in
+`tests/unit/test_evidence_ledger.py`. Moving the JUnit imports into the fixture factory did not resolve
+the lint failure, so the cause is broader than the relative ordering of those imports. The current runner
+excerpt identifies the rule but does not expose the complete autofix diff; local Ruff installation was
+unavailable because the environment has no package-network access.
+
+A narrowly scoped file-level `I001` suppression is a temporary diagnostic step to let strict typing,
+tests, and coverage execute. It must be removed before Phase III is release-complete. The suppression is
+not counted as a quality fix or progress increase.
+
+
+## Strict typing now reached
+
+After the temporary single-file Ruff suppression, CI run #39143710693 passed formatting and lint and
+reached `mypy --strict src tests`. It failed with 28 errors: an `object`-typed JUnit map prevented
+safe `.outcome` access, one test helper lacked a return annotation, and several test calls used
+`**dict[str, object]` against a fully typed keyword-only API. The fix uses inferred concrete JUnit
+case values and explicit keyword arguments in tests. These are actual type-safety improvements, not
+type-ignore suppressions; the next run must confirm.
+
+
+## Formatter correction after typing edits
+
+CI run #39143886828 exposed one formatting-only issue: the annotated `ingest` helper signature was
+split over three lines, while Ruff formats it on one line. The exact one-line form is now restored.
+No test or type result is inferred from this formatter failure.
+
+
+## First CI-green Phase III foundation and next slice
+
+Run [#39143973263](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39143973263)
+passed all existing release gates on `db2cb27b5d23187cd8f4917b41303a8a2b84183a`, including strict
+mypy, all tests, and both explicit coverage gates. The green result still includes a temporary
+file-scoped `I001` suppression in the evidence-ledger test; this is diagnostic only and must be removed.
+
+The next implementation adds a deterministic bridge from authenticated ingestion to the Phase I
+state machine. It accepts target line/branch sets and exact obligation-to-test assertion bindings from
+trusted analysis; it deliberately ignores the artifact's self-certified assertion flag when deciding
+whether a passing test is sufficient. This prevents an authenticated ZIP from self-authorizing a
+PASSED obligation. The new reconciliation code and tests require their own full CI run.
+
+
+## Reconciliation-slice formatter failure
+
+Run #39144197581 failed only at `ruff format --check` before any lint, type, or test step. Its exact
+diff showed an extra blank line before `reconcile_authenticated_obligation` and three long imports
+in the new tests. Those exact changes are applied; no behavioral test result is inferred from this run.
+
+
+The second formatter retry found only one extra blank line before the first newly added reconciliation test;
+it is corrected without changing test behavior.
+
+
+## Publication boundary and contradictory-result hardening — 2026-10-18
+
+The latest previously green commit, `54498841ad391442f6746cd4e0cc52a6aaf0c1e6`, passed every existing
+CI gate [#39144389166](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39144389166).
+It still carried a temporary module-scoped Ruff suppression. The next slice removes that suppression
+and adds the first Check Run publication API around the Phase I deterministic evaluation.
+
+The publishing helper re-reads PR state/base/head immediately before its one Check Run side effect and
+refuses to publish when any identity is stale. Another defensive fix keeps `CONTRADICTORY` evidence
+contradictory all the way into the Phase I state machine, rather than allowing subsequent sufficiency
+calculation to overlook the contradiction. New adversarial tests exercise these contracts; CI for the
+new SHA remains the required validation.
+
+
+## Publication-slice formatter correction
+
+Run #39144723077 failed at formatting only. Ruff's diff identified the conditional expression's
+indentation, three line-wrapping differences in the publication helper, and one extra blank line before
+the new fake publisher. These formatting-only edits are now applied; the next CI run must reach lint,
+mypy and tests to validate the implementation.
+
+
+The follow-up CI attempt found only two formatting diffs: the conditional expression was indented
+incorrectly after adding contradiction preservation, and the ledger test had two blank lines between
+its module docstring and future import. Both exact diffs are corrected; no behavioral gate has yet run
+on this revision.
+
+
+## Ruff lint diagnostics after formatting passed
+
+Run `39144951098` passed format but failed lint with six diagnostics: import sorting in the new module
+and two test locations, an undefined `ExecutionOutcome` in the adversarial test, an unused
+`ObligationStatus` import in the service module, and naturally sorted slots. These are now corrected
+without weakening Ruff. Strict typing and test behavior have not yet been validated on this SHA.
+
+
+The latest run passed format and all production/test lint checks except one long import in
+`tests/unit/test_evidence_ledger.py`. It is now a parenthesized multi-line import; no test result is
+claimed until CI proceeds past lint.
+
+
+The import members are now parenthesized and sorted. Ruff's remaining diff points only to the import-to-
+constant spacing; the configured style expects one blank line here, which this commit applies.
+
+
+## Exact-head CI failure and next diagnostic — 2026-10-18
+
+A fresh read of the live PR, branch tree, and workflow API supersedes the older status snapshot above:
+PR #6 currently points at `34df9e9c9aaf8f58bdd62a0a2070169da563a4df`, and CI run [#39145290937](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39145290937)
+tested that exact SHA. Formatting and Ruff both passed; strict mypy then stopped the job at
+`tests/unit/test_actions_evidence.py:517` because `_scheduled_high_obligation` had no return annotation.
+Tests and both coverage gates were skipped, not passed.
+
+The corrective change imports `VerificationObligation` at module scope and annotates the helper's
+return type. It preserves `mypy --strict`; the fix is not considered verified until a later run reaches
+and passes the test and coverage steps.
+
+A second issue is more architectural: `ingest_pull_request_run` fetches the trusted workflow text at
+the base SHA and records its SHA-256, but the current code does not parse that definition to prove that
+the configured step actually invokes the expected artifact-upload action or names the required artifact.
+A job step's display name alone is not a reliable semantic contract. The next trust-boundary implementation
+must make the upload contract explicit and reject unsupported or ambiguous workflow shapes, with tests
+for look-alike names, missing uploader actions, mismatched artifact names, duplicate candidate upload
+steps, and unpinned/unapproved action references.
+
+For run/shard handling, one requested run currently requires exactly one artifact with the configured
+name. That is a useful fail-closed primitive, but it is not a documented aggregation protocol for
+multiple successful runs, reruns, or test shards. Until a deterministic aggregation contract exists,
+ambiguous or partial evidence must remain inconclusive rather than being combined optimistically.
+
+
+## Trusted workflow semantics and adversarial ZIP boundaries — implementation slice
+
+The ingestion service previously fetched the workflow at the base SHA and stored its digest, but treated the path and a successful display-name step as enough. That was incomplete: a same-named shell step or an uploader configured with a different name/path could satisfy the shallow check. The service now validates a bounded, duplicate-key-rejecting YAML document, a pull-request trigger, one precisely named and sole artifact uploader, a full immutable upload-artifact commit pin, the exact evidence filenames, the literal artifact name, and `if-no-files-found: error`. Unsupported/ambiguous workflows fail closed before artifact downloads. The repository's current base workflow does not itself meet this contract; that is a deployment prerequisite, not a reason to weaken the validator.
+
+The archive regression suite now exercises malformed/empty ZIP input, excess members, traversal/absolute/backslash paths, duplicate names, symlinks, empty/oversized files, excessive compression ratios, and directory entries. These tests are meant to lock the parser's boundary behavior; they are not release proof until they pass on the exact new SHA.
+
+A review also found that ingestion timestamps were already checked for finiteness, while terminal-decision timestamps only checked negativity. The ledger now rejects boolean, NaN, infinite, and negative decision timestamps too, keeping the decision-write validation contract consistent.
+
+
+## Exact formatting failure and run-attempt race — 2026-10-18
+
+Run [#39147354586](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39147354586) tested the PR merge ref containing branch head `d2a1e0c2a08e3a702ff9814eee408b3606e4ea37`. The first gate, `ruff format --check src tests`, failed at exactly four emitted diff locations: the reconciliation timestamp guard in `evidence_ledger.py`, two formatting groups in `phase_three.py`, and the parametrized trusted-workflow tests. Ruff lint, strict mypy, tests, and every coverage gate were skipped. These locations are now corrected according to the emitted diff; CI on the corrective commit remains the authority.
+
+Reviewing rerun semantics also found a collection race: job-list APIs can represent the latest attempt while the original run payload still describes an earlier attempt. The service now re-reads the run after artifact validation and compares run ID, workflow ID, attempt, path, event, status, conclusion, and head SHA before final PR freshness validation. If any field changes, the evidence is discarded. The supported contract remains one workflow run and exactly one artifact; shards are not combined.
+
+The upload step validator now rejects conditional upload steps as well as duplicate/missing uploaders, unpinned references, dynamic/wildcard paths, mismatched names, duplicate YAML keys, and missing-file warning modes. This is intentionally fail-closed. The workflow currently at the PR's base SHA lacks the required uploader and the repository does not yet have a deployed per-test manifest producer. This is recorded as a release/deployment prerequisite; the validator must not be weakened to conceal it.
+
+The regression suite also adds checks for run-attempt changes, publication API failures preventing terminal ledger writes, and post-publication ledger persistence failures reporting `ledger_persisted=False`. These tests are part of the next full CI attempt and must not be called passed until that run proves it.
+
+
+## Follow-up CI formatting failure — 2026-10-18
+
+Run [#39149971965](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39149971965) tested the exact PR head `a2e4b5a49717b350a59d980bc659aea86a47adac` and failed `ruff format --check src tests`. Its actual output identified two files and four formatting adjustments: collapse the conditional-upload error constructor; collapse the workflow-run recheck call; collapse the parametrized trusted-workflow test signature; and remove an extra blank line. Ruff lint, strict mypy, tests, and coverage were skipped. These exact formatting changes are applied in the next commit. No test or coverage result is inferred from this run.
+
+
+## Ruff findings and explicit fixes — 2026-10-19
+
+Run [#39168709842](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39168709842) passed formatting and failed Ruff with eight findings. The corrections preserve strict linting: the duplicate-key YAML parser remains a `SafeLoader` subclass and has a narrow `S506` suppression on the loader invocation; trigger logic now explicitly groups mixed boolean operators; error text is wrapped; regex-based `pytest.raises(match=...)` values are raw strings; the duplicate ZIP fixture combines context managers; and the trusted workflow fixture string is split into adjacent literals. Strict mypy and tests were skipped in that run and remain unverified until CI executes them.
+
+
+## Follow-up Ruff suppression and fixture corrections — 2026-10-19
+
+Run [#39169027616](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39169027616) passed formatting but Ruff found three issues: the `S506` suppression was attached to the wrong line and was consequently unused, the custom-loader argument itself was flagged, and a long embedded workflow fixture line exceeded the configured line length. The suppression is now attached to the `Loader=_UniqueKeySafeLoader` argument with a comment documenting that it subclasses `yaml.SafeLoader`; the fixture is split into adjacent literals without changing the YAML bytes. Strict typing/tests were skipped in that run and remain pending.
+
+
+## Full-test findings and regression additions — 2026-10-19
+
+Run [#39169277725](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39169277725) passed format, Ruff, and strict mypy, then ran 424 tests: 422 passed and two failed in the new workflow-contract parameterization. The wildcard-path case expected the wrong error wording; the conditional-upload fixture accidentally contained a literal backslash-n, so YAML parsing correctly rejected it before reaching the conditional-step assertion. The expected message and fixture are corrected. Overall coverage was 89.68%, below the required 90%; added parametrized regression cases for changes to every workflow-run identity field and invalid original attempt metadata to increase meaningful branch coverage. These fixes remain unverified until a new exact-head CI run passes.
+
+
+## Overall coverage gate correction — 2026-10-19
+
+Run [#39169688736](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39169688736) passed formatting, Ruff, strict mypy, 433 tests, and both phase-specific gates (Phase I 96%, Phase II 86%). Its report nevertheless showed 89.77% total coverage. Inspection of the workflow confirmed that `coverage.report.fail_under=90` is not enforced by the existing `pytest --cov` invocation, because pytest-cov needs `--cov-fail-under=90` explicitly. Added that flag to the project's pytest default options and added direct regression tests for missing/malformed/oversized trusted workflow inputs. The next exact-head run must prove both the tests and the total gate; this change is not yet verified.
+
+
+## Explicit overall-coverage enforcement and ingestion precondition tests — 2026-10-19
+
+The latest green run [#39170237791](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39170237791) passed formatter, Ruff, strict mypy, 438 tests, and the Phase I (96%) / Phase II (86%) gates. However, its report displayed 89.91% overall, below the intended 90% floor. The workflow lacked a dedicated overall `coverage report --fail-under=90` step, and the attempted pytest addopts flag did not cause the workflow to fail. The workflow now has an explicit total-coverage gate immediately after tests; no green overall result is claimed until a later run proves it.
+
+New tests cover invalid workflow-run IDs (including bool-as-int), empty trust policy, missing/untrusted workflow paths and base-SHA workflow source, malformed workflow digest validation, and closed-PR rejection before any Actions API reads. The next CI iteration must show whether these meaningful negative cases raise overall coverage over the floor. Branch/PR heads and CI SHA must be checked together before assigning a completion percentage.
+
+
+## Current CI exact-head failure — 2026-10-19
+
+Run [#39171029125](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39171029125) tested `b4e43eb0111e80be060d7665e403b0fccd223f1c`. The overall-coverage workflow addition and test expansion were not yet evaluated: the run failed at `ruff format --check src tests` because `tests/unit/test_actions_evidence.py` needed one additional blank line before `test_phase_three_rejects_invalid_workflow_run_identifiers`. Ruff, strict mypy, tests, the overall 90% gate, and phase-specific gates were skipped on this SHA. This formatting-only correction is recorded separately; the next run must prove downstream checks on its own exact SHA.
+
+
+## Latest CI exact-head formatter result — 2026-10-19
+
+Run [#39195545167](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39195545167) failed at `ruff format --check src tests` on one line in `src/verification_core/coverage.py` (the node-ID length validation error). Formatter output named no other files. Ruff, strict mypy, tests, total coverage, phase-specific gates and the dependent evidence job were skipped. This correction applies that exact formatter diff; it does not change semantics and does not count as verified functional progress.
+
+
+## Evidence-producer root cause and correction — 2026-10-19
+
+Exact quality CI [#39195904599](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39195904599) passed formatting, Ruff, strict mypy, 455 tests, and all overall/phase-specific coverage gates. The producer pytest step passed, but manifest export rejected JUnit testcase 42 because its name exceeded the 10,000-character parser limit. The source of the huge name was the parametrized workflow-input test whose parameter included a 256 KiB synthetic YAML string; pytest embeds parameter representations in JUnit testcase names by default. This was not a genuine test node needing a larger parser limit. The safe fix is to give those five parameterized cases short explicit IDs, preserving the strict 10,000-character bound and avoiding shipping arbitrary large parameter representations in JUnit. Exporter verification is pending the next run.
+
+
+## Second oversized JUnit node diagnosed — 2026-10-19
+
+Run [#39196884255](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39196884255) passed all quality gates and the exact-PR-head pytest step, but manifest export failed on `testcase[335].name` exceeding 10,000 characters. Reviewing parameterized tests found the second source: `tests/unit/test_policy.py::test_input_size_nul_and_invalid_unicode_are_rejected` includes a 256 KiB string in pytest parameters and had no explicit JUnit ID. The Phase III workflow-input test already received stable IDs in the previous commit, but this independent policy test also needed stable IDs. Added three short IDs (`oversized-policy`, `nul-policy`, `invalid-unicode-policy`) without reducing the oversized input or relaxing any parser limits. The next CI run must show exporter success and artifact upload; no success is assumed.
+
+
+## Exact coverage/JUnit identifier mismatch corrected — 2026-10-19
+
+Run [#39197824251](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39197824251) passed every quality gate, but the evidence producer failed on a real context-to-JUnit name mismatch. The diagnostic identified context node `tests/unit/test_evidence_ledger.py::test_ledger_policy_digest_is_part_of_evidence_identity`; the exporter mapped it to `test_evidence_ledger::...`, whereas pytest's JUnit artifact uses the repository-relative dotted classname `tests.unit.test_evidence_ledger`. The path normalizer incorrectly stripped non-package directory prefixes. It now translates the full safe repository-relative test path to dotted form, and exporter fixtures reflect the exact JUnit convention. Matching remains exact and ambiguous/partial evidence still fails closed. Artifact production is unverified until CI passes and the upload step completes.
+
+
+CI run [#39219163228](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39219163228) stopped at Ruff after formatting passed. The only lint finding was E501 at line 94 of `tests/unit/test_manifest_export.py`: a single long JUnit XML string. Strict mypy, tests, coverage gates, and the evidence job were skipped. The string is split into adjacent literals preserving the exact XML bytes; this correction is pending verification.
+
+
+Run [#39219463813](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39219463813) stopped at format-check on one quote-style difference in `tests/unit/test_manifest_export.py` line 96. All later quality gates and the artifact job were skipped. The exact Ruff correction is applied; this run does not verify functional behavior.
+
+
+## Policy-fixture JUnit context name fixed — 2026-10-19
+
+Run [#39219692769](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39219692769) passed the entire quality job and its coverage gates, but evidence export failed because JUnit testcase 335 represented the full policy YAML inside the `test_invalid_policies_fail_closed` parameter ID. That value is large but valid as a negative test input; the generated JUnit node ID was the issue. Added stable concise IDs to each of the 13 parametrized policy-failure cases, without trimming test input or weakening the 10,000-character field limit. The subsequent exact-head CI must verify this correction and artifact upload.
+
+
+## Parameter IDs containing scope separators — 2026-10-19
+
+Run [#39220114379](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39220114379) passed all quality and coverage gates, but manifest export rejected the test ID `tests/unit/test_policy.py::test_unsafe_or_ambiguous_selectors_are_rejected[tests/test_authz.txt::test_case]`. The parser used a plain split on `::`, which also split the literal separator inside the bracketed parameter ID. Added a bracket-aware node-ID splitter that recognizes pytest scope separators only outside parameter brackets and rejects unbalanced brackets. Added regression coverage for both a parameter containing `::` and malformed bracket nesting. The exporter remains unverified until a new run successfully exports and uploads both files.
+
+
+## Exporter parameter-ID parser correction — 2026-10-22
+
+Exact-head CI [#39224141676](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39224141676) passed every quality and coverage gate, but the artifact producer failed with `Coverage context contains an invalid pytest node ID`. The prior parser enforced balanced brackets, but pytest parameter IDs are opaque and can contain unbalanced-looking text from representations, nested brackets, and scope separators. The parser now identifies the source file boundary at `.py::`, splits scope markers only before the first parameter opener, and preserves the full parameter suffix verbatim. Replaced the incorrect balanced-bracket tests with opaque-suffix cases. Still require exact match against JUnit inventory; no unmatched evidence is dropped. This new correction requires fresh exact-SHA CI plus artifact upload verification.
+
+
+## Exact formatting correction — 2026-10-22
+
+Run [#39813965772](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39813965772) failed the format gate before lint/type checking/tests; Ruff requested quote style, a compact dictionary-comprehension line, and removal of one extra blank line in the new no-measured-coverage regression. These exact format changes are applied. The exporter now includes the opaque pytest-parameter suffix parser and the no-measured-production-coverage handling from the previous pushed slice; its behavior remains unverified until the next CI run reaches export and upload.
+
+
+## Trusted producer chain hardened — 2026-10-22 (CI pending)
+
+Added fail-closed validation that the base-SHA workflow contains exactly one pinned checkout of the exact PR head with credentials disabled, one pytest step using per-test coverage plus JUnit output, one exporter invocation bound to that same SHA, and one upload step. These steps must be ordered, unconditional where applicable, and in the same job. Tests now mutate checkout ref, remove the per-test coverage option, and replace the exporter module to prove those cases are rejected. This closes the gap where a workflow with a valid uploader but no trustworthy evidence-producing chain could pass the contract. The base `main` workflow still needs deployment; the new validator tests and latest exporter changes remain subject to the queued exact-head CI.
+
+
+## Artifact producer verified; validator-head format failure fixed — 2026-10-22
+
+**Producer milestone verified on exact run [#39814823241](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39814823241), SHA `f721d73dea35a04889878b776b7e87f61ae0206c`:**
+- Quality job and evidence producer job succeeded; exporter step and upload step both succeeded.
+- GitHub artifact `verification-evidence`, ID `12442240904`, size 37,909 bytes, listed as not expired; SHA-256 `8373269c915d6d8bb507df9b97f10d8446154f188ea4e786c65bf4c0fc1a6f6a`.
+- Downloaded ZIP SHA-256 independently matches GitHub's artifact digest.
+- ZIP has exactly `junit.xml` and `coverage-manifest.json`. JUnit and manifest each contain 460 distinct testcase IDs and their ID sets match exactly. Manifest is version 1, bound to `f721d73dea35a04889878b776b7e87f61ae0206c`, contains 460 passed outcomes, and all 460 `behavioral_assertion_verified` flags are false.
+- A structural sanity check found zero bad path, line-number, branch-ID, or outcome entries.
+
+The newer validator-chain commit `d5540a19a17c50b9dd7457ecfa4340afdd1d2365` failed before downstream checks at Ruff formatting: one extra blank line before `PullRequestReader` in `phase_three.py`. This is corrected in the current follow-up commit. The successful producer run verifies artifact production on SHA `f721d73...`; it does **not** automatically verify the newer validator changes. CI must still pass on the corrected validator head before it counts as verified.
+
+
+## Strict-mypy follow-up on trusted workflow chain — 2026-10-22
+
+Run [#39817064462](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39817064462) passed Ruff formatting and Ruff lint, then failed strict mypy at `src/verification_core/phase_three.py:231`: a redundant cast to `str`. Because `name` is already narrowed by membership in the tuple of string step names, the cast is unnecessary and has been removed. Unit/property tests, coverage gates and the evidence job were skipped in that run; this correction requires a new full CI result.
+
+
+## Exact Ruff formatting correction — 2026-10-23
+
+Run [#39894345129](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39894345129) stopped at formatting only: Ruff requires two blank lines between the module-level workflow-discovery test functions in `tests/unit/test_github_actions.py`. No lint/type/test/coverage/evidence step ran on that commit. Applied the exact spacing correction; the new run-discovery method still requires full CI verification.
+
+
+## CI formatting fix — 2026-10-23
+
+The latest attempted run-discovery tests still had three blank lines between module-level test functions; Ruff requires two. Corrected the exact whitespace. Earlier run [#39902193903](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39902193903) failed at formatting, so no lint, strict typing, tests, coverage, or artifact-production check executed for that SHA. This is a formatting-only fix, not a verified functionality milestone.
+
+
+## Latest CI lint correction — 2026-10-23
+
+Run [#39902428152](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39902428152) passed formatting and failed Ruff lint with one import-order issue in `src/verification_core/github_actions.py`: `import re` must precede `from collections.abc import Mapping`. Strict typing, tests, coverage gates, and the evidence job were skipped. Import order is corrected in this follow-up; it still requires a fresh full CI run.
+
+
+## Coverage gate blocker and response — 2026-10-23
+
+Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39907385124) passed formatting, Ruff, and strict mypy but failed the test command's total coverage threshold: **465 passed, 1 warning, 89.32% total (required 90%)**. Phase-specific coverage gates and the evidence producer were skipped after pytest returned nonzero. The newly added exact-head Actions run-discovery method introduced several defensive branches that lacked tests. Added parameterized API-boundary regressions for malformed totals, negative counts, malformed run collections, non-object items, invalid/duplicate run IDs, pagination-count changes, and missing page items. This is a targeted coverage increase, not a gate bypass; next exact-commit CI must pass all gates before counting progress.
