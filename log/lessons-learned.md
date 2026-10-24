@@ -76,3 +76,29 @@ expose hidden assumptions or improve the workflow.
 6. Verify branch SHA, PR head SHA, tree contents, and CI SHA agree.
 7. Read actual step results, not only the overall status.
 8. Update progress only when a milestone is supported by implementation and verification evidence.
+
+
+## 13. JUnit identifiers are protocol data, not source truth
+
+Pytest parameter IDs can be expanded from arbitrarily large reprs and may contain separators or brackets. An identifier normalizer must understand only the stable source/scope grammar and preserve the parameter suffix. Use explicit short IDs for tests whose input payload is intentionally huge. Do not weaken parser bounds to accommodate generated XML.
+
+## 14. A full JUnit inventory can include tests with zero production coverage
+
+A passing test may exercise only test utilities or external behavior and touch no measured production file. Keep its JUnit outcome in the inventory with empty measured line/branch maps. Do not invent context or silently omit unmatched entries. Conversely, every actual coverage context must map to a real JUnit case, and an export with no matching run contexts should fail closed.
+
+## 15. Separate provenance validity from behavioral sufficiency
+
+A matching artifact digest proves that downloaded bytes match the API-advertised archive; matching report inventories prove the JUnit and manifest describe the same test IDs. Neither establishes that a test assertion covers the required behavior. A self-asserted `behavioral_assertion_verified` field must not promote an obligation. Independent trusted bindings and target-location analysis are still required.
+
+## 16. Track all green checks by the exact tested SHA
+
+The evidence producer worked on `e6b394ea...`; later run-discovery changes did not inherit that proof. The latest `ce5f0c5b...` candidate failed at formatting. A nearby green run cannot certify the new head, even if only test or log files differ.
+
+## 17. Percentage increases should follow a rubric, not optimism
+
+The chat estimates went from 75% to 80% after the artifact producer delivered a real artifact and its digest/inventory were inspected. The later 85% estimate followed run-discovery code and tests but those changes have not yet passed full CI; the Phase II worker/runtime wiring is also not verified as present. Record the conversational estimate historically, but hold confirmed release progress until the implementation, tests, and CI results satisfy the milestone.
+
+## 18. Distinguish attempted integration from landed integration
+
+A proposed worker change is not implemented merely because its patch was drafted in a tool call. Re-read the current branch files and Git ref after writing. If `phase_two.py` and `runtime.py` do not contain the integration, document it as unlanded and continue from the actual head.
+
