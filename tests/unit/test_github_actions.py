@@ -91,7 +91,6 @@ def test_workflow_run_listing_rejects_wrong_head_and_bad_sha() -> None:
             client.list_pull_request_workflow_runs(REPO, "BAD")
 
 
-
 @pytest.mark.parametrize(
     ("responses", "message"),
     [
