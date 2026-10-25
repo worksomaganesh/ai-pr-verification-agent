@@ -713,3 +713,11 @@ Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 - Corrected this by using explicit self-alias imports in `phase_two.py` for the two intentionally exposed names. This preserves the existing Phase II test seam and exception handler while satisfying mypy's explicit-export rule. No runtime logic changed.
 - Unit tests, coverage gates, and artifact production were skipped after mypy failed; exact-head CI must rerun.
 - Phase III stays at 90% estimated pending green CI and evidence-to-obligation acceptance.
+
+
+## Strict-mypy export follow-up — 2026-10-25
+
+- The attempted explicit aliases passed mypy's intent but triggered Ruff import ordering/unused-import checks because the re-export aliases were grouped with ordinary imports and the pending exception was not referenced by production logic.
+- Follow-up fix separates the two intentional module re-exports from normal import groups and uses `isinstance(exc, PhaseThreeRunPending)` for retry classification rather than relying only on a class-name string. This makes the exception import semantically used, keeps retry behavior type-safe, and retains the monkeypatch/test seam for `evaluate_verification_run`.
+- Exact-head CI run `40189546516` failed at Ruff import sorting for the alias block; tests/type checking were skipped. The next exact-head run must confirm this consolidated fix and then exercise downstream tests, coverage, and artifact export.
+- Progress remains **90% estimated** until the full pipeline is green on one SHA.

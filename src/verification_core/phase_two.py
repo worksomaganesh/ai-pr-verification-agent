@@ -9,17 +9,17 @@ from verification_core.delivery_store import DeliveryStoreError, SQLiteDeliveryS
 from verification_core.domain import (
     ConclusionPolicyConfig,
     VerificationRunEvaluation,
-    evaluate_verification_run as evaluate_verification_run,
 )
+from verification_core.domain import evaluate_verification_run as evaluate_verification_run
 from verification_core.github_actions import GitHubActionsClient
 from verification_core.github_app import GitHubAPIError, GitHubRESTClient, InstallationToken
 from verification_core.github_context import assemble_pull_request_context
 from verification_core.phase_three_worker import (
     PhaseThreeLedgerPort,
-    PhaseThreeRunPending as PhaseThreeRunPending,
     WorkflowRunListingPort,
     process_pull_request_evidence,
 )
+from verification_core.phase_three_worker import PhaseThreeRunPending as PhaseThreeRunPending
 from verification_core.planning import (
     PlanningResult,
     VerificationModelPort,
@@ -321,13 +321,15 @@ class PhaseTwoProcessor:
                 run_key=run_key,
             )
         except (GitHubAPIError, ValueError) as exc:
-            reason_code = {
-                "PhaseThreeRunPending": "phase3_run_pending",
-                "GitHubRateLimitError": "github_rate_limited",
-                "GitHubResponseTooLarge": "github_response_too_large",
-                "GitHubContextError": "github_context_rejected",
-                "DiffAnalysisError": "diff_analysis_rejected",
-            }.get(type(exc).__name__, "processing_failed")
+            if isinstance(exc, PhaseThreeRunPending):
+                reason_code = "phase3_run_pending"
+            else:
+                reason_code = {
+                    "GitHubRateLimitError": "github_rate_limited",
+                    "GitHubResponseTooLarge": "github_response_too_large",
+                    "GitHubContextError": "github_context_rejected",
+                    "DiffAnalysisError": "diff_analysis_rejected",
+                }.get(type(exc).__name__, "processing_failed")
             try:
                 self._store.mark_failed(event.delivery_id, error_code=reason_code, retry=True)
             except DeliveryStoreError:

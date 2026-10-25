@@ -355,3 +355,8 @@ Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 
 - Ruff format/lint passed on `42f4dccb5ab33a101690c3a519091a3e2872beea`. Strict mypy found two module export errors: tests monkeypatch `phase_two.evaluate_verification_run` and reference `phase_two.PhaseThreeRunPending`.
 - Added explicit self-alias imports in `phase_two.py` to declare these as intentional module exports. No behavior change intended. CI must confirm.
+
+
+## Mypy/Ruff correction consolidation — 2026-10-25
+
+- Run `40189546516` failed at Ruff import sorting on explicit re-export aliases. The next fix separates intentional re-exports from ordinary import blocks and uses a typed `isinstance` check for `PhaseThreeRunPending` retry mapping. No policy or evidence acceptance rules are weakened.
