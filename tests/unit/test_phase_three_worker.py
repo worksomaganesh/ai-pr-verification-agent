@@ -33,7 +33,11 @@ def test_selector_to_junit_node_id(selector: str, expected: str) -> None:
     assert selector_to_junit_node_id(selector) == expected
 
 
-@pytest.mark.parametrize("selector", ["", "x" * 10_001], ids=("empty-selector", "oversized-selector"))
+@pytest.mark.parametrize(
+    "selector",
+    ["", "x" * 10_001],
+    ids=("empty-selector", "oversized-selector"),
+)
 def test_selector_to_junit_node_id_rejects_invalid_input(selector: str) -> None:
     with pytest.raises(EvidenceIngestionServiceError):
         selector_to_junit_node_id(selector)
