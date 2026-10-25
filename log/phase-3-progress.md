@@ -607,3 +607,13 @@ Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 - Added more workflow-state regression cases in `tests/unit/test_phase_three_worker.py`.
 - These are committed changes but **not yet locally tested or green on CI**. A GitHub API check after the latest commits showed no Actions run for current head `6cf039b7d977e4b01225a47b3e418c3e068a2834`; the newest visible green run was on older main SHA `87b28a3a230399776933d1c3a1b1ef3110849cb9`.
 - Completion estimate remains **85%**, because the new runtime path and tests are unverified and integration risks remain. Before release: run formatter/Ruff/mypy and tests; fix any failures; add a real worker-level test for the feature flag and mocked Actions client; verify trusted base policy/workflow bootstrap; pass both coverage thresholds and evidence artifact production on the exact final SHA.
+
+
+## Phase III latest verification — 2026-10-25
+
+- Added worker integration tests to `tests/unit/test_phase_two.py`: feature-flagged Phase III dispatch, requesting Actions-read installation permissions, passing the durable evidence ledger into the worker, closing the Actions client/ledger, and retrying pending workflow runs.
+- Latest branch head after these changes: `fd0457fcb6a900ff21515397526f21f0aa40618e`.
+- CI API still shows no workflow run for this head; last green run belongs to main SHA `87b28a3a230399776933d1c3a1b1ef3110849cb9`. Current workflow only has push-on-main and pull_request-to-main triggers; the draft PR exists, but a new exact-head run has not been observed yet.
+- The trusted policy file `.verification-policy.yml` is missing from main, and the checked-in CI workflow is still named Phase II and does not explicitly restrict the evidence artifact to a trusted workflow identity. The context assembler correctly fails closed without base policy; do not bypass by reading policy from the PR head.
+- New code/tests are not executed in this environment; therefore formatting, strict mypy, tests, coverage, and artifact generation remain unverified.
+- **Completion estimate remains 85%**. Next hard blockers: run the new tests and fix any failures; add a separate reviewed bootstrap PR for a minimal valid policy on the protected base plus a trusted evidence-workflow identity; then pass all exact-SHA CI and artifact gates. Keep PR #6 draft until those gates pass.
