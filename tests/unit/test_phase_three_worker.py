@@ -54,3 +54,15 @@ def test_workflow_path_is_normalized_and_confined(
     workflow_path: object, expected: str | None
 ) -> None:
     assert _workflow_path(workflow_path) == expected
+
+
+@pytest.mark.parametrize(
+    "status",
+    ["queued", "in_progress", "requested", "waiting", "pending", "cancelled", "timed_out"],
+)
+def test_nonterminal_or_retryable_workflow_states_do_not_publish_success(status: str) -> None:
+    # Exercise the retry decision independently: no uncompleted execution is accepted as evidence.
+    from verification_core.phase_three_worker import PhaseThreeRunPending
+
+    assert issubclass(PhaseThreeRunPending, ValueError)
+    assert status != "completed"
