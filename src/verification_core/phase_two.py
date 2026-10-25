@@ -11,8 +11,8 @@ from verification_core.domain import (
     VerificationRunEvaluation,
     evaluate_verification_run,
 )
-from verification_core.github_app import GitHubAPIError, GitHubRESTClient, InstallationToken
 from verification_core.github_actions import GitHubActionsClient
+from verification_core.github_app import GitHubAPIError, GitHubRESTClient, InstallationToken
 from verification_core.github_context import assemble_pull_request_context
 from verification_core.phase_three_worker import (
     PhaseThreeLedgerPort,
