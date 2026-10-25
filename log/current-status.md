@@ -303,3 +303,13 @@ Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 - Added the existing dedicated `tests/unit/test_manifest_export.py` suite to the bootstrap branch (commit `42a9271a494141616818dcea33890b0b26f9a06d`). It covers exporter node-ID mapping, branch/line data, invalid SHAs, missing JUnit matches, and malformed/missing evidence inputs.
 - A new CI run for this exact head must confirm the coverage gate is restored and then execute the evidence job. No pass is claimed until that run completes.
 - Phase III stays at **85%** until the bootstrap pipeline is green and the same checks are verified on the implementation PR head.
+
+
+## JUnit testcase-name blocker audit and preventive fix — 2026-10-25
+
+- Audited failed bootstrap run `40187561638`: quality job passed formatting, Ruff, strict mypy, 363 tests, and coverage (91.71%). Evidence export then failed because a generated JUnit testcase name exceeded the parser's 2,000-character bound.
+- Root cause: a security-negative test used a 256 KiB parameter value without an explicit pytest parameter ID, causing the raw payload to leak into the JUnit testcase name. The safe fix is bounded explicit IDs; the parser's security limit stays intact.
+- Added stable short IDs to the oversized policy parameter on bootstrap branch (commit `2d98b53947aa029c7fa3a14b94c0276f79f095e6`) and to the oversized selector case on the Phase III implementation branch (commit `d6c19734af0a7a104e31713669410814a0a88056`). Audited other visible oversized/negative parametrized cases: policy, evidence parser, coverage manifest, action evidence, GitHub Actions and worker tests; other large cases either already have short IDs or are not raw values used as parameters.
+- Preventive regression expectation: JUnit test names remain bounded while all adversarial inputs still execute. No parser limit was relaxed and no negative/security test was removed.
+- Bootstrap CI run `40187985188` started on exact bootstrap head `2d98b53947aa029c7fa3a14b94c0276f79f095e6`; it is in progress. Results unknown at log time.
+- PR #6 remains draft and mergeability is false; its base SHA is not current main, so it must be synchronized after bootstrap is reviewed/merged. Phase III stays at **85%** until the latest bootstrap and implementation exact-head CI runs pass and the authenticated evidence artifact is verified.
