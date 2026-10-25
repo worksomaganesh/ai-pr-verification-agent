@@ -22,6 +22,7 @@ from verification_core.phase_three import (
     ActionsReader,
     CheckRunPublisher,
     EvidenceIngestionServiceError,
+    ReconciliationLedgerPort,
     EvidenceLedgerPort,
     PhaseThreePublicationResult,
     ingest_pull_request_run,
@@ -31,6 +32,12 @@ from verification_core.phase_three import (
 from verification_core.planning import DiffAnalysis, PlanningResult
 from verification_core.policy import VerificationPolicy
 from verification_core.security import scrub_secrets
+
+
+class PhaseThreeLedgerPort(EvidenceLedgerPort, ReconciliationLedgerPort, Protocol):
+    """Evidence ledger supporting ingestion, terminal decision recording, and cleanup."""
+
+    def close(self) -> None: ...
 
 
 class WorkflowRunListingPort(ActionsReader, Protocol):
@@ -173,7 +180,7 @@ def process_pull_request_evidence(
     planning: PlanningResult,
     analysis: DiffAnalysis,
     policy: VerificationPolicy,
-    evidence_ledger: EvidenceLedgerPort,
+    evidence_ledger: PhaseThreeLedgerPort,
     policy_config: ConclusionPolicyConfig,
     check_name: str,
 ) -> PhaseThreeWorkerResult:
