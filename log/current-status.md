@@ -322,3 +322,10 @@ Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 - Added explicit short IDs to the 13 invalid-policy document cases on bootstrap branch (commit `3383880b381b323ff8b09b18be30d4aa58f8764d`) and 14 adversarial workflow-source cases on Phase III branch (commit `5c7d2cea11d6d02c52dc39ccc2bd11a85ab99601`). Kept all negative cases and all manifest limits unchanged.
 - New bootstrap CI run `40188223783` is in progress. The prior run's export error is confirmed; the new exact-head result is not yet known.
 - Phase III remains **85%** until current bootstrap CI passes through evidence upload, bootstrap PR is reviewed/merged, and the implementation PR is synchronized with main and green on its exact head.
+
+
+## Current integration checkpoint — 2026-10-25
+
+- Phase III branch merge commit: `37e714385d888e0c63e810d0447f0824b18c10a3`; current main ancestor: `d9bc46f2fad9ac0527f87b6d692cb8f88929fc37`.
+- PR #6 is now based on current main and GitHub reports mergeable. Exact-head CI run `40188929251` is in progress; no green result has been claimed yet.
+- The implementation branch must remain draft until CI and end-to-end evidence reconciliation gates pass.
