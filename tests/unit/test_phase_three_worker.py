@@ -11,7 +11,6 @@ import pytest
 from verification_core.domain.enums import (
     AnalysisCompleteness,
     ObligationSource,
-    ObligationStatus,
     Severity,
 )
 from verification_core.domain.models import (
