@@ -16,7 +16,6 @@ from verification_core.github_app import GitHubAPIError, GitHubRESTClient, Insta
 from verification_core.github_context import assemble_pull_request_context
 from verification_core.phase_three_worker import (
     PhaseThreeLedgerPort,
-    PhaseThreeRunPending,
     WorkflowRunListingPort,
     process_pull_request_evidence,
 )

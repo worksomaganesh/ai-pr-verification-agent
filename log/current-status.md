@@ -342,3 +342,10 @@ Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 
 - Ruff identified `tests/unit/test_phase_three_worker.py` and `tests/unit/test_runtime.py` as the two unformatted files. Formatting edits committed as `c3d170bb3cc0606752c65d5f512af741d7521227` and `7f08de6b4b08a08a9e7931b580015cc39318de5c`.
 - Exact-head CI run `40189200153` is pending at this checkpoint. Keep PR #6 draft until the complete workflow and artifact gates pass.
+
+
+## Latest lint blocker and correction — 2026-10-25
+
+- Formatter now passes. CI `40189249042` exposed four Ruff findings: two long lines in `phase_three_worker.py`, unused `PhaseThreeRunPending` import in `phase_two.py`, and import ordering in `tests/unit/test_phase_two.py`.
+- These are being fixed together in one commit to avoid cancelling CI repeatedly with intermediate commits. Behavior/security boundaries are unchanged.
+- Keep PR #6 draft until lint, strict mypy, tests, coverage gates, evidence artifact, and end-to-end reconciliation all pass on one exact SHA.

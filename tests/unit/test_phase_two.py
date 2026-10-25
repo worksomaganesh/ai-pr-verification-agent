@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any, cast
 from types import SimpleNamespace
+from typing import Any, cast
 
 import pytest
 

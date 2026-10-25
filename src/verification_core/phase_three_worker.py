@@ -118,7 +118,7 @@ def _target_lines_for_obligation(
 def _trusted_assertion_bindings(
     obligations: Sequence[VerificationObligation], policy: VerificationPolicy
 ) -> dict[str, str]:
-    """Bind an obligation to a test only when trusted base policy matches selector/category/severity."""
+    """Bind obligations only when the trusted base policy matches the selector and risk fields."""
     bindings: dict[str, str] = {}
     rules_by_selector = {rule.selector: rule for rule in policy.obligations}
     for obligation in obligations:
@@ -312,7 +312,8 @@ def process_pull_request_evidence(
     evidence_summary = (
         f"Authenticated workflow run {run_id} supplied evidence bound to "
         f"head {commit.head_sha}; evidence record {ingested.ledger_record_key or 'not persisted'}. "
-        "Obligations were reconciled independently. An artifact's own assertion flag is not trusted."
+        "Obligations were reconciled independently. "
+        "An artifact's own assertion flag is not trusted."
     )
     publication = publish_reconciled_verification(
         github=github,

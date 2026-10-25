@@ -697,3 +697,11 @@ Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 - Latest failing run `40189077163` exposed exact Ruff formatting paths: `tests/unit/test_phase_three_worker.py` (line 39, oversized selector parameter decorator) and `tests/unit/test_runtime.py` (blank-line and function-signature formatting).
 - Applied narrowly scoped formatting fixes in commits `c3d170bb3cc0606752c65d5f512af741d7521227` and `7f08de6b4b08a08a9e7931b580015cc39318de5c`. The new exact-head workflow `40189200153` is pending; prior-run successor `40189193556` was still in progress at checkpoint. Do not treat formatter repair as verified until the latest head has green CI.
 - Phase III remains **90% estimated** pending green exact-head quality/tests/coverage, uploaded evidence artifact validation, and end-to-end evidence reconciliation acceptance.
+
+
+## Ruff lint corrections after formatter fix — 2026-10-25
+
+- After formatting passed on commit `7ab9326896ec8316ead676bf27cffef8a9c19de8`, Ruff lint failed with four findings: two >100-character lines in `phase_three_worker.py`, an unused `PhaseThreeRunPending` import in `phase_two.py`, and unsorted imports in `tests/unit/test_phase_two.py`.
+- Applied a single grouped fix: wrapped the two overlong strings/docstring, removed the unused import (retry status is mapped by exception class name in the existing handler), and sorted standard-library imports. No behavior or validation thresholds were changed.
+- Latest attempt had no downstream mypy/test/coverage/artifact results because lint stopped the quality job. The next exact-head CI must validate the full pipeline.
+- Completion remains `90% (estimated)`; no increase until complete CI and evidence reconciliation pass on one exact implementation SHA.
