@@ -249,7 +249,7 @@ class PhaseTwoProcessor:
                     )
                     evaluation = phase_three_result.publication.evaluation
                     summary = scrub_secrets(
-                        evaluation.summary_rationale + "\\n\\n" + phase_three_result.summary
+                        evaluation.summary_rationale + "\n\n" + phase_three_result.summary
                     )[:59_000]
                     run_key = self._run_ledger.save_verification_run(
                         commit=planning.commit,
