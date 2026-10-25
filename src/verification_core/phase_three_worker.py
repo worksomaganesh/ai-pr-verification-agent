@@ -22,12 +22,13 @@ from verification_core.phase_three import (
     ActionsReader,
     CheckRunPublisher,
     EvidenceIngestionServiceError,
-    ReconciliationLedgerPort,
     EvidenceLedgerPort,
     PhaseThreePublicationResult,
+    ReconciliationLedgerPort,
     ingest_pull_request_run,
     publish_reconciled_verification,
     reconcile_authenticated_obligation,
+    selector_to_junit_node_id,
 )
 from verification_core.planning import DiffAnalysis, PlanningResult
 from verification_core.policy import VerificationPolicy
@@ -46,6 +47,8 @@ class WorkflowRunListingPort(ActionsReader, Protocol):
     def list_pull_request_workflow_runs(
         self, repository: str, head_sha: str
     ) -> Sequence[Mapping[str, object]]: ...
+
+    def close(self) -> None: ...
 
 
 class PhaseThreeRunPending(ValueError):
@@ -127,7 +130,8 @@ def _trusted_assertion_bindings(
             continue
         if rule.category != obligation.category or rule.severity != obligation.severity.value:
             continue
-        bindings[obligation.obligation_id] = selector
+        # The evidence manifest uses dotted JUnit classname IDs; bind in that same namespace.
+        bindings[obligation.obligation_id] = selector_to_junit_node_id(selector)
     return bindings
 
 
