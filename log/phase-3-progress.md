@@ -578,3 +578,12 @@ Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 - This is a new orchestration module, **not yet wired into `PhaseTwoProcessor` or the deployment runtime**. It must not be described as end-to-end integration until the queue processor calls it and the deployment supplies a GitHub Actions client plus evidence ledger.
 - No local tests or type-check were run in this environment: cloning from GitHub failed because the runtime cannot resolve `github.com`. The new module has not yet passed CI, so no green result is claimed.
 - Next required steps: connect the module to the retry-aware queue worker with opt-in Actions permission; add unit tests for run selection, pending/failed/ambiguous runs, and evidence mapping; ensure runtime config instantiates the evidence ledger; then pass formatting, Ruff, strict mypy, all tests, total/phase coverage gates, and artifact job on the same SHA. Keep PR #6 draft until all gates pass.
+
+
+## Phase III continuation — 2026-10-25
+
+- Added selector normalization in `phase_three.py` so repo-relative pytest selectors can be compared with the dotted module node IDs emitted by the coverage/JUnit exporter. This addresses a concrete integration mismatch between planning selectors and exported evidence IDs.
+- Latest verified branch head at this log update: `311eef1fd1d3b1ef95ba4188104f7ad0383e93e9`.
+- Latest Actions runs visible from the API are still for older SHAs; there is no successful run for this head. The current CI workflow was not dispatched manually because no supported dispatch action is available in this connector session.
+- A local clone/test run is unavailable because the environment cannot resolve `github.com`. Therefore syntax, lint, mypy, tests, coverage, and artifact production for the new selector mapping are unverified.
+- Phase III remains incomplete: the new `phase_three_worker.py` is not yet wired into `PhaseTwoProcessor`/`runtime.py`; selector mapping now has a helper but lacks verified regression tests; exact-head CI and the trusted-workflow-on-base bootstrap scenario remain release gates. Do not remove draft status or claim completion until these are resolved.
