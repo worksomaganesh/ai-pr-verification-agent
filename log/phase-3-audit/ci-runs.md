@@ -13,7 +13,7 @@ Each run record below includes run ID, number, SHA, branch, event, dates, result
 - **Created / updated (UTC):** 2026-10-18T06:51:03Z / 2026-10-18T06:51:27Z
 - **Status / conclusion:** `completed` / `failure`
 - **What happened:** failure.
-- **Why tracker did not move:** This run did not close release gates. Check the linked run’s first failing step; later steps may have been skipped.
+- **Why tracker did not move:** Strict mypy failed after formatter and Ruff passed: `tests/unit/test_phase_three_worker.py:311: Returning Any from function declared to return VerificationObligation [no-any-return]`. Unit/property tests and coverage gates were skipped; the authenticated evidence artifact job was also skipped. The reconciliation fake in the new test needs an explicit non-Any return/concrete obligation.
 - **Lesson:** Only exact-head, complete green gates with the required evidence artifact can count toward completion.
 - **Next move:** Inspect the earliest failing job/step, fix the cause, and rerun without relaxing gates.
 
