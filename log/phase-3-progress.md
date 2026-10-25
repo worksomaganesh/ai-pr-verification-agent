@@ -664,3 +664,12 @@ Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 - Preventive regression expectation: JUnit test names remain bounded while all adversarial inputs still execute. No parser limit was relaxed and no negative/security test was removed.
 - Bootstrap CI run `40187985188` started on exact bootstrap head `2d98b53947aa029c7fa3a14b94c0276f79f095e6`; it is in progress. Results unknown at log time.
 - PR #6 remains draft and mergeability is false; its base SHA is not current main, so it must be synchronized after bootstrap is reviewed/merged. Phase III stays at **85%** until the latest bootstrap and implementation exact-head CI runs pass and the authenticated evidence artifact is verified.
+
+
+## Follow-on JUnit node-ID blocker and bounded-ID fixes — 2026-10-25
+
+- Latest completed bootstrap run `40187985188` confirmed the oversized 256 KiB policy value no longer caused the earlier 2,000-character testcase-name error. The evidence exporter then exposed a second oversized node ID: `tests[217].node_id must be non-empty and at most 500 chars`.
+- Audited parameterized tests that use entire policy YAML documents and workflow source documents as values. These generated pytest IDs can exceed the manifest node-ID bound even when no single JUnit testcase name violates the separate 2,000-character limit.
+- Added explicit short IDs to the 13 invalid-policy document cases on bootstrap branch (commit `3383880b381b323ff8b09b18be30d4aa58f8764d`) and 14 adversarial workflow-source cases on Phase III branch (commit `5c7d2cea11d6d02c52dc39ccc2bd11a85ab99601`). Kept all negative cases and all manifest limits unchanged.
+- New bootstrap CI run `40188223783` is in progress. The prior run's export error is confirmed; the new exact-head result is not yet known.
+- Phase III remains **85%** until current bootstrap CI passes through evidence upload, bootstrap PR is reviewed/merged, and the implementation PR is synchronized with main and green on its exact head.
