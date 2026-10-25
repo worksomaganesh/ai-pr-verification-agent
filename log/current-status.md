@@ -329,3 +329,10 @@ Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 - Phase III branch merge commit: `37e714385d888e0c63e810d0447f0824b18c10a3`; current main ancestor: `d9bc46f2fad9ac0527f87b6d692cb8f88929fc37`.
 - PR #6 is now based on current main and GitHub reports mergeable. Exact-head CI run `40188929251` is in progress; no green result has been claimed yet.
 - The implementation branch must remain draft until CI and end-to-end evidence reconciliation gates pass.
+
+
+## Latest exact-head CI result — 2026-10-25
+
+- Merge commit `37e714385d888e0c63e810d0447f0824b18c10a3` is based on current main and PR #6 is mergeable.
+- CI `40188929251` failed at `ruff format --check src tests`: two files would be reformatted. Downstream Ruff lint, mypy, tests, coverage and evidence production were skipped. The log does not reveal file paths, so the formatter fix is not yet landed.
+- Keep PR #6 draft. Progress remains 90% estimated pending formatter repair, green exact-head CI/artifact inspection, and final reconciliation checks.
