@@ -287,3 +287,11 @@ Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 - Bootstrap PR head: `cc4f7f5724146c298e4cd2582e12460699a65e30`. CI run `40187204525` started and was still in progress at the last check; installation step was running, so formatting/lint/mypy/tests/coverage/artifact results are not yet known.
 - PR #7 is open and unmerged. Phase III PR #6 remains draft, and its branch is still behind/diverged from main. Do not merge Phase III until bootstrap review/CI is green, branch is synchronized with main, and exact-head checks + evidence artifact pass.
 - Completion remains **85%** pending verified CI. This bootstrap addresses the missing trusted base policy/workflow prerequisite but does not itself prove the full Phase III integration is passing.
+
+
+## Root-cause resolution attempt — bootstrap CI evidence producer — 2026-10-25
+
+- Inspected bootstrap CI run `40187204525`. Quality job passed: formatting, Ruff, strict mypy, 353 tests, overall coverage (92.66% vs 90% threshold), Phase I and Phase II coverage gates. The evidence job ran the tests successfully but failed at export with `No module named verification_core.manifest_export` because the bootstrap PR had installed the producer workflow without the exporter module.
+- Fixed the sequencing gap by adding the existing Phase III `src/verification_core/manifest_export.py` exporter to bootstrap branch `phase-3-trust-bootstrap` (commit `3e3dd8de98bf1ab79b0d6cbf50eaf8689e9847bc`). This keeps strict evidence validation intact rather than weakening/skipping the producer check.
+- New bootstrap CI run `40187464587` started for the exact updated head. At last check, the quality job was still installing dependencies and the evidence job had not yet reported; no result is claimed.
+- Phase III remains at **85%** until this bootstrap run is fully green and the implementation branch receives equivalent verification on its exact current head. PR #7 remains open/unmerged; PR #6 remains draft and requires base synchronization and trusted-policy/evidence review.
