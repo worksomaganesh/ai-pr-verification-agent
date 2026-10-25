@@ -236,3 +236,13 @@ Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 - Latest Actions runs visible from the API are still for older SHAs; there is no successful run for this head. The current CI workflow was not dispatched manually because no supported dispatch action is available in this connector session.
 - A local clone/test run is unavailable because the environment cannot resolve `github.com`. Therefore syntax, lint, mypy, tests, coverage, and artifact production for the new selector mapping are unverified.
 - Phase III remains incomplete: the new `phase_three_worker.py` is not yet wired into `PhaseTwoProcessor`/`runtime.py`; selector mapping now has a helper but lacks verified regression tests; exact-head CI and the trusted-workflow-on-base bootstrap scenario remain release gates. Do not remove draft status or claim completion until these are resolved.
+
+
+## Phase III latest continuation — 2026-10-25
+
+- Added `tests/unit/test_phase_three_worker.py` with regression cases for pytest-to-JUnit selector normalization, parameterized selector IDs, invalid/oversized selectors, and trusted workflow path confinement.
+- Tightened the Phase III worker ledger protocol to require ingestion, reconciliation recording, and cleanup capabilities.
+- Rechecked the current CI workflow: quality gates run formatting, Ruff, strict mypy, the full test suite, Phase I coverage >=95%, and Phase II integration coverage >=80%; the evidence job runs per-test coverage export and uploads the artifact. The most recent successful main run is on main SHA `87b28a3a230399776933d1c3a1b1ef3110849cb9`, not the Phase III branch.
+- CI history shows repeated failures on older Phase III SHAs and no successful run for the current feature head. This new test file has not yet been executed locally or by CI.
+- **Completion estimate remains 85% (15% remaining)** under the prior scope-based estimate; no percentage increase is credited for unverified code.
+- Blocking release work: integrate the worker into `PhaseTwoProcessor`/runtime, wire Actions-read token creation and evidence-ledger lifecycle behind an explicit feature flag, test the integration and retry behavior, verify trusted workflow/policy bootstrap against main, then pass every gate and evidence artifact on one exact SHA. Keep PR #6 draft until then.
