@@ -106,6 +106,21 @@ def test_full_runner_is_fixed_and_rejects_selectors() -> None:
             "selector",
         ),
     ],
+    ids=(
+        "empty-policy",
+        "duplicate-yaml-key",
+        "boolean-version",
+        "unsupported-version",
+        "unknown-root-key",
+        "missing-trusted-workflows",
+        "unknown-runner-profile",
+        "unsafe-workflow-path",
+        "critical-rule-weakened",
+        "missing-harness-protection",
+        "invalid-obligation-severity",
+        "disabled-runner-profile",
+        "unsafe-test-selector",
+    ),
 )
 def test_invalid_policies_fail_closed(text: str, message: str) -> None:
     with pytest.raises(PolicyValidationError, match=message):
