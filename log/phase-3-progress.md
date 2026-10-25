@@ -646,3 +646,11 @@ Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 - Fixed the sequencing gap by adding the existing Phase III `src/verification_core/manifest_export.py` exporter to bootstrap branch `phase-3-trust-bootstrap` (commit `3e3dd8de98bf1ab79b0d6cbf50eaf8689e9847bc`). This keeps strict evidence validation intact rather than weakening/skipping the producer check.
 - New bootstrap CI run `40187464587` started for the exact updated head. At last check, the quality job was still installing dependencies and the evidence job had not yet reported; no result is claimed.
 - Phase III remains at **85%** until this bootstrap run is fully green and the implementation branch receives equivalent verification on its exact current head. PR #7 remains open/unmerged; PR #6 remains draft and requires base synchronization and trusted-policy/evidence review.
+
+
+## Second bootstrap CI root cause — exporter coverage — 2026-10-25
+
+- After adding `manifest_export.py`, the next bootstrap CI run `40187464587` confirmed the module import issue was addressed, but the quality suite failed the overall coverage gate: `manifest_export.py` had 0% coverage because its tests were not included in the bootstrap branch. Overall coverage fell to 86.90% against the required 90%, despite 353 existing tests passing; the evidence job was skipped because the quality job failed.
+- Added the existing dedicated `tests/unit/test_manifest_export.py` suite to the bootstrap branch (commit `42a9271a494141616818dcea33890b0b26f9a06d`). It covers exporter node-ID mapping, branch/line data, invalid SHAs, missing JUnit matches, and malformed/missing evidence inputs.
+- A new CI run for this exact head must confirm the coverage gate is restored and then execute the evidence job. No pass is claimed until that run completes.
+- Phase III stays at **85%** until the bootstrap pipeline is green and the same checks are verified on the implementation PR head.
