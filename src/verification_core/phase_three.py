@@ -488,6 +488,24 @@ def ingest_pull_request_run(
         raise EvidenceIngestionServiceError("Authenticated evidence failed validation.") from exc
 
 
+def selector_to_junit_node_id(selector: str) -> str:
+    """Translate a repo-relative pytest selector to the exporter/JUnit module node ID.
+
+    pytest selectors use paths (tests/unit/test_x.py::test_y), whereas the exporter
+    normalizes the file path to a dotted module (tests.unit.test_x::test_y).
+    Parameter IDs and nested-class selectors are preserved verbatim.
+    """
+    if not isinstance(selector, str) or not selector or len(selector) > 10_000:
+        raise EvidenceIngestionServiceError("Test selector is missing or too long.")
+    parts = selector.split("::")
+    path = parts[0]
+    if path.endswith(".py") and "/" in path:
+        path = path[:-3].replace("/", ".")
+    if not path:
+        raise EvidenceIngestionServiceError("Test selector path is empty.")
+    return "::".join((path, *parts[1:]))
+
+
 def reconcile_authenticated_obligation(
     *,
     ingested: IngestedPullRequestEvidence,
@@ -508,7 +526,7 @@ def reconcile_authenticated_obligation(
         raise EvidenceIngestionServiceError(
             "Obligation has no exact candidate test selector; evidence cannot be reconciled."
         )
-    node_id = obligation.candidate_test_id
+    node_id = selector_to_junit_node_id(obligation.candidate_test_id)
     evidence = ingested.evidence
     if not evidence.provenance.is_authentic_and_trusted(expected_commit):
         raise EvidenceIngestionServiceError(
