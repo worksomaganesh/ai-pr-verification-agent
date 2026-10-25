@@ -536,3 +536,36 @@ Run [#39902428152](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 ## Coverage gate blocker and response — 2026-10-23
 
 Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39907385124) passed formatting, Ruff, and strict mypy but failed the test command's total coverage threshold: **465 passed, 1 warning, 89.32% total (required 90%)**. Phase-specific coverage gates and the evidence producer were skipped after pytest returned nonzero. The newly added exact-head Actions run-discovery method introduced several defensive branches that lacked tests. Added parameterized API-boundary regressions for malformed totals, negative counts, malformed run collections, non-object items, invalid/duplicate run IDs, pagination-count changes, and missing page items. This is a targeted coverage increase, not a gate bypass; next exact-commit CI must pass all gates before counting progress.
+
+
+## Follow-up audit — 2026-10-25
+
+### Live repository consistency check
+
+- The live branch and PR head were reconciled to `5a0a4bc276f46cc1b1b51cd14bb539a135a1e770` before new work. This commit only fixed Ruff spacing; it had no recorded exact-head CI run when inspected.
+- The PR is still open and draft. The last confirmed green Phase III candidate remains `e6b394ea9f598a7a12d4b98728eeb94d6f4cdc32` with run [#39817505536](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39817505536). It does not verify later changes.
+- Main has advanced with a log-only commit after the recorded Phase III merge base. Do not assume branch freshness from old log snapshots.
+
+### Code integration audit and follow-up change
+
+- Inspected `phase_two.py`, `runtime.py`, `phase_three.py`, the authenticated GitHub App client, workflow, policy model, and tests.
+- Phase III currently has ingestion, reconciliation, and safe-publication primitives, but `PhaseTwoProcessor.process_next()` still publishes the Phase II planning result directly. `runtime.py` does not construct an Actions client or an evidence ledger. No verified completion-event path was found that selects an exact-head workflow run and routes it through the Phase III functions. Therefore end-to-end Phase III runtime integration remains **not implemented/verified**; the existing primitives alone do not close this gap.
+- The current CI workflow is not a valid trusted evidence producer at the protected base SHA until it is deployed on main and a later PR can consume it. The existing workflow file also does not include the new authenticated ingestion path.
+- Added an opt-in `include_actions_read` argument to the GitHub App installation-token minting function. Existing Phase II callers retain the original least-privilege permission set; Phase III can explicitly request `actions:read` for workflow/job/artifact metadata. Added a parameterized unit-test expectation and documented the permission boundary. These changes are committed to the Phase III branch, but have **not yet been run through CI**.
+
+### Verification status and lesson
+
+- Confirmed by live GitHub API that the branch and PR head matched after the source change, then additional test/documentation commits were created. The branch head must be re-read again before claiming any subsequent write is delivered.
+- Local test execution was not possible in this session because the execution environment could not resolve `github.com` for a clone. No test result is claimed for the new commits.
+- Lesson: distinguish module-level implementation from the event-to-runtime path, and distinguish a successful GitHub write from a green, exact-SHA verification run.
+
+### Remaining blockers
+
+1. Wire an explicit workflow-completion/event path to exact-head run selection, authenticated ingestion, ledger persistence, target-line/branch reconciliation, and final freshness-checked Check Run publication.
+2. Supply Actions:read only for the Phase III processing path and add adapter tests for workflow run/job/artifact access.
+3. Prove that trusted assertion bindings and target locations come from independent protected policy/source analysis, not the artifact itself.
+4. Resolve the main-branch bootstrap constraint by deploying a trusted producer on main, then test ingestion from a subsequent PR.
+5. Run formatting, Ruff, strict mypy, all tests, total coverage, Phase I/II gates, and artifact production on one exact SHA.
+6. Test failure modes (missing/duplicate/expired artifacts, reruns, partial/sharded reports, stale PR, API failure, contradictory evidence, and publication/ledger failures) before changing the PR out of draft.
+
+**Progress estimate:** retain the historical 85% estimate only as a conversation milestone. For release completion, Phase III remains blocked and must not be represented as finished.
