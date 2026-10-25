@@ -336,3 +336,9 @@ Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 - Merge commit `37e714385d888e0c63e810d0447f0824b18c10a3` is based on current main and PR #6 is mergeable.
 - CI `40188929251` failed at `ruff format --check src tests`: two files would be reformatted. Downstream Ruff lint, mypy, tests, coverage and evidence production were skipped. The log does not reveal file paths, so the formatter fix is not yet landed.
 - Keep PR #6 draft. Progress remains 90% estimated pending formatter repair, green exact-head CI/artifact inspection, and final reconciliation checks.
+
+
+## Formatter fixes submitted — 2026-10-25
+
+- Ruff identified `tests/unit/test_phase_three_worker.py` and `tests/unit/test_runtime.py` as the two unformatted files. Formatting edits committed as `c3d170bb3cc0606752c65d5f512af741d7521227` and `7f08de6b4b08a08a9e7931b580015cc39318de5c`.
+- Exact-head CI run `40189200153` is pending at this checkpoint. Keep PR #6 draft until the complete workflow and artifact gates pass.
