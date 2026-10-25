@@ -97,7 +97,7 @@ def test_workflow_run_listing_rejects_wrong_head_and_bad_sha() -> None:
         ([{"total_count": "1", "workflow_runs": []}], "invalid total_count"),
         ([{"total_count": -1, "workflow_runs": []}], "invalid total_count"),
         ([{"total_count": 1, "workflow_runs": {}}], "malformed"),
-        ([{"total_count": 1, "workflow_runs": [None]}], "workflow run listing item"),
+        ([{"total_count": 1, "workflow_runs": [None]}], "malformed item"),
         (
             [{"total_count": 1, "workflow_runs": [{"id": 0, "head_sha": "a" * 40}]}],
             "invalid ID",

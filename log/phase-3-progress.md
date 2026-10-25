@@ -728,3 +728,11 @@ Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 - On `dfc3223e358e347f00c6001e28246f8a171f7ae4`, formatter, Ruff lint and strict mypy passed. Tests reported `496 passed, 1 failed`; failure was `test_workflow_run_listing_rejects_malformed_or_incomplete_api_responses[non-object-run]`. The generic mapping helper leaked base `GitHubAPIError` instead of the Actions-specific `GitHubActionsAPIError` expected at the client boundary.
 - Overall coverage was `87.53%`, below the required 90%. Phase III worker module coverage was only 23%, which exposes a real test gap: trust-boundary helper tests existed, but the full orchestration path was not exercised. No coverage threshold was lowered.
 - Fixed the malformed run mapping boundary to translate the generic mapping exception into sanitized `GitHubActionsAPIError`. Next work must add focused orchestration tests for fail-closed and successful evidence paths, then rerun all coverage gates and inspect the uploaded manifest. Phase III remains **90% estimated**, not complete.
+
+
+## Orchestration coverage and API error contract tests — 2026-10-25
+
+- Latest CI `40194068208` on `8c071cc8e7ad88d453bff2314cd34387dda6cce3`: `496 passed, 1 failed`; the only failure expected the old internal mapping text, but the safe external error is `Workflow-run listing contained a malformed item.`. Updated the test to expect `malformed item` without changing production behavior.
+- Overall coverage was 87.53% against the 90% threshold; `phase_three_worker.py` was 23% covered. Added tests for exact-head trusted-run selection, workflow allowlisting, ambiguity rejection, changed-line mapping, policy-bound JUnit selectors, missing/in-progress retries, failed-run inconclusive publication, and the successful ingest → reconcile → publish path.
+- The new tests are committed for execution but are not yet locally or CI verified. A green exact-head run must show the coverage gate passed and the evidence artifact uploaded before claiming phase completion.
+- Completion remains **90% estimated** until those gates pass.
