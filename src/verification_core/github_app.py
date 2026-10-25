@@ -215,21 +215,28 @@ class GitHubAppAuthenticator:
             raise GitHubAPIError("GitHub App JWT encoder returned an invalid token.")
         return token
 
-    def create_installation_token(self, installation_id: int) -> InstallationToken:
-        """Exchange an App JWT for one installation token; never log or persist the token."""
+    def create_installation_token(
+        self, installation_id: int, *, include_actions_read: bool = False
+    ) -> InstallationToken:
+        """Mint a least-privilege token, optionally granting read-only Actions evidence access."""
         if type(installation_id) is not int or installation_id < 1:
             raise ValueError("installation_id must be a positive integer")
+        if type(include_actions_read) is not bool:
+            raise ValueError("include_actions_read must be a boolean")
+        permissions = {
+            "contents": "read",
+            "pull_requests": "read",
+            "checks": "write",
+        }
+        if include_actions_read:
+            # Phase III needs Actions:read to inspect workflow runs, jobs, and artifacts.
+            # Keep it opt-in so existing Phase II deployments remain least-privilege.
+            permissions["actions"] = "read"
         payload = _request_json(
             self._client,
             "POST",
             f"/app/installations/{installation_id}/access_tokens",
-            json_body={
-                "permissions": {
-                    "contents": "read",
-                    "pull_requests": "read",
-                    "checks": "write",
-                }
-            },
+            json_body={"permissions": permissions},
             authorization=f"Bearer {self.create_app_jwt()}",
         )
         data = _mapping(payload, "installation token response")
