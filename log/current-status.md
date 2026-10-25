@@ -218,3 +218,12 @@ Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 6. Test failure modes (missing/duplicate/expired artifacts, reruns, partial/sharded reports, stale PR, API failure, contradictory evidence, and publication/ledger failures) before changing the PR out of draft.
 
 **Progress estimate:** retain the historical 85% estimate only as a conversation milestone. For release completion, Phase III remains blocked and must not be represented as finished.
+
+
+## Phase III orchestration follow-up — 2026-10-25
+
+- Added `src/verification_core/phase_three_worker.py` as an orchestration layer around existing Phase III primitives: exact-head workflow-run selection, trusted-workflow allowlisting, pending-run retry signaling, fail-closed handling for failed/untrusted runs, evidence ingestion, policy-bound selector matching, changed-line target reconciliation, and final publication.
+- Ambiguous multiple trusted runs are rejected rather than merged. Missing mappings and unaccepted evidence are not allowed to produce a verified success. Assertion binding is only accepted when the trusted base policy contains the exact selector/category/severity tuple.
+- This is a new orchestration module, **not yet wired into `PhaseTwoProcessor` or the deployment runtime**. It must not be described as end-to-end integration until the queue processor calls it and the deployment supplies a GitHub Actions client plus evidence ledger.
+- No local tests or type-check were run in this environment: cloning from GitHub failed because the runtime cannot resolve `github.com`. The new module has not yet passed CI, so no green result is claimed.
+- Next required steps: connect the module to the retry-aware queue worker with opt-in Actions permission; add unit tests for run selection, pending/failed/ambiguous runs, and evidence mapping; ensure runtime config instantiates the evidence ledger; then pass formatting, Ruff, strict mypy, all tests, total/phase coverage gates, and artifact job on the same SHA. Keep PR #6 draft until all gates pass.
