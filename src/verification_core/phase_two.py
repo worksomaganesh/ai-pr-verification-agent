@@ -9,13 +9,14 @@ from verification_core.delivery_store import DeliveryStoreError, SQLiteDeliveryS
 from verification_core.domain import (
     ConclusionPolicyConfig,
     VerificationRunEvaluation,
-    evaluate_verification_run,
+    evaluate_verification_run as evaluate_verification_run,
 )
 from verification_core.github_actions import GitHubActionsClient
 from verification_core.github_app import GitHubAPIError, GitHubRESTClient, InstallationToken
 from verification_core.github_context import assemble_pull_request_context
 from verification_core.phase_three_worker import (
     PhaseThreeLedgerPort,
+    PhaseThreeRunPending as PhaseThreeRunPending,
     WorkflowRunListingPort,
     process_pull_request_evidence,
 )

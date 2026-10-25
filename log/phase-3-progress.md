@@ -705,3 +705,11 @@ Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 - Applied a single grouped fix: wrapped the two overlong strings/docstring, removed the unused import (retry status is mapped by exception class name in the existing handler), and sorted standard-library imports. No behavior or validation thresholds were changed.
 - Latest attempt had no downstream mypy/test/coverage/artifact results because lint stopped the quality job. The next exact-head CI must validate the full pipeline.
 - Completion remains `90% (estimated)`; no increase until complete CI and evidence reconciliation pass on one exact implementation SHA.
+
+
+## Strict-mypy compatibility fix — 2026-10-25
+
+- CI `40189447960`: Ruff formatting and lint passed. Strict mypy then reported that `tests/unit/test_phase_two.py` patches `phase_two.evaluate_verification_run` and `phase_two.PhaseThreeRunPending`, but those imported names were not explicitly exported by the module.
+- Corrected this by using explicit self-alias imports in `phase_two.py` for the two intentionally exposed names. This preserves the existing Phase II test seam and exception handler while satisfying mypy's explicit-export rule. No runtime logic changed.
+- Unit tests, coverage gates, and artifact production were skipped after mypy failed; exact-head CI must rerun.
+- Phase III stays at 90% estimated pending green CI and evidence-to-obligation acceptance.

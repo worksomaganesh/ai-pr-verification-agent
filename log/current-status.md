@@ -349,3 +349,9 @@ Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 - Formatter now passes. CI `40189249042` exposed four Ruff findings: two long lines in `phase_three_worker.py`, unused `PhaseThreeRunPending` import in `phase_two.py`, and import ordering in `tests/unit/test_phase_two.py`.
 - These are being fixed together in one commit to avoid cancelling CI repeatedly with intermediate commits. Behavior/security boundaries are unchanged.
 - Keep PR #6 draft until lint, strict mypy, tests, coverage gates, evidence artifact, and end-to-end reconciliation all pass on one exact SHA.
+
+
+## Strict-mypy failure and targeted fix — 2026-10-25
+
+- Ruff format/lint passed on `42f4dccb5ab33a101690c3a519091a3e2872beea`. Strict mypy found two module export errors: tests monkeypatch `phase_two.evaluate_verification_run` and reference `phase_two.PhaseThreeRunPending`.
+- Added explicit self-alias imports in `phase_two.py` to declare these as intentional module exports. No behavior change intended. CI must confirm.
