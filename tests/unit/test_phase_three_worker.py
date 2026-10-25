@@ -14,7 +14,11 @@ from verification_core.domain.enums import (
     ObligationStatus,
     Severity,
 )
-from verification_core.domain.models import CommitIdentity, ConclusionPolicyConfig, VerificationObligation
+from verification_core.domain.models import (
+    CommitIdentity,
+    ConclusionPolicyConfig,
+    VerificationObligation,
+)
 from verification_core.phase_three import EvidenceIngestionServiceError, selector_to_junit_node_id
 from verification_core.phase_three_worker import (
     PhaseThreeRunPending,

@@ -736,3 +736,9 @@ Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 - Overall coverage was 87.53% against the 90% threshold; `phase_three_worker.py` was 23% covered. Added tests for exact-head trusted-run selection, workflow allowlisting, ambiguity rejection, changed-line mapping, policy-bound JUnit selectors, missing/in-progress retries, failed-run inconclusive publication, and the successful ingest → reconcile → publish path.
 - The new tests are committed for execution but are not yet locally or CI verified. A green exact-head run must show the coverage gate passed and the evidence artifact uploaded before claiming phase completion.
 - Completion remains **90% estimated** until those gates pass.
+
+
+## New orchestration-test formatter correction — 2026-10-25
+
+- Exact-head CI `40194545728` stopped at formatting before lint/tests: `tests/unit/test_phase_three_worker.py:17` contained one overlong import line. Split the import into Ruff's canonical parenthesized format.
+- No behavioral changes made. Re-run all gates on the resulting exact head before treating new orchestration coverage as validated.
