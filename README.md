@@ -11,7 +11,7 @@ The system answers: what behavior could change, which obligations follow from th
 Phase 1A and 1B provide the deterministic domain core, strict base-policy schema, fixed runner profiles, bounded evidence parsing, evidence sufficiency rules, secret scrubbing, and the adversarial false-green scenario. The Phase I release gate was previously verified with 167 tests and 97.30% coverage; Phase II CI reruns the expanded suite against the integration code.
 
 Phase II now adds:
-- GitHub App RS256 JWT and short-lived installation-token exchange, requesting only contents:read, pull_requests:read, and checks:write;
+- GitHub App RS256 JWT and short-lived installation-token exchange, requesting contents:read, pull_requests:read, and checks:write; Phase III opts in to additional actions:read only when evidence ingestion is enabled;
 - bounded GitHub REST access with exact-SHA policy reads, paginated PR files, commit/tree-based test inventory, response-size limits, timeout/rate-limit classification, and no redirect following;
 - a FastAPI webhook endpoint that verifies the raw HMAC-SHA256 body before parsing, rejects duplicate JSON keys, caps streamed request bodies, and acknowledges only after durable enqueue;
 - a transactional SQLite delivery queue with delivery-ID fingerprinting, duplicate suppression, worker leases, bounded retries, and recovery of expired leases;
