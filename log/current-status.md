@@ -266,3 +266,14 @@ Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 - The trusted policy file `.verification-policy.yml` is missing from main, and the checked-in CI workflow is still named Phase II and does not explicitly restrict the evidence artifact to a trusted workflow identity. The context assembler correctly fails closed without base policy; do not bypass by reading policy from the PR head.
 - New code/tests are not executed in this environment; therefore formatting, strict mypy, tests, coverage, and artifact generation remain unverified.
 - **Completion estimate remains 85%**. Next hard blockers: run the new tests and fix any failures; add a separate reviewed bootstrap PR for a minimal valid policy on the protected base plus a trusted evidence-workflow identity; then pass all exact-SHA CI and artifact gates. Keep PR #6 draft until those gates pass.
+
+
+## Latest Phase III continuation — 2026-10-25
+
+- Inspected failed PR CI run `39907824858`: it failed at `ruff format --check src tests` before lint, strict mypy, tests, coverage, or evidence-artifact generation could run. The run was for older head `ce5f0c5b70112bc4885aaf5c4a2442637345deaa`, not the latest branch head.
+- Fixed the concrete formatting issue identified from source review: sorted Phase III worker imports and Phase II processor imports.
+- Fixed a correctness issue in Phase III evidence reconciliation: trusted policy selectors are configured as pytest node IDs (path with `::`), while the coverage manifest records normalized JUnit node IDs (dotted module classname). Worker assertion bindings now normalize selectors before reconciliation, avoiding false evidence misses.
+- Added explicit `close()` to the Actions workflow-listing protocol so lifecycle cleanup is represented in the interface.
+- Latest code head at log update: `016e7115bb2edb0b072e9327c5d32a08a3b06071`. No CI run has been observed for this exact head yet; changes are not yet test-verified.
+- Base branch `main` remains one commit ahead of the merge base and contains no `.verification-policy.yml`. Do not bypass the protected-base trust rule. The Phase III PR has 128 commits ahead and is one behind main; synchronize carefully before final acceptance.
+- Completion estimate remains **85%** until formatting, Ruff, strict mypy, full tests, coverage thresholds, and exact-head evidence artifact all pass. Phase III is not release-complete.
