@@ -1,0 +1,44 @@
+# Trusted verification policy. This file must be loaded only from the protected PR base SHA.
+version: 1
+
+trusted_workflows:
+  - .github/workflows/ci.yml
+
+runner_profiles:
+  - pytest_targeted
+
+severity_rules:
+  critical:
+    blocking: true
+    human_approval_allowed: true
+  high:
+    blocking: true
+    human_approval_allowed: true
+  medium:
+    blocking: false
+    human_approval_allowed: true
+  low:
+    blocking: false
+    human_approval_allowed: true
+
+harness_sensitive_paths:
+  - .verification-policy.yml
+  - .github/workflows/
+  - conftest.py
+  - pytest.ini
+  - pyproject.toml
+  - package.json
+
+obligations:
+  - id: OBL-HARN-01
+    category: verification_harness_integrity
+    severity: critical
+    claim: Missing or untrusted base policy must be rejected without falling back to PR-head configuration.
+    runner_profile: pytest_targeted
+    selector: tests/unit/test_github_context.py::test_missing_policy_is_not_replaced_with_defaults
+  - id: OBL-RUN-01
+    category: runtime_regression
+    severity: medium
+    claim: Critical obligations without execution evidence must not be reported as passed.
+    runner_profile: pytest_targeted
+    selector: tests/unit/test_phase_two.py::test_processor_publishes_action_required_for_unexecuted_critical_obligations

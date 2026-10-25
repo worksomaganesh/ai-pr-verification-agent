@@ -106,6 +106,21 @@ def test_full_runner_is_fixed_and_rejects_selectors() -> None:
             "selector",
         ),
     ],
+    ids=(
+        "empty-policy",
+        "duplicate-yaml-key",
+        "boolean-version",
+        "unsupported-version",
+        "unknown-root-key",
+        "missing-trusted-workflows",
+        "unknown-runner-profile",
+        "unsafe-workflow-path",
+        "critical-rule-weakened",
+        "missing-harness-protection",
+        "invalid-obligation-severity",
+        "disabled-runner-profile",
+        "unsafe-test-selector",
+    ),
 )
 def test_invalid_policies_fail_closed(text: str, message: str) -> None:
     with pytest.raises(PolicyValidationError, match=message):
@@ -171,6 +186,7 @@ def test_command_rejects_disabled_profile_and_missing_selector() -> None:
         "version: 1\x00",
         "\ud800",
     ],
+    ids=("oversized-policy", "nul-policy", "invalid-unicode-policy"),
 )
 def test_input_size_nul_and_invalid_unicode_are_rejected(invalid_text: str) -> None:
     with pytest.raises(PolicyValidationError):
