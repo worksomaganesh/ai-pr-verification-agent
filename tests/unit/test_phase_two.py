@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, cast
+from types import SimpleNamespace
 
 import pytest
 
@@ -229,3 +230,119 @@ def test_processor_rejects_invalid_check_name(tmp_path: Any) -> None:
     store = SQLiteDeliveryStore(str(tmp_path / "empty.sqlite3"))
     with pytest.raises(ValueError):
         phase_two.PhaseTwoProcessor(store=store, authenticator=FakeAuthenticator(), check_name="")
+
+
+def test_phase_three_worker_is_opt_in_and_requests_actions_read(
+    tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    store = make_store(tmp_path, event("phase-three-enabled"))
+    fake_client = FakeRESTClient()
+    monkeypatch.setattr(phase_two, "GitHubRESTClient", lambda _token: fake_client)
+
+    class PhaseThreeAuthenticator(FakeAuthenticator):
+        def __init__(self) -> None:
+            super().__init__()
+            self.actions_read_requested = False
+
+        def create_installation_token(
+            self, installation_id: int, *, include_actions_read: bool = False
+        ) -> InstallationToken:
+            self.actions_read_requested = include_actions_read
+            return super().create_installation_token(installation_id)
+
+    class FakeActionsClient:
+        def __init__(self) -> None:
+            self.closed = False
+
+        def close(self) -> None:
+            self.closed = True
+
+    class FakeEvidenceLedger:
+        def __init__(self) -> None:
+            self.closed = False
+
+        def close(self) -> None:
+            self.closed = True
+
+    auth = PhaseThreeAuthenticator()
+    actions = FakeActionsClient()
+    evidence_ledger = FakeEvidenceLedger()
+    calls: list[dict[str, Any]] = []
+
+    def fake_phase_three_worker(**kwargs: Any) -> Any:
+        calls.append(kwargs)
+        planning = kwargs["planning"]
+        evaluation = phase_two.evaluate_verification_run(
+            commit=kwargs["commit"],
+            obligations=planning.obligations,
+            analysis_completeness=planning.analysis_completeness,
+            policy_config=kwargs["policy_config"],
+            policy_valid=True,
+        )
+        return SimpleNamespace(
+            publication=SimpleNamespace(evaluation=evaluation, check_run_id=5678),
+            summary="Mocked Phase III evidence reconciliation result.",
+        )
+
+    monkeypatch.setattr(phase_two, "process_pull_request_evidence", fake_phase_three_worker)
+    processor = phase_two.PhaseTwoProcessor(
+        store=store,
+        authenticator=auth,
+        phase_three_enabled=True,
+        evidence_ledger=cast(Any, evidence_ledger),
+        actions_client_factory=cast(Any, lambda _token: actions),
+    )
+    result = processor.process_next()
+
+    assert result is not None
+    assert result.status == "completed"
+    assert result.check_run_id == 5678
+    assert auth.actions_read_requested is True
+    assert len(calls) == 1
+    assert calls[0]["evidence_ledger"] is evidence_ledger
+    assert actions.closed is True
+    processor.close()
+    assert evidence_ledger.closed is True
+
+
+def test_phase_three_pending_run_is_retried_and_client_closed(
+    tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    store = make_store(tmp_path, event("phase-three-pending"))
+    fake_client = FakeRESTClient()
+    monkeypatch.setattr(phase_two, "GitHubRESTClient", lambda _token: fake_client)
+
+    class PhaseThreeAuthenticator(FakeAuthenticator):
+        def create_installation_token(
+            self, installation_id: int, *, include_actions_read: bool = False
+        ) -> InstallationToken:
+            assert include_actions_read is True
+            return super().create_installation_token(installation_id)
+
+    class FakeActionsClient:
+        def __init__(self) -> None:
+            self.closed = False
+
+        def close(self) -> None:
+            self.closed = True
+
+    actions = FakeActionsClient()
+
+    def pending_worker(**_kwargs: Any) -> Any:
+        raise phase_two.PhaseThreeRunPending("workflow still running")
+
+    monkeypatch.setattr(phase_two, "process_pull_request_evidence", pending_worker)
+    processor = phase_two.PhaseTwoProcessor(
+        store=store,
+        authenticator=PhaseThreeAuthenticator(),
+        phase_three_enabled=True,
+        evidence_ledger=cast(Any, object()),
+        actions_client_factory=cast(Any, lambda _token: actions),
+    )
+    result = processor.process_next()
+
+    assert result is not None
+    assert result.status == "retrying"
+    assert result.reason_code == "phase3_run_pending"
+    assert store.get_status("phase-three-pending") == "pending"
+    assert actions.closed is True
