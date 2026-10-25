@@ -91,8 +91,9 @@ def test_worker_can_use_a_separate_sqlalchemy_run_ledger(tmp_path: Path) -> None
     authenticator.close()
 
 
-
-def test_phase_three_runtime_requires_evidence_database_when_enabled(tmp_path: Path) -> None:
+def test_phase_three_runtime_requires_evidence_database_when_enabled(
+    tmp_path: Path,
+) -> None:
     with pytest.raises(RuntimeError, match="VERIFICATION_EVIDENCE_DATABASE_URL"):
         create_processor_from_environment(
             {
