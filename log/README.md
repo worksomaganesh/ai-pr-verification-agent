@@ -11,7 +11,6 @@ A Git commit says what changed in a repository snapshot. This log explains the r
 - [Phase II build history](phase-2-build-history.md)
 - [Phase III investigation log](phase-3-investigation.md)
 - [Phase III progress, milestones, and CI evidence](phase-3-progress.md)
-- [Phase III progress, milestones, and CI evidence](phase-3-progress.md)
 - [Engineering lessons learned](lessons-learned.md)
 - [Current verified status](current-status.md)
 
