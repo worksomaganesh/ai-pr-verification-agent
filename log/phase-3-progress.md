@@ -673,3 +673,12 @@ Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 - Added explicit short IDs to the 13 invalid-policy document cases on bootstrap branch (commit `3383880b381b323ff8b09b18be30d4aa58f8764d`) and 14 adversarial workflow-source cases on Phase III branch (commit `5c7d2cea11d6d02c52dc39ccc2bd11a85ab99601`). Kept all negative cases and all manifest limits unchanged.
 - New bootstrap CI run `40188223783` is in progress. The prior run's export error is confirmed; the new exact-head result is not yet known.
 - Phase III remains **85%** until current bootstrap CI passes through evidence upload, bootstrap PR is reviewed/merged, and the implementation PR is synchronized with main and green on its exact head.
+
+
+## Trusted-base merge landed; exact-head CI pending — 2026-10-25
+
+- Created merge commit `37e714385d888e0c63e810d0447f0824b18c10a3` with parents Phase III pre-merge `0346eba9fcbe4b1cdd10dc61c42ec31e25cfa5c2` and trusted main `d9bc46f2fad9ac0527f87b6d692cb8f88929fc37`. This preserves Phase III implementation history and records the bootstrap as an ancestor without force-pushing.
+- Preserved the Phase III implementation tree, trusted policy/workflow/exporter content, Phase III status/investigation logs, and incorporated main's latest lessons-learned and project-history entries.
+- Updated branch ref with expected-head guard. PR #6 base now matches current main; compare says ahead 148 / behind 0, and GitHub reports mergeable true.
+- Exact-head CI run `40188929251` started on merge SHA `37e714385d888e0c63e810d0447f0824b18c10a3`. At log time the Python 3.12 job was installing dependencies; formatting, Ruff, strict mypy, tests, coverage gates and evidence artifact are not yet verified on this SHA.
+- Phase III is **90% estimated**. Remaining acceptance: green exact-head CI, inspect artifact + digest/inventory, finish evidence-to-obligation/terminal Check Run integration and fail-closed edge cases; only then remove draft/merge PR #6.
