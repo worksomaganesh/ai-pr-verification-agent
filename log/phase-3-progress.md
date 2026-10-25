@@ -721,3 +721,10 @@ Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 - Follow-up fix separates the two intentional module re-exports from normal import groups and uses `isinstance(exc, PhaseThreeRunPending)` for retry classification rather than relying only on a class-name string. This makes the exception import semantically used, keeps retry behavior type-safe, and retains the monkeypatch/test seam for `evaluate_verification_run`.
 - Exact-head CI run `40189546516` failed at Ruff import sorting for the alias block; tests/type checking were skipped. The next exact-head run must confirm this consolidated fix and then exercise downstream tests, coverage, and artifact export.
 - Progress remains **90% estimated** until the full pipeline is green on one SHA.
+
+
+## Unit-test and coverage gate blocker — 2026-10-25
+
+- On `dfc3223e358e347f00c6001e28246f8a171f7ae4`, formatter, Ruff lint and strict mypy passed. Tests reported `496 passed, 1 failed`; failure was `test_workflow_run_listing_rejects_malformed_or_incomplete_api_responses[non-object-run]`. The generic mapping helper leaked base `GitHubAPIError` instead of the Actions-specific `GitHubActionsAPIError` expected at the client boundary.
+- Overall coverage was `87.53%`, below the required 90%. Phase III worker module coverage was only 23%, which exposes a real test gap: trust-boundary helper tests existed, but the full orchestration path was not exercised. No coverage threshold was lowered.
+- Fixed the malformed run mapping boundary to translate the generic mapping exception into sanitized `GitHubActionsAPIError`. Next work must add focused orchestration tests for fail-closed and successful evidence paths, then rerun all coverage gates and inspect the uploaded manifest. Phase III remains **90% estimated**, not complete.

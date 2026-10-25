@@ -228,7 +228,12 @@ class GitHubActionsClient:
             if not isinstance(raw_runs, list) or len(raw_runs) > _MAX_PAGE_SIZE:
                 raise GitHubActionsAPIError("Workflow-run listing was malformed.")
             for raw_run in raw_runs:
-                run = _mapping(raw_run, "workflow run listing item")
+                try:
+                    run = _mapping(raw_run, "workflow run listing item")
+                except GitHubAPIError as exc:
+                    raise GitHubActionsAPIError(
+                        "Workflow-run listing contained a malformed item."
+                    ) from exc
                 run_id = run.get("id")
                 if type(run_id) is not int or run_id < 1:
                     raise GitHubActionsAPIError("Workflow-run listing contained an invalid ID.")
