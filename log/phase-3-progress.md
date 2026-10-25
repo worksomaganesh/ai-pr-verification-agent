@@ -682,3 +682,11 @@ Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 - Updated branch ref with expected-head guard. PR #6 base now matches current main; compare says ahead 148 / behind 0, and GitHub reports mergeable true.
 - Exact-head CI run `40188929251` started on merge SHA `37e714385d888e0c63e810d0447f0824b18c10a3`. At log time the Python 3.12 job was installing dependencies; formatting, Ruff, strict mypy, tests, coverage gates and evidence artifact are not yet verified on this SHA.
 - Phase III is **90% estimated**. Remaining acceptance: green exact-head CI, inspect artifact + digest/inventory, finish evidence-to-obligation/terminal Check Run integration and fail-closed edge cases; only then remove draft/merge PR #6.
+
+
+## Exact-head CI blocker after merge commit — 2026-10-25
+
+- CI run `40188929251` on `37e714385d888e0c63e810d0447f0824b18c10a3` failed at the first formatting gate. Log says: `2 files would be reformatted, 54 files already formatted`. Ruff lint, strict mypy, tests, coverage gates, and evidence artifact job were skipped as a result.
+- GitHub job output does not identify the two paths. A direct clone attempt in the execution environment failed because network DNS to github.com is unavailable; therefore I could not safely run `ruff format` locally or verify a formatting patch. Do not guess which files need reformatting or claim the fix is implemented.
+- Merge integration itself is verified: branch points to merge commit `37e714385d888e0c63e810d0447f0824b18c10a3`, PR #6 targets main `d9bc46f2fad9ac0527f87b6d692cb8f88929fc37`, GitHub reports mergeable true, and compare reports zero commits behind main.
+- Phase III remains **90% estimated**. Next action is obtain exact formatter paths (run formatter locally or temporarily add a diagnostic formatter-diff step), commit only the resulting deterministic formatting changes, then rerun all gates and inspect artifact. Do not remove draft or merge before green exact-head CI and end-to-end reconciliation verification.
