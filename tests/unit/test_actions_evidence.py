@@ -498,6 +498,22 @@ def test_phase_three_service_binds_base_workflow_and_rechecks_pr() -> None:
             "per-test coverage and junit.xml",
         ),
     ],
+    ids=(
+        "push-only-trigger",
+        "unpinned-upload-action",
+        "wrong-artifact-name",
+        "wildcard-artifact-path",
+        "missing-file-fails-open",
+        "conditional-upload",
+        "missing-upload-action",
+        "duplicate-upload-action",
+        "malformed-workflow",
+        "duplicate-job",
+        "renamed-upload-step",
+        "wrong-checkout-ref",
+        "wrong-exporter",
+        "per-test-coverage-disabled",
+    ),
 )
 def test_phase_three_rejects_unverifiable_base_workflow_contract(source: str, message: str) -> None:
     from verification_core.phase_three import EvidenceIngestionServiceError, ingest_pull_request_run
