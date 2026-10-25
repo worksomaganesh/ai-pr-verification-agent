@@ -246,3 +246,13 @@ Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 - CI history shows repeated failures on older Phase III SHAs and no successful run for the current feature head. This new test file has not yet been executed locally or by CI.
 - **Completion estimate remains 85% (15% remaining)** under the prior scope-based estimate; no percentage increase is credited for unverified code.
 - Blocking release work: integrate the worker into `PhaseTwoProcessor`/runtime, wire Actions-read token creation and evidence-ledger lifecycle behind an explicit feature flag, test the integration and retry behavior, verify trusted workflow/policy bootstrap against main, then pass every gate and evidence artifact on one exact SHA. Keep PR #6 draft until then.
+
+
+## Runtime integration milestone — 2026-10-25
+
+- Connected `PhaseTwoProcessor` to the Phase III worker behind `phase_three_enabled=False` by default. Existing Phase II deployments keep the previous path unless explicitly opted in.
+- Phase III mode requests an installation token with `actions:read`, constructs a token-scoped `GitHubActionsClient`, calls the evidence worker, persists the resulting decision to the run ledger, and closes the Actions client. Pending/nonterminal workflow states are retryable rather than being treated as passing evidence.
+- Runtime configuration now accepts `VERIFICATION_PHASE_THREE_ENABLED=true|false` and requires `VERIFICATION_EVIDENCE_DATABASE_URL` when enabled. Added environment-validation tests for the flag and required evidence database.
+- Added more workflow-state regression cases in `tests/unit/test_phase_three_worker.py`.
+- These are committed changes but **not yet locally tested or green on CI**. A GitHub API check after the latest commits showed no Actions run for current head `6cf039b7d977e4b01225a47b3e418c3e068a2834`; the newest visible green run was on older main SHA `87b28a3a230399776933d1c3a1b1ef3110849cb9`.
+- Completion estimate remains **85%**, because the new runtime path and tests are unverified and integration risks remain. Before release: run formatter/Ruff/mypy and tests; fix any failures; add a real worker-level test for the feature flag and mocked Actions client; verify trusted base policy/workflow bootstrap; pass both coverage thresholds and evidence artifact production on the exact final SHA.
