@@ -232,7 +232,11 @@ def process_pull_request_evidence(
     status = selected.get("status")
     if status in {"queued", "in_progress", "requested", "waiting", "pending"}:
         raise PhaseThreeRunPending("The trusted workflow run has not completed yet.")
-    if status != "completed" or selected.get("conclusion") != "success":
+    if status != "completed":
+        # Cancelled/timed-out runs can be superseded by a rerun for the same exact head.
+        # Leave the delivery retryable instead of publishing a terminal result too early.
+        raise PhaseThreeRunPending("The trusted workflow has not reached a terminal state.")
+    if selected.get("conclusion") != "success":
         return _publish_without_accepted_evidence(
             github=github,
             commit=commit,
