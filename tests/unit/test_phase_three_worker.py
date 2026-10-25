@@ -172,16 +172,25 @@ def test_workflow_path_is_normalized_and_confined(
 
 def test_trusted_run_selection_requires_exact_head_event_and_workflow() -> None:
     eligible = success_run()
-    assert _select_trusted_run(
-        runs=(eligible,), commit=commit(), trusted_paths=(".github/workflows/ci.yml",)
-    ) == eligible
-    assert _select_trusted_run(
-        runs=(eligible,), commit=commit(), trusted_paths=(".github/workflows/release.yml",)
-    ) is None
+    assert (
+        _select_trusted_run(
+            runs=(eligible,), commit=commit(), trusted_paths=(".github/workflows/ci.yml",)
+        )
+        == eligible
+    )
+    assert (
+        _select_trusted_run(
+            runs=(eligible,), commit=commit(), trusted_paths=(".github/workflows/release.yml",)
+        )
+        is None
+    )
     wrong_head = dict(eligible, head_sha="3" * 40)
-    assert _select_trusted_run(
-        runs=(wrong_head,), commit=commit(), trusted_paths=(".github/workflows/ci.yml",)
-    ) is None
+    assert (
+        _select_trusted_run(
+            runs=(wrong_head,), commit=commit(), trusted_paths=(".github/workflows/ci.yml",)
+        )
+        is None
+    )
 
 
 def test_trusted_run_selection_fails_closed_on_ambiguity() -> None:
