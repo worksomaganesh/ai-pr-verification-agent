@@ -9,6 +9,7 @@ from pathlib import Path
 from fastapi import FastAPI
 
 from verification_core.delivery_store import SQLiteDeliveryStore
+from verification_core.evidence_ledger import SQLAlchemyEvidenceLedger
 from verification_core.gemini_planner import gemini_model_from_environment
 from verification_core.github_app import GitHubAppAuthenticator
 from verification_core.phase_two import PhaseTwoProcessor
@@ -51,11 +52,25 @@ def create_processor_from_environment(
     model = gemini_model_from_environment(environment)
     run_database_url = environment.get("VERIFICATION_RUNS_DATABASE_URL", "")
     run_ledger = SQLAlchemyRunLedger(run_database_url) if run_database_url else store
+    phase_three_enabled_text = environment.get("VERIFICATION_PHASE_THREE_ENABLED", "false")
+    if phase_three_enabled_text not in {"true", "false"}:
+        raise RuntimeError("VERIFICATION_PHASE_THREE_ENABLED must be 'true' or 'false'.")
+    phase_three_enabled = phase_three_enabled_text == "true"
+    evidence_database_url = environment.get("VERIFICATION_EVIDENCE_DATABASE_URL", "")
+    evidence_ledger = None
+    if phase_three_enabled:
+        if not evidence_database_url:
+            raise RuntimeError(
+                "VERIFICATION_EVIDENCE_DATABASE_URL is required when Phase III is enabled."
+            )
+        evidence_ledger = SQLAlchemyEvidenceLedger(evidence_database_url)
     processor = PhaseTwoProcessor(
         store=store,
         authenticator=authenticator,
         model_factory=lambda: model,
         run_ledger=run_ledger,
+        phase_three_enabled=phase_three_enabled,
+        evidence_ledger=evidence_ledger,
     )
     return processor, store, authenticator
 
