@@ -690,3 +690,10 @@ Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 - GitHub job output does not identify the two paths. A direct clone attempt in the execution environment failed because network DNS to github.com is unavailable; therefore I could not safely run `ruff format` locally or verify a formatting patch. Do not guess which files need reformatting or claim the fix is implemented.
 - Merge integration itself is verified: branch points to merge commit `37e714385d888e0c63e810d0447f0824b18c10a3`, PR #6 targets main `d9bc46f2fad9ac0527f87b6d692cb8f88929fc37`, GitHub reports mergeable true, and compare reports zero commits behind main.
 - Phase III remains **90% estimated**. Next action is obtain exact formatter paths (run formatter locally or temporarily add a diagnostic formatter-diff step), commit only the resulting deterministic formatting changes, then rerun all gates and inspect artifact. Do not remove draft or merge before green exact-head CI and end-to-end reconciliation verification.
+
+
+## Formatter repair commits and rerun — 2026-10-25
+
+- Latest failing run `40189077163` exposed exact Ruff formatting paths: `tests/unit/test_phase_three_worker.py` (line 39, oversized selector parameter decorator) and `tests/unit/test_runtime.py` (blank-line and function-signature formatting).
+- Applied narrowly scoped formatting fixes in commits `c3d170bb3cc0606752c65d5f512af741d7521227` and `7f08de6b4b08a08a9e7931b580015cc39318de5c`. The new exact-head workflow `40189200153` is pending; prior-run successor `40189193556` was still in progress at checkpoint. Do not treat formatter repair as verified until the latest head has green CI.
+- Phase III remains **90% estimated** pending green exact-head quality/tests/coverage, uploaded evidence artifact validation, and end-to-end evidence reconciliation acceptance.
