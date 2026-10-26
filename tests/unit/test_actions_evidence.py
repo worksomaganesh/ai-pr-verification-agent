@@ -7,6 +7,7 @@ import io
 import json
 import stat
 import zipfile
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -1162,3 +1163,135 @@ def test_publication_reports_failed_post_publish_ledger_persistence() -> None:
     assert len(publisher.published) == 1
     assert ledger.calls == 1
     assert result.ledger_persisted is False
+
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("id", True),
+        ("workflow_id", 0),
+        ("run_attempt", False),
+        ("repository", None),
+        ("repository_name", "attacker/other"),
+        ("event", "push"),
+        ("status", "in_progress"),
+        ("head_sha", "3" * 40),
+        ("path", "../outside.yml"),
+        ("pull_requests", None),
+        ("pull_requests", [None]),
+        ("pr_base", None),
+        ("pr_head", None),
+    ],
+    ids=(
+        "boolean-run-id",
+        "non-positive-workflow-id",
+        "boolean-attempt",
+        "missing-repository-object",
+        "wrong-repository",
+        "wrong-event",
+        "unfinished-run",
+        "different-head",
+        "traversal-workflow-path",
+        "missing-pr-associations",
+        "malformed-pr-association",
+        "malformed-pr-base",
+        "malformed-pr-head",
+    ),
+)
+def test_rejects_malformed_trusted_run_identity(field: str, value: object) -> None:
+    payload = run()
+    if field == "repository_name":
+        payload["repository"] = {"full_name": value, "id": 123}
+    elif field == "pr_base":
+        payload["pull_requests"] = [
+            {"number": 7, "base": value, "head": {"sha": HEAD}}
+        ]
+    elif field == "pr_head":
+        payload["pull_requests"] = [
+            {"number": 7, "base": {"sha": BASE}, "head": value}
+        ]
+    else:
+        payload[field] = value
+    with pytest.raises(ActionsEvidenceError):
+        ingest(run_payload=payload)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("id", True),
+        ("name", "untrusted-artifact"),
+        ("expired", True),
+        ("size_in_bytes", 0),
+        ("size_in_bytes", 20 * 1024 * 1024 + 1),
+        ("digest", "sha256:not-a-digest"),
+        ("digest", None),
+        ("workflow_run", None),
+        ("workflow_run", {"id": 98, "repository_id": 123}),
+        ("workflow_run", {"id": 99, "repository_id": 999}),
+    ],
+    ids=(
+        "boolean-artifact-id",
+        "wrong-artifact-name",
+        "expired-artifact",
+        "zero-size",
+        "oversized-metadata",
+        "malformed-digest",
+        "missing-digest",
+        "missing-run-binding",
+        "wrong-run-binding",
+        "wrong-repository-binding",
+    ),
+)
+def test_rejects_malformed_artifact_metadata(field: str, value: object) -> None:
+    data = archive()
+    artifact = metadata(data)
+    artifact[field] = value
+    with pytest.raises(ActionsEvidenceError):
+        ingest(artifact_metadata=artifact)
+
+
+@pytest.mark.parametrize(
+    ("overrides", "message"),
+    [
+        ({"trusted_workflow_paths": []}, "trusted base policy"),
+        ({"harness_sensitive_paths": []}, "harness-sensitive policy"),
+        ({"changed_paths": ["../escape.py"]}, "safe repository-relative path"),
+        ({"required_step_name": ""}, "step name is invalid"),
+        ({"recorded_at": datetime(2026, 1, 1)}, "timezone-aware"),
+        ({"expected_run_id": 100}, "requested run"),
+        ({"expected_artifact_name": ""}, "Artifact name"),
+    ],
+    ids=(
+        "empty-workflow-policy",
+        "empty-harness-policy",
+        "unsafe-changed-path",
+        "empty-required-step",
+        "naive-timestamp",
+        "mismatched-requested-run",
+        "empty-artifact-name-policy",
+    ),
+)
+def test_rejects_invalid_policy_and_binding_inputs(
+    overrides: dict[str, object], message: str
+) -> None:
+    with pytest.raises(ActionsEvidenceError, match=message):
+        ingest(**overrides)
+
+
+def test_archive_reader_rejects_missing_members_and_special_file_types() -> None:
+    from verification_core.actions_evidence import _read_zip_members
+
+    with pytest.raises(ActionsEvidenceError, match="must contain"):
+        _read_zip_members(archive({"junit.xml": JUNIT}))
+
+    output = io.BytesIO()
+    fifo = zipfile.ZipInfo("junit.xml")
+    fifo.create_system = 3
+    fifo.external_attr = (stat.S_IFIFO | 0o600) << 16
+    with zipfile.ZipFile(output, "w", zipfile.ZIP_STORED) as zip_file:
+        zip_file.writestr(fifo, JUNIT)
+        zip_file.writestr("coverage-manifest.json", MANIFEST)
+    with pytest.raises(ActionsEvidenceError, match="non-regular file"):
+        _read_zip_members(output.getvalue())

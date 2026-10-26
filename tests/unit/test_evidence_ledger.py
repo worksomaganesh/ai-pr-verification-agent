@@ -244,3 +244,93 @@ def test_ledger_rejects_evidence_that_does_not_match_commit(tmp_path: Path) -> N
             workflow_definition_sha256="d" * 64,
         )
     ledger.close()
+
+
+
+def test_ledger_rejects_invalid_decision_inputs_and_unknown_records(tmp_path: Path) -> None:
+    from verification_core.delivery_store import DeliveryStoreError
+
+    ledger = make_ledger(tmp_path)
+    key = record_evidence(ledger)
+
+    with pytest.raises(ValueError, match="lowercase SHA-256"):
+        ledger.record_reconciliation(
+            "invalid",
+            status="FAILED",
+            reason="reason",
+            decision_sha256="b" * 64,
+        )
+    with pytest.raises(ValueError, match="terminal reconciliation"):
+        ledger.record_reconciliation(
+            key,
+            status="INCONCLUSIVE",
+            reason="reason",
+            decision_sha256="b" * 64,
+        )
+    with pytest.raises(ValueError, match="1-10000"):
+        ledger.record_reconciliation(
+            key,
+            status="FAILED",
+            reason=" " * 10_001,
+            decision_sha256="b" * 64,
+        )
+    with pytest.raises(ValueError, match="decision_sha256"):
+        ledger.record_reconciliation(
+            key,
+            status="FAILED",
+            reason="reason",
+            decision_sha256="invalid",
+        )
+    with pytest.raises(ValueError, match="finite non-negative"):
+        ledger.record_reconciliation(
+            key,
+            status="FAILED",
+            reason="reason",
+            decision_sha256="b" * 64,
+            now=float("inf"),
+        )
+    with pytest.raises(DeliveryStoreError, match="missing evidence record"):
+        ledger.record_reconciliation(
+            "f" * 64,
+            status="FAILED",
+            reason="reason",
+            decision_sha256="b" * 64,
+        )
+    with pytest.raises(ValueError, match="lowercase SHA-256"):
+        ledger.get_record("invalid")
+
+    with pytest.raises(ValueError, match="workflow_definition_sha256"):
+        ledger.record_ingestion(
+            commit=make_commit(),
+            evidence=make_evidence(),
+            workflow_definition_sha256="not-a-digest",
+        )
+    ledger.close()
+
+
+def test_ledger_rejects_workflow_path_not_matching_provenance(tmp_path: Path) -> None:
+    ledger = make_ledger(tmp_path)
+    evidence = make_evidence()
+    changed = AuthenticatedEvidenceArtifact(
+        repository_full_name=evidence.repository_full_name,
+        pull_request_number=evidence.pull_request_number,
+        base_sha=evidence.base_sha,
+        head_sha=evidence.head_sha,
+        workflow_run_id=evidence.workflow_run_id,
+        workflow_id=evidence.workflow_id,
+        workflow_path=".github/workflows/attacker.yml",
+        workflow_attempt=evidence.workflow_attempt,
+        artifact_id=evidence.artifact_id,
+        artifact_name=evidence.artifact_name,
+        artifact_sha256=evidence.artifact_sha256,
+        provenance=evidence.provenance,
+        junit_report=evidence.junit_report,
+        coverage_manifest=evidence.coverage_manifest,
+    )
+    with pytest.raises(ValueError, match="workflow path"):
+        ledger.record_ingestion(
+            commit=make_commit(),
+            evidence=changed,
+            workflow_definition_sha256="d" * 64,
+        )
+    ledger.close()

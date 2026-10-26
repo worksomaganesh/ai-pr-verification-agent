@@ -295,3 +295,91 @@ def test_artifact_redirect_is_not_auto_followed_even_with_redirects_enabled() ->
             client.download_workflow_artifact(REPO, 7)
 
     assert visited == ["api.github.com"]
+
+
+
+@pytest.mark.parametrize(
+    ("status", "message"),
+    [
+        (403, "rejected"),
+        (429, "rejected"),
+        (404, "download failed"),
+        (500, "download failed"),
+    ],
+    ids=("forbidden", "rate-limited", "not-found", "server-error"),
+)
+def test_artifact_download_rejects_github_error_statuses(status: int, message: str) -> None:
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(status, json={"message": "untrusted error body"})
+
+    with httpx.Client(
+        base_url="https://api.github.com",
+        transport=httpx.MockTransport(handler),
+        follow_redirects=False,
+    ) as raw:
+        client = GitHubActionsClient(INSTALLATION_FIXTURE, http_client=raw)
+        with pytest.raises(GitHubActionsAPIError, match=message):
+            client.download_workflow_artifact(REPO, 7)
+
+
+def test_artifact_download_rejects_missing_redirect_and_failed_signed_download() -> None:
+    def no_location(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(302)
+
+    with httpx.Client(
+        base_url="https://api.github.com",
+        transport=httpx.MockTransport(no_location),
+        follow_redirects=False,
+    ) as raw:
+        client = GitHubActionsClient(INSTALLATION_FIXTURE, http_client=raw)
+        with pytest.raises(GitHubActionsAPIError, match="disallowed host"):
+            client.download_workflow_artifact(REPO, 7)
+
+    signed_url = "https://pipelines.actions.githubusercontent.com/signed/archive"
+
+    def failed_signed_download(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "api.github.com":
+            return httpx.Response(302, headers={"Location": signed_url})
+        return httpx.Response(503)
+
+    with httpx.Client(
+        base_url="https://api.github.com",
+        transport=httpx.MockTransport(failed_signed_download),
+        follow_redirects=False,
+    ) as raw:
+        client = GitHubActionsClient(INSTALLATION_FIXTURE, http_client=raw)
+        with pytest.raises(GitHubActionsAPIError, match="signed artifact download failed"):
+            client.download_workflow_artifact(REPO, 7)
+
+
+@pytest.mark.parametrize(
+    ("token", "limit"),
+    [
+        ("", 10),
+        ("  ", 10),
+        (INSTALLATION_FIXTURE, 0),
+        (INSTALLATION_FIXTURE, 20 * 1024 * 1024 + 1),
+        (INSTALLATION_FIXTURE, True),
+    ],
+    ids=("empty-token", "whitespace-token", "zero-limit", "oversized-limit", "boolean-limit"),
+)
+def test_client_constructor_rejects_unsafe_configuration(token: str, limit: int) -> None:
+    with pytest.raises(ValueError):
+        GitHubActionsClient(token, max_archive_bytes=limit)
+
+
+def test_client_rejects_malformed_repository_names() -> None:
+    with httpx.Client(
+        base_url="https://api.github.com",
+        transport=httpx.MockTransport(lambda _request: httpx.Response(200, json={"id": 1})),
+    ) as raw:
+        client = GitHubActionsClient(INSTALLATION_FIXTURE, http_client=raw)
+        for repository in (
+            "../acme/service",
+            "acme//service",
+            "acme/service?query",
+            "acme/../service",
+            "acme/service#fragment",
+        ):
+            with pytest.raises(GitHubActionsAPIError, match="owner/name"):
+                client.get_workflow_run(repository, 1)
