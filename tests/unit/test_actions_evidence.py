@@ -1204,13 +1204,9 @@ def test_rejects_malformed_trusted_run_identity(field: str, value: object) -> No
     if field == "repository_name":
         payload["repository"] = {"full_name": value, "id": 123}
     elif field == "pr_base":
-        payload["pull_requests"] = [
-            {"number": 7, "base": value, "head": {"sha": HEAD}}
-        ]
+        payload["pull_requests"] = [{"number": 7, "base": value, "head": {"sha": HEAD}}]
     elif field == "pr_head":
-        payload["pull_requests"] = [
-            {"number": 7, "base": {"sha": BASE}, "head": value}
-        ]
+        payload["pull_requests"] = [{"number": 7, "base": {"sha": BASE}, "head": value}]
     else:
         payload[field] = value
     with pytest.raises(ActionsEvidenceError):

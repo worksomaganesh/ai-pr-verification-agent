@@ -243,11 +243,7 @@ def test_ledger_rejects_evidence_that_does_not_match_commit(tmp_path: Path) -> N
             evidence=stale,
             workflow_definition_sha256="d" * 64,
         )
-    ledger.close()
-
-
-
-def test_ledger_rejects_invalid_decision_inputs_and_unknown_records(tmp_path: Path) -> None:
+    ledger.close()\n\n\ndef test_ledger_rejects_invalid_decision_inputs_and_unknown_records(tmp_path: Path) -> None:
     from verification_core.delivery_store import DeliveryStoreError
 
     ledger = make_ledger(tmp_path)
