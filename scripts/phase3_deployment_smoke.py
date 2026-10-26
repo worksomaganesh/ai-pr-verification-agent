@@ -141,9 +141,7 @@ def _read_pr_identity(
     return base_sha, head_sha, base_ref, head_ref
 
 
-def _eligible_run(
-    run: Mapping[str, object], *, pr_number: int, head_sha: str
-) -> bool:
+def _eligible_run(run: Mapping[str, object], *, pr_number: int, head_sha: str) -> bool:
     workflow_path = run.get("path")
     if not isinstance(workflow_path, str):
         return False
@@ -302,7 +300,9 @@ def run_smoke_test(environment: Mapping[str, str]) -> None:
         or parsed_url.query
         or parsed_url.fragment
     ):
-        raise SmokeTestError("PHASE3_SMOKE_BASE_URL must be an HTTP(S) origin/path without credentials.")
+        raise SmokeTestError(
+            "PHASE3_SMOKE_BASE_URL must be an HTTP(S) origin/path without credentials."
+        )
     if parsed_url.scheme != "https" and parsed_url.hostname not in {
         "localhost",
         "127.0.0.1",
@@ -343,9 +343,7 @@ def run_smoke_test(environment: Mapping[str, str]) -> None:
     actions: GitHubActionsClient | None = None
     engine = None
     try:
-        token = authenticator.create_installation_token(
-            installation_id, include_actions_read=True
-        )
+        token = authenticator.create_installation_token(installation_id, include_actions_read=True)
         api.headers["Authorization"] = f"Bearer {token.token}"
         actions = GitHubActionsClient(token.token)
 
@@ -369,9 +367,7 @@ def run_smoke_test(environment: Mapping[str, str]) -> None:
             raise SmokeTestError("Service health endpoint did not report status=ok.")
         print("PASS: deployment health endpoint is reachable.")
 
-        base_sha, head_sha, base_ref, head_ref = _read_pr_identity(
-            api, repository, pr_number
-        )
+        base_sha, head_sha, base_ref, head_ref = _read_pr_identity(api, repository, pr_number)
         runs = actions.list_pull_request_workflow_runs(repository, head_sha)
         eligible = [
             run for run in runs if _eligible_run(run, pr_number=pr_number, head_sha=head_sha)
@@ -391,14 +387,15 @@ def run_smoke_test(environment: Mapping[str, str]) -> None:
             or run.get("event") != "pull_request"
             or run.get("status") != "completed"
             or run.get("conclusion") != "success"
-            or run.get("path", "").split("@", maxsplit=1)[0] != _TRUSTED_WORKFLOW_PATH
+            or not isinstance(run.get("path"), str)
+            or run["path"].split("@", maxsplit=1)[0] != _TRUSTED_WORKFLOW_PATH
         ):
-            raise SmokeTestError("The selected workflow run changed or failed exact-head validation.")
+            raise SmokeTestError(
+                "The selected workflow run changed or failed exact-head validation."
+            )
 
         artifacts = actions.list_workflow_run_artifacts(repository, workflow_run_id)
-        matching_artifacts = [
-            item for item in artifacts if item.get("name") == _ARTIFACT_NAME
-        ]
+        matching_artifacts = [item for item in artifacts if item.get("name") == _ARTIFACT_NAME]
         if len(matching_artifacts) != 1:
             raise SmokeTestError(
                 "The selected workflow run must contain exactly one verification-evidence artifact."
@@ -457,9 +454,7 @@ def run_smoke_test(environment: Mapping[str, str]) -> None:
         delivery_id = f"phase3-smoke-{uuid.uuid4().hex}"
         body, headers = _signed_webhook(webhook_secret, delivery_id, payload)
         sent_at = datetime.now(UTC)
-        first = service.post(
-            f"{base_url}/webhooks/github", content=body, headers=headers
-        )
+        first = service.post(f"{base_url}/webhooks/github", content=body, headers=headers)
         if first.status_code != 202:
             raise SmokeTestError(
                 f"Signed webhook was not durably accepted (HTTP {first.status_code})."
@@ -482,19 +477,18 @@ def run_smoke_test(environment: Mapping[str, str]) -> None:
             duplicate_payload = duplicate.json()
         except ValueError:
             raise SmokeTestError("Duplicate-delivery response was malformed.") from None
-        if not isinstance(duplicate_payload, dict) or duplicate_payload.get("duplicate") is not True:
+        if (
+            not isinstance(duplicate_payload, dict)
+            or duplicate_payload.get("duplicate") is not True
+        ):
             raise SmokeTestError("Duplicate webhook delivery was not handled idempotently.")
         print("PASS: signed webhook is accepted and a repeated delivery is idempotent.")
 
-        external_id = (
-            f"ai-pr-verification-agent:phase3:{pr_number}:{head_sha}"
-        )
+        external_id = f"ai-pr-verification-agent:phase3:{pr_number}:{head_sha}"
         deadline = time.monotonic() + timeout_seconds
         check_run: dict[str, Any] | None = None
         while time.monotonic() < deadline:
-            current_base, current_head, _, _ = _read_pr_identity(
-                api, repository, pr_number
-            )
+            current_base, current_head, _, _ = _read_pr_identity(api, repository, pr_number)
             if current_base != base_sha or current_head != head_sha:
                 raise SmokeTestError(
                     "PR base/head changed while the smoke test was running; freshness check failed."
