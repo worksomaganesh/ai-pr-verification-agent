@@ -38,6 +38,14 @@
 - ZIP contains exactly `junit.xml` and `coverage-manifest.json`. Both contain 539 unique matching IDs, all manifest outcomes are passed, and manifest head SHA equals `5658106e6ef03f6e46e8f5dfefad38056aaebccd`. No duplicate IDs or unsafe path/line/branch entries were found; all `behavioral_assertion_verified` flags remain false.
 - Remaining release prerequisite: target-deployment smoke test of the installed GitHub App, webhook-to-worker, evidence database, and freshness-checked Check Run publication, followed by human review. This environment did not run that live deployment test. PR #6 remains draft; no production merge-gating claim is made.
 
+## Latest exact-head verification — 2026-10-26
+
+- Exact head: `e736fc3f92529169f4a8396afed75166dcb00263`; [CI run #40270996414](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40270996414) completed successfully on this SHA. Both quality and evidence-producer jobs succeeded.
+- Quality: formatting, Ruff, strict mypy passed; **539 tests passed**, 90.49% overall coverage, 96% Phase I core, 86% Phase II integration. All configured thresholds passed.
+- Artifact `verification-evidence`, ID `12628870686`, 42,658 bytes, SHA-256 `308f3de9cc21fc1dda080f8ee8c99ce95b23a222884eaacc70727c989e6cff00`. Downloaded ZIP digest matches GitHub's API digest.
+- Archive contains exactly `junit.xml` and `coverage-manifest.json`; both contain 539 unique matching IDs, all outcomes passed, manifest head equals the tested SHA, no invalid path/line/branch entries, and all behavioral assertion flags remain false.
+- Remaining release gate is not a code/CI blocker: perform the live target-deployment smoke test for GitHub App permissions, webhook/worker, database persistence, and Check Run publication; complete human review before merge. Neither is claimed as done.
+
 ## Verified on main
 
 ### Phase I
