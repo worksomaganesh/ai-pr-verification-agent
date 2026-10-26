@@ -419,3 +419,12 @@ The exact-head check resolves the final repository-CI blocker. The only declared
 ## Final close-out SHA green — 2026-10-26
 
 Candidate `e736fc3f92529169f4a8396afed75166dcb00263` passed [CI run #40270996414](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40270996414) with conclusion success. Both quality and exact-head evidence jobs succeeded. Quality gates: formatting, Ruff, strict mypy, 539 passing tests, 90.49% total coverage, 96% Phase I, 86% Phase II. Artifact `12628870686` (42,658 bytes) digest `308f3de9cc21fc1dda080f8ee8c99ce95b23a222884eaacc70727c989e6cff00`; its downloaded ZIP hash independently matches GitHub metadata. Exact contents are `junit.xml` and `coverage-manifest.json`, both with 539 unique matching IDs, every outcome passing, manifest SHA bound to the candidate, no structural anomalies, and all semantic assertion flags false. Repository implementation/CI is complete; target-deployment smoke test and human review remain external release prerequisites.
+
+
+## Deterministic idempotent-replay fixture fix passed — 2026-10-26
+
+The exact-head producer job in run 40271256105 failed 1 test (538 passed): `test_phase_three_service_persists_evidence_as_inconclusive_and_idempotently`. The production ledger raised its intended `EvidenceLedgerConflict` because ZIP archives constructed by the shared test helper included variable ZIP entry timestamps; repeated logical fixtures could therefore have different content digests. Fix commit `61811292a9a87282b04758cbb3e4ecfa46160cb6` pins ZIP entry timestamps to `(2020, 1, 1, 0, 0, 0)` and explicitly sets ZIP_DEFLATED at the test-helper boundary. Production identity checks and conflict semantics were untouched.
+
+[CI run #40271529641](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40271529641) passed both jobs on the exact fixed SHA. 539 tests passed; 90.49% overall coverage, 96% Phase I core coverage, 86% Phase II integration coverage. Artifact `12628348250` (42,840 bytes, SHA-256 `bbf8a7d24ecaf32d46faf163b3e6446d96dc1d99608309d9ac584bda4ee1e0d4`) was downloaded and independently verified. It contains exactly `junit.xml` and `coverage-manifest.json`; both have 539 unique matching test IDs, every outcome passed, manifest head SHA equals the tested SHA, no unsafe paths or invalid line/branch entries were found, and all behavioral assertion flags remain false.
+
+This resolves the repository's current code/CI blockers. A live target deployment smoke test and human review remain external release prerequisites and have not been claimed.

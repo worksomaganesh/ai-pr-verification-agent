@@ -4,8 +4,8 @@
 **Working branch:** `phase-3-evidence-ingestion`  
 **Draft PR:** [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6)  
 **Last reconciled:** 2026-10-26  
-**Current reported progress:** **95% complete / 5% remaining** (engineering-scope estimate)  
-**Verification status:** Exact-SHA CI and evidence production are green on head 5658106e6ef03f6e46e8f5dfefad38056aaebccd; deployment-specific GitHub App smoke test and human review remain.
+**Current reported progress:** **99% code/CI complete; deployment acceptance pending**  
+**Verification status:** Exact-SHA CI and evidence production are green on head 61811292a9a87282b04758cbb3e4ecfa46160cb6; deployment-specific GitHub App smoke test and human review remain.
 
 > Percentages are engineering-scope estimates. They are not CI success percentages, test coverage,
 > or proof of release readiness. Historical entries below preserve the progress figures reported
@@ -55,6 +55,17 @@ The old 62%, 85%, and 90% estimates and previous failures below are historical c
 - Quality: formatter, Ruff, strict mypy, 539 tests; 90.49% overall coverage, 96% Phase I, 86% Phase II.
 - Artifact `12628870686` digest `308f3de9cc21fc1dda080f8ee8c99ce95b23a222884eaacc70727c989e6cff00`; downloaded bytes independently match digest. Exactly the expected two files, 539 unique matching IDs, all pass, exact SHA, no structural issues, assertion flags false.
 - Implementation and code-level acceptance are complete. Production rollout acceptance still requires the target installation smoke test and human review; keep PR #6 draft until done.
+
+## Deterministic fixture fix verified — 2026-10-26
+
+**Exact head:** `61811292a9a87282b04758cbb3e4ecfa46160cb6`  
+**CI:** [#40271529641](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40271529641) — success; both quality and evidence producer passed.
+
+- 539 tests passed; overall coverage 90.49%, Phase I 96%, Phase II 86%.
+- Artifact `12628348250` SHA-256 `bbf8a7d24ecaf32d46faf163b3e6446d96dc1d99608309d9ac584bda4ee1e0d4`; independent hash check passed.
+- Exactly two files; JUnit and manifest have 539 unique identical IDs with all passing outcomes and exact head binding. No structural anomalies; all semantic assertion flags false.
+- The failure on the immediately previous head was test-fixture nondeterminism (ZIP timestamp), not a reason to relax the evidence ledger's immutable-content conflict detection.
+- Code/CI acceptance is complete. Target-deployment smoke test and human review are still required before release.
 
 ## Historical progress increases
 

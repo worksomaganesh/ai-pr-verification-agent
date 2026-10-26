@@ -2,13 +2,13 @@
 
 ## Current status (2026-10-26)
 
-The Phase III implementation on draft PR [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6) passed its exact-SHA CI and evidence-producer jobs on head 5658106e6ef03f6e46e8f5dfefad38056aaebccd. See [CI run #40270614782](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40270614782).
+The Phase III implementation on draft PR [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6) passed its exact-SHA CI and evidence-producer jobs on code head 61811292a9a87282b04758cbb3e4ecfa46160cb6. See [CI run #40271529641](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40271529641).
 
 - Formatting, Ruff, and strict mypy passed.
 - 539 tests passed with one non-blocking Starlette/httpx deprecation warning.
 - Overall coverage: 90.49% (90% required); Phase I core: 96% (95% required); Phase II integration: 86% (80% required).
 - The exact-PR-head evidence job passed its per-test test run, manifest export, and artifact upload.
-- Artifact verification-evidence, ID 12628146952, size 42,823 bytes; GitHub SHA-256 digest c508f72a6c3faed815d881da2627608c8f82bf78368c9b39e2d1a96e70d5e572.
+- Artifact verification-evidence, ID 12628348250, size 42,840 bytes; GitHub SHA-256 digest bbf8a7d24ecaf32d46faf163b3e6446d96dc1d99608309d9ac584bda4ee1e0d4.
 - Independent download inspection confirmed exactly junit.xml and coverage-manifest.json, 539 unique matching test IDs in both, equal passing outcomes, exact head binding, no invalid structural entries, and all exporter assertion flags false.
 
 The implementation and CI gates are verified on exact head `5658106e6ef03f6e46e8f5dfefad38056aaebccd` (98% implementation/CI acceptance). A deployment-specific smoke test using the configured GitHub App installation, webhook ingress, evidence database, and Check Run path remains a release-operational prerequisite. Keep the PR draft until that smoke test and human review are complete.

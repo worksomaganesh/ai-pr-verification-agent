@@ -2,9 +2,9 @@
 
 **Snapshot date:** 2026-10-26  
 **Main/base SHA for Phase III PR:** `d9bc46f2fad9ac0527f87b6d692cb8f88929fc37`  
-**Verified Phase III head SHA:** `5658106e6ef03f6e46e8f5dfefad38056aaebccd`  
+**Latest verified Phase III code SHA:** `61811292a9a87282b04758cbb3e4ecfa46160cb6`  
 **Phase III PR:** [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6), open and draft.  
-**Latest completed exact-SHA CI run:** [#40270614782](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40270614782) — success.
+**Latest completed exact-SHA CI run:** [#40271529641](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40271529641) — success.
 
 
 
@@ -45,6 +45,15 @@
 - Artifact `verification-evidence`, ID `12628870686`, 42,658 bytes, SHA-256 `308f3de9cc21fc1dda080f8ee8c99ce95b23a222884eaacc70727c989e6cff00`. Downloaded ZIP digest matches GitHub's API digest.
 - Archive contains exactly `junit.xml` and `coverage-manifest.json`; both contain 539 unique matching IDs, all outcomes passed, manifest head equals the tested SHA, no invalid path/line/branch entries, and all behavioral assertion flags remain false.
 - Remaining release gate is not a code/CI blocker: perform the live target-deployment smoke test for GitHub App permissions, webhook/worker, database persistence, and Check Run publication; complete human review before merge. Neither is claimed as done.
+
+## Latest verified Phase III code checkpoint — 2026-10-26
+
+- Exact code head: `61811292a9a87282b04758cbb3e4ecfa46160cb6`; [CI run #40271529641](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40271529641) completed successfully on this SHA. Both the quality job and exact-head evidence producer succeeded.
+- Quality: formatting, Ruff, strict mypy passed; **539 tests passed**; overall coverage **90.49%**, Phase I core **96%**, Phase II integration **86%**.
+- Artifact `verification-evidence`, ID `12628348250`, 42,840 bytes, SHA-256 `bbf8a7d24ecaf32d46faf163b3e6446d96dc1d99608309d9ac584bda4ee1e0d4`. Downloaded bytes independently match GitHub's digest.
+- ZIP contains exactly `junit.xml` and `coverage-manifest.json`. Both contain 539 unique matching test IDs, all outcomes passed, manifest head equals this SHA, no unsafe paths/invalid line or branch entries, and all `behavioral_assertion_verified` flags are false.
+- The latest failed evidence test was an idempotent replay fixture that serialized ZIP entries with variable timestamps. Fixed with deterministic ZIP metadata in the test helper only; the ledger's conflict check was not weakened.
+- Production boundary remains: a live target-deployment smoke test (installed GitHub App, `actions:read`, webhook/worker, evidence DB, Check Run) and human review have not been performed here. Keep PR #6 draft until accepted.
 
 ## Verified on main
 
