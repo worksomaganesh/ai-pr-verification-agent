@@ -466,9 +466,7 @@ def run_smoke_test(environment: Mapping[str, str]) -> None:
         if not isinstance(first_payload, dict) or first_payload.get("accepted") is not True:
             raise SmokeTestError("Webhook ingress did not confirm durable acceptance.")
 
-        duplicate = service.post(
-            f"{base_url}/webhooks/github", content=body, headers=headers
-        )
+        duplicate = service.post(f"{base_url}/webhooks/github", content=body, headers=headers)
         if duplicate.status_code != 202:
             raise SmokeTestError(
                 f"Duplicate webhook delivery was not acknowledged (HTTP {duplicate.status_code})."
