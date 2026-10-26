@@ -2,9 +2,9 @@
 
 **Snapshot date:** 2026-10-26  
 **Main/base SHA for Phase III PR:** `d9bc46f2fad9ac0527f87b6d692cb8f88929fc37`  
-**Latest verified Phase III head SHA:** `0a15bab79bc285f3da80eb79e529ee8cea91a615`  
+**Latest verified Phase III head SHA:** `24de828e415e115d9a2992c527b60d32a09eddf4`  
 **Phase III PR:** [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6), open and draft.  
-**Latest completed exact-SHA CI run:** [#40272532304](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40272532304) — success.
+**Latest completed exact-SHA CI run:** [#40272969409](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40272969409) — success.
 
 
 
@@ -63,6 +63,16 @@
 - ZIP contains exactly `junit.xml` and `coverage-manifest.json`; each has 539 unique IDs, exact ID-set/outcome agreement, all passed, and manifest SHA equals the tested head. No unsafe paths, invalid line/branch entries or behavioral assertion flags set true.
 - Root-cause fix verified: ZIP fixture timestamps/compression are deterministic, so the idempotent replay test repeats identical bytes. Production evidence-ledger conflict checks remain unchanged.
 - The implementation and repository CI/evidence pipeline are verified. A target-deployment smoke test using the actual installed GitHub App, webhook/worker, evidence DB, and Check Run publication has not been run in this environment. There are no submitted reviews on PR #6; keep it draft until operational acceptance and review.
+
+## Latest authoritative Phase III exact-head verification — 2026-10-26
+
+- Exact tested branch/PR head: `24de828e415e115d9a2992c527b60d32a09eddf4`.
+- CI [run #40272969409](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40272969409) completed with conclusion **success** on this exact SHA. Both jobs passed: quality and exact-PR-head evidence producer.
+- Quality: formatting, Ruff, strict mypy passed; **539 passed, one non-blocking warning**; overall coverage 90.49%, Phase I core 96%, Phase II integration 86%.
+- Artifact `verification-evidence`, ID `12629355625`, size 42,663 bytes, GitHub SHA-256 `915205085a98dd7f33cedc8ae7ea7e6ed203c63db034ae82d36b58a22dbbaac1`. Downloaded archive SHA-256 independently matches GitHub's digest.
+- Exactly `junit.xml` and `coverage-manifest.json`; each contains 539 unique test IDs; ID sets and outcomes match; all 539 passed; manifest SHA equals the exact head; zero duplicate IDs and no invalid paths/line/branch entries. All `behavioral_assertion_verified` fields are false.
+- Earlier evidence-job flakiness was fixed by pinning ZIP fixture timestamps/compression in the test helper. Production ledger conflict detection was not weakened.
+- **Remaining release gate:** target-deployment smoke test using actual installed GitHub App (`actions:read`), webhook/worker, evidence DB, and freshness-checked Check Run publication, plus human review. The connected GitHub integration does not expose the deployment's App credentials/runtime/DB config, so this smoke test has not been run here. PR #6 remains draft.
 
 ## Verified on main
 

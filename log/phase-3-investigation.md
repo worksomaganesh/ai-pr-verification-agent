@@ -439,3 +439,12 @@ I downloaded that ZIP and independently verified its byte digest against GitHub'
 The immediately previous CI failure was caused by the shared test ZIP helper using variable timestamps. The fix pins ZIP timestamps and compression in the test helper only. The production ledger's immutable replay-conflict checks are unchanged.
 
 Remaining release boundary: the repository's actual target deployment must be smoke-tested using the installed GitHub App, its `actions:read` permission, webhook ingress, worker, configured evidence database, and Check Run publication. That environment is not configured through the connected GitHub API tool, and there are no human review submissions yet; do not claim production acceptance or merge PR #6 until these are satisfied.
+
+
+## Latest exact-head CI and artifact integrity verified — 2026-10-26
+
+[Run #40272969409](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40272969409) passed on exact head `24de828e415e115d9a2992c527b60d32a09eddf4`. Both the quality job and evidence-producer job completed successfully. The quality job reported formatting, Ruff, strict mypy, 539 passing tests, total coverage 90.49%, Phase I core 96%, and Phase II integration 86%.
+
+Artifact `12629355625` is 42,663 bytes with GitHub-reported digest `sha256:915205085a98dd7f33cedc8ae7ea7e6ed203c63db034ae82d36b58a22dbbaac1`. I downloaded it and recomputed the SHA-256, which matches the GitHub API digest. The ZIP contains exactly `junit.xml` and `coverage-manifest.json`; JUnit has 539 unique cases and all are passed; manifest has 539 unique IDs, the ID sets match exactly, manifest `head_sha` equals `24de828e415e115d9a2992c527b60d32a09eddf4`, and no unsafe paths or invalid line/branch entries were found. The manifest correctly sets all `behavioral_assertion_verified` flags to false.
+
+This verifies the repository's current code and CI/evidence-producer gates. The only outstanding release-operational gate is a real target-deployment smoke test using the installed GitHub App, `actions:read`, webhook/worker, evidence database, and Check Run publication, followed by human review. Those credentials/configuration are not exposed through this connected GitHub repository integration; do not claim a live smoke test or merge PR #6 until complete.

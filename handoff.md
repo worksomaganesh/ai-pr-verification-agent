@@ -6,30 +6,35 @@ Last reconciled: 2026-10-26
 
 - Repository: `worksomaganesh/ai-pr-verification-agent`
 - Branch: `phase-3-evidence-ingestion`
-- PR: [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6), open and draft
-- Latest fully verified head: `0a15bab79bc285f3da80eb79e529ee8cea91a615`
-- Exact-SHA CI: [run #40272532304](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40272532304) — **success**, both quality and evidence-producer jobs passed.
-- Progress: **99% code/CI/evidence-producer verified**; target deployment smoke test and human review still pending.
+- PR: [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6), open and **draft**
+- Latest fully CI-verified head: `24de828e415e115d9a2992c527b60d32a09eddf4`
+- Exact-SHA CI: [run #40272969409](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40272969409) — **success**; both quality and evidence-producer jobs passed.
+- Progress: **99% code/CI/evidence-production verified**; target deployment smoke test and human review remain.
 
-## Evidence
+## Verified results
 
 - Formatting, Ruff, strict mypy passed.
-- **539 tests passed**, one non-blocking Starlette/httpx deprecation warning.
+- **539 tests passed**, one non-blocking deprecation warning.
 - Coverage: **90.49% overall**, **96% Phase I core**, **86% Phase II integration**; all configured gates passed.
-- Artifact `verification-evidence`, ID `12628423276`, size 42,796 bytes, SHA-256 `9e22995baff947d32a6c8d2908bdc518513cd927bd2ec2e2601e9df764d66610`.
-- Downloaded ZIP matches GitHub's digest exactly. Exactly `junit.xml` and `coverage-manifest.json`; both contain 539 unique matching test IDs, all passing outcomes, manifest bound to `0a15bab79bc285f3da80eb79e529ee8cea91a615`, no structural anomalies, and all `behavioral_assertion_verified` fields false.
-- The deterministic fixture change fixes variable ZIP entry timestamps in the idempotency test helper. Production ledger conflict detection was not weakened.
+- Artifact `verification-evidence`, ID `12629355625`, size 42,663 bytes, SHA-256 `915205085a98dd7f33cedc8ae7ea7e6ed203c63db034ae82d36b58a22dbbaac1`.
+- Downloaded ZIP matches GitHub's digest exactly. It contains exactly `junit.xml` and `coverage-manifest.json`; both contain 539 unique matching test IDs, all passing outcomes, and the manifest binds to `24de828e415e115d9a2992c527b60d32a09eddf4`. No duplicate IDs, unsafe paths, or invalid line/branch entries. All `behavioral_assertion_verified` flags are false.
+- The deterministic-fixture fix pins ZIP entry timestamps and compression only in the test helper; production evidence-ledger conflict detection remains unchanged.
 
 ## Implemented trust chain
 
-Authenticated Actions metadata → trusted-base workflow contract → digest-checked bounded ZIP → consistent JUnit/manifest inventory → exact-commit durable ledger → policy-bound deterministic obligation reconciliation → freshness-checked Check Run publication. Runtime is opt-in with `VERIFICATION_PHASE_THREE_ENABLED=true`, and requires `VERIFICATION_EVIDENCE_DATABASE_URL` plus GitHub App Actions-read permission when enabled.
+Authenticated GitHub Actions run/job/artifact metadata → trusted-base workflow contract validation → digest-checked bounded ZIP → matching JUnit and manifest inventory → exact-commit durable evidence ledger → policy-bound obligation reconciliation → freshness-checked Check Run publication.
 
-V1 supports one trusted run and one artifact; ambiguity, stale data, malformed data, or contradictory evidence fails closed. Cross-run/rerun/shard aggregation is deferred.
+Runtime integration is opt-in via `VERIFICATION_PHASE_THREE_ENABLED=true`; the enabled path requires `VERIFICATION_EVIDENCE_DATABASE_URL` and the GitHub App's Actions read permission.
 
-## Remaining before release
+V1 intentionally accepts one eligible trusted run and one artifact. Missing, malformed, stale, ambiguous or contradictory evidence fails closed. Cross-run/rerun/shard aggregation is deferred.
 
-Run the target-deployment smoke test using the real installed GitHub App/configuration: `actions:read`, webhook ingress, worker delivery, evidence DB persistence, artifact ingestion, and freshness-checked Check Run publication. Then complete human review. These external steps have not been run here. Keep PR #6 draft and production merge gating disabled until accepted.
+## Remaining before production release
 
-## Logs
+1. Run the target-deployment smoke test using the real installed GitHub App/configuration: `actions:read`, webhook ingress, worker delivery, exact artifact ingestion, evidence DB persistence, and freshness-checked Check Run publication.
+2. Complete human review, then merge PR #6.
 
-Current anchor: run `40272532304`, artifact `12628423276`. Historical failures remain in `log/phase-3-investigation.md`; latest summary is in `log/current-status.md` and `log/phase-3-progress.md`.
+The live target deployment is not available through the connected GitHub repo integration; App private key, installation runtime, webhook endpoint, and evidence DB config were not supplied through the available tools. This smoke test has not been performed. Keep PR #6 draft and production merge gating disabled until these steps pass.
+
+## Logs and current evidence anchor
+
+Read `log/current-status.md`, `log/phase-3-progress.md`, `log/phase-3-investigation.md`, and `docs/phase-3-evidence-ingestion.md`. Current exact-head CI: `40272969409`; artifact: `12629355625`.
