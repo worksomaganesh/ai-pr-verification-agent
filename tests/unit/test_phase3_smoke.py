@@ -9,6 +9,7 @@ import pytest
 from scripts.phase3_deployment_smoke import (
     SmokeTestError,
     _artifact_sha256,
+    _eligible_run,
     _record_key_from_summary,
     _signed_webhook,
 )
@@ -51,3 +52,21 @@ def test_webhook_signature_is_over_exact_serialized_bytes() -> None:
     assert headers["x-hub-signature-256"] == f"sha256={expected}"
     assert headers["x-github-delivery"] == delivery_id
     assert headers["x-github-event"] == "pull_request"
+
+
+def test_eligible_workflow_run_requires_success_exact_head_and_target_pr() -> None:
+    run: dict[str, object] = {
+        "path": ".github/workflows/ci.yml@refs/heads/main",
+        "head_sha": "a" * 40,
+        "event": "pull_request",
+        "status": "completed",
+        "conclusion": "success",
+        "pull_requests": [{"number": 5}],
+    }
+    assert _eligible_run(run, pr_number=5, head_sha="a" * 40)
+    assert not _eligible_run(run, pr_number=5, head_sha="b" * 40)
+    assert not _eligible_run({**run, "status": "in_progress"}, pr_number=5, head_sha="a" * 40)
+    assert not _eligible_run({**run, "conclusion": "failure"}, pr_number=5, head_sha="a" * 40)
+    assert not _eligible_run({**run, "path": ".github/workflows/untrusted.yml"}, pr_number=5, head_sha="a" * 40)
+    assert not _eligible_run({**run, "pull_requests": [{"number": 6}]}, pr_number=5, head_sha="a" * 40)
+    assert not _eligible_run({**run, "path": None}, pr_number=5, head_sha="a" * 40)

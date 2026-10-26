@@ -383,13 +383,14 @@ def run_smoke_test(environment: Mapping[str, str]) -> None:
             raise SmokeTestError("The eligible workflow run has an invalid identifier.")
         workflow_run_id = raw_run_id
         run = actions.get_workflow_run(repository, workflow_run_id)
+        workflow_path = run.get("path")
         if (
             run.get("head_sha") != head_sha
             or run.get("event") != "pull_request"
             or run.get("status") != "completed"
             or run.get("conclusion") != "success"
-            or not isinstance(run.get("path"), str)
-            or run["path"].split("@", maxsplit=1)[0] != _TRUSTED_WORKFLOW_PATH
+            or not isinstance(workflow_path, str)
+            or workflow_path.split("@", maxsplit=1)[0] != _TRUSTED_WORKFLOW_PATH
         ):
             raise SmokeTestError(
                 "The selected workflow run changed or failed exact-head validation."
