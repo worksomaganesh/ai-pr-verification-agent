@@ -5,14 +5,14 @@ from __future__ import annotations
 import hashlib
 import hmac
 
+import pytest
+
 from scripts.phase3_deployment_smoke import (
     SmokeTestError,
     _artifact_sha256,
     _record_key_from_summary,
     _signed_webhook,
 )
-
-import pytest
 
 
 def test_artifact_digest_is_normalized_and_validated() -> None:
