@@ -2,9 +2,9 @@
 
 **Snapshot date:** 2026-10-26  
 **Main/base SHA for Phase III PR:** `d9bc46f2fad9ac0527f87b6d692cb8f88929fc37`  
-**Latest verified Phase III code SHA:** `61811292a9a87282b04758cbb3e4ecfa46160cb6`  
+**Latest verified Phase III head SHA:** `0a15bab79bc285f3da80eb79e529ee8cea91a615`  
 **Phase III PR:** [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6), open and draft.  
-**Latest completed exact-SHA CI run:** [#40271529641](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40271529641) — success.
+**Latest completed exact-SHA CI run:** [#40272532304](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40272532304) — success.
 
 
 
@@ -54,6 +54,15 @@
 - ZIP contains exactly `junit.xml` and `coverage-manifest.json`. Both contain 539 unique matching test IDs, all outcomes passed, manifest head equals this SHA, no unsafe paths/invalid line or branch entries, and all `behavioral_assertion_verified` flags are false.
 - The latest failed evidence test was an idempotent replay fixture that serialized ZIP entries with variable timestamps. Fixed with deterministic ZIP metadata in the test helper only; the ledger's conflict check was not weakened.
 - Production boundary remains: a live target-deployment smoke test (installed GitHub App, `actions:read`, webhook/worker, evidence DB, Check Run) and human review have not been performed here. Keep PR #6 draft until accepted.
+
+## Authoritative latest exact-SHA acceptance — 2026-10-26
+
+- Tested head: `0a15bab79bc285f3da80eb79e529ee8cea91a615`; [CI run #40272532304](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40272532304) completed successfully on this exact SHA. Both quality and evidence-producer jobs succeeded.
+- Quality: formatting, Ruff, strict mypy passed; 539 passed, one non-blocking warning; overall coverage 90.49%, Phase I core 96%, Phase II integration 86%.
+- Artifact `verification-evidence`, ID `12628423276`, size 42,796 bytes, SHA-256 `9e22995baff947d32a6c8d2908bdc518513cd927bd2ec2e2601e9df764d66610`. Independently downloaded ZIP has the same SHA-256.
+- ZIP contains exactly `junit.xml` and `coverage-manifest.json`; each has 539 unique IDs, exact ID-set/outcome agreement, all passed, and manifest SHA equals the tested head. No unsafe paths, invalid line/branch entries or behavioral assertion flags set true.
+- Root-cause fix verified: ZIP fixture timestamps/compression are deterministic, so the idempotent replay test repeats identical bytes. Production evidence-ledger conflict checks remain unchanged.
+- The implementation and repository CI/evidence pipeline are verified. A target-deployment smoke test using the actual installed GitHub App, webhook/worker, evidence DB, and Check Run publication has not been run in this environment. There are no submitted reviews on PR #6; keep it draft until operational acceptance and review.
 
 ## Verified on main
 

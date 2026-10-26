@@ -428,3 +428,14 @@ The exact-head producer job in run 40271256105 failed 1 test (538 passed): `test
 [CI run #40271529641](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40271529641) passed both jobs on the exact fixed SHA. 539 tests passed; 90.49% overall coverage, 96% Phase I core coverage, 86% Phase II integration coverage. Artifact `12628348250` (42,840 bytes, SHA-256 `bbf8a7d24ecaf32d46faf163b3e6446d96dc1d99608309d9ac584bda4ee1e0d4`) was downloaded and independently verified. It contains exactly `junit.xml` and `coverage-manifest.json`; both have 539 unique matching test IDs, every outcome passed, manifest head SHA equals the tested SHA, no unsafe paths or invalid line/branch entries were found, and all behavioral assertion flags remain false.
 
 This resolves the repository's current code/CI blockers. A live target deployment smoke test and human review remain external release prerequisites and have not been claimed.
+
+
+## Deterministic replay fixture and final exact-head CI verified — 2026-10-26
+
+Final exact head `0a15bab79bc285f3da80eb79e529ee8cea91a615` passed [CI run #40272532304](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40272532304); both jobs passed. The quality job reports 539 passing tests, total coverage 90.49%, Phase I core 96%, Phase II integration 86%, formatting, Ruff, and strict mypy all green. The exact-PR-head producer generated and uploaded artifact `12628423276` (42,796 bytes, SHA-256 `9e22995baff947d32a6c8d2908bdc518513cd927bd2ec2e2601e9df764d66610`).
+
+I downloaded that ZIP and independently verified its byte digest against GitHub's API. Contents are exactly `junit.xml` and `coverage-manifest.json`; each has 539 unique IDs, their ID sets and outcomes match, all outcomes are passed, and manifest head equals `0a15bab79bc285f3da80eb79e529ee8cea91a615`. No unsafe paths or invalid line/branch entries were found; every `behavioral_assertion_verified` field remains false.
+
+The immediately previous CI failure was caused by the shared test ZIP helper using variable timestamps. The fix pins ZIP timestamps and compression in the test helper only. The production ledger's immutable replay-conflict checks are unchanged.
+
+Remaining release boundary: the repository's actual target deployment must be smoke-tested using the installed GitHub App, its `actions:read` permission, webhook ingress, worker, configured evidence database, and Check Run publication. That environment is not configured through the connected GitHub API tool, and there are no human review submissions yet; do not claim production acceptance or merge PR #6 until these are satisfied.

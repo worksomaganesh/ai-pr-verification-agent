@@ -5,7 +5,7 @@
 **Draft PR:** [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6)  
 **Last reconciled:** 2026-10-26  
 **Current reported progress:** **99% code/CI complete; deployment acceptance pending**  
-**Verification status:** Exact-SHA CI and evidence production are green on head 61811292a9a87282b04758cbb3e4ecfa46160cb6; deployment-specific GitHub App smoke test and human review remain.
+**Verification status:** Exact-SHA CI and evidence production are green on head 0a15bab79bc285f3da80eb79e529ee8cea91a615; deployment-specific GitHub App smoke test and human review remain.
 
 > Percentages are engineering-scope estimates. They are not CI success percentages, test coverage,
 > or proof of release readiness. Historical entries below preserve the progress figures reported
@@ -66,6 +66,16 @@ The old 62%, 85%, and 90% estimates and previous failures below are historical c
 - Exactly two files; JUnit and manifest have 539 unique identical IDs with all passing outcomes and exact head binding. No structural anomalies; all semantic assertion flags false.
 - The failure on the immediately previous head was test-fixture nondeterminism (ZIP timestamp), not a reason to relax the evidence ledger's immutable-content conflict detection.
 - Code/CI acceptance is complete. Target-deployment smoke test and human review are still required before release.
+
+## Latest exact-head gate passed — 2026-10-26
+
+**Head:** `0a15bab79bc285f3da80eb79e529ee8cea91a615`  
+**CI:** [run #40272532304](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40272532304) — both jobs succeeded.
+
+- Formatting, Ruff, strict mypy passed; 539 tests passed; overall coverage 90.49%, Phase I core 96%, Phase II integration 86%.
+- Artifact `12628423276`, size 42,796 bytes, SHA-256 `9e22995baff947d32a6c8d2908bdc518513cd927bd2ec2e2601e9df764d66610`; independent hash validation passed.
+- Exactly `junit.xml` and `coverage-manifest.json`; 539 unique matching IDs, all passing outcomes, manifest SHA matches head, no structural anomalies, all behavioral-assertion flags false.
+- Code and repository CI/evidence acceptance are verified. Target deployment smoke test and human review remain before production release.
 
 ## Historical progress increases
 
