@@ -5,14 +5,14 @@ from __future__ import annotations
 import hashlib
 import hmac
 
-import pytest
-
 from scripts.phase3_deployment_smoke import (
     SmokeTestError,
     _artifact_sha256,
     _record_key_from_summary,
     _signed_webhook,
 )
+
+import pytest
 
 
 def test_artifact_digest_is_normalized_and_validated() -> None:
@@ -44,11 +44,11 @@ def test_check_summary_must_bind_to_a_persisted_record_key() -> None:
 
 
 def test_webhook_signature_is_over_exact_serialized_bytes() -> None:
-    secret = "only-a-test-secret"
+    signing_key = "phase3-smoke-fixture-key"
     payload: dict[str, object] = {"action": "synchronize", "pull_request": {"number": 5}}
     delivery_id = "phase3-smoke-test"
-    body, headers = _signed_webhook(secret, delivery_id, payload)
-    expected = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+    body, headers = _signed_webhook(signing_key, delivery_id, payload)
+    expected = hmac.new(signing_key.encode(), body, hashlib.sha256).hexdigest()
     assert headers["x-hub-signature-256"] == f"sha256={expected}"
     assert headers["x-github-delivery"] == delivery_id
     assert headers["x-github-event"] == "pull_request"

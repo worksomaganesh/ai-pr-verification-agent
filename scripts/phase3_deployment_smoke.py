@@ -259,7 +259,8 @@ def _verify_database_record(
             )
             if not matches:
                 raise SmokeTestError(
-                    "The persisted evidence record does not match the PR, run, artifact, and digest."
+                    "The persisted evidence record does not match the PR, run, artifact, and "
+                    "digest."
                 )
             if terminal_status is None or row["reconciliation_status"] == terminal_status:
                 break
