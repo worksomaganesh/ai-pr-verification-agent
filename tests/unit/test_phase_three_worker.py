@@ -308,7 +308,7 @@ def test_worker_reconciles_successful_authenticated_evidence(
 
     def reconcile(**kwargs: Any) -> VerificationObligation:
         reconciliation_calls.append(kwargs)
-        return kwargs["obligation"]
+        return cast(VerificationObligation, kwargs["obligation"])
 
     def publish(**kwargs: Any) -> object:
         publication_calls.append(kwargs)
