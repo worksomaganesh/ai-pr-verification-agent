@@ -6,7 +6,6 @@ import hashlib
 import hmac
 
 import pytest
-
 from scripts.phase3_deployment_smoke import (
     SmokeTestError,
     _artifact_sha256,
