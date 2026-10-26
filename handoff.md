@@ -7,15 +7,15 @@ Last reconciled: 2026-10-26
 - Repository: worksomaganesh/ai-pr-verification-agent
 - Working branch: phase-3-evidence-ingestion
 - Draft PR: [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6)
-- Last fully verified candidate at this checkpoint: a5b09ac5a34d458e80b89d3b0d1bacc43b98b236
-- Exact-SHA workflow: [run #40269457351](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40269457351) — **success** on the candidate SHA.
+- Last fully verified candidate at this checkpoint: d68aa02175f412600575e87b2d50e7afcd1198e8
+- Exact-SHA workflow: [run #40269923540](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40269923540) — **success** on the candidate SHA.
 - Progress tracker: **95% implementation/CI acceptance**; deployment smoke test and human review remain.
 
 ## Verified evidence
 
 - Quality job: formatting, Ruff, strict mypy passed; 539 tests passed; 90.49% overall coverage, 96% Phase I, 86% Phase II. One non-blocking Starlette/httpx deprecation warning.
 - Evidence job: exact-PR-head tests, manifest export, and artifact upload all passed.
-- Artifact ID: 12627419483; name verification-evidence; size 42,805 bytes; GitHub digest sha256:d9017cddb74aba35f5f5ddf4f0e04bb476c1127a7d4754201a72bb93d3848e62.
+- Artifact ID: 12628125640; name verification-evidence; size 42,639 bytes; GitHub digest sha256:669dda634a1b5d44a5ea9760a479c5314d982b112ee7a617832c69984fb99ffd.
 - Downloaded ZIP SHA matches the API digest. Exactly junit.xml and coverage-manifest.json; both inventories have 539 unique identical IDs and all passing outcomes; manifest SHA is the exact candidate; all behavior-assertion flags are false.
 
 ## Implemented Phase III behavior

@@ -2,14 +2,14 @@
 
 ## Current status (2026-10-26)
 
-The Phase III implementation on draft PR [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6) passed its exact-SHA CI and evidence-producer jobs on candidate a5b09ac5a34d458e80b89d3b0d1bacc43b98b236. See [CI run #40269457351](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40269457351).
+The Phase III implementation on draft PR [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6) passed its exact-SHA CI and evidence-producer jobs on head d68aa02175f412600575e87b2d50e7afcd1198e8. See [CI run #40269923540](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40269923540).
 
 - Formatting, Ruff, and strict mypy passed.
 - 539 tests passed with one non-blocking Starlette/httpx deprecation warning.
 - Overall coverage: 90.49% (90% required); Phase I core: 96% (95% required); Phase II integration: 86% (80% required).
 - The exact-PR-head evidence job passed its per-test test run, manifest export, and artifact upload.
-- Artifact verification-evidence, ID 12627419483, size 42,805 bytes; GitHub SHA-256 digest d9017cddb74aba35f5f5ddf4f0e04bb476c1127a7d4754201a72bb93d3848e62.
-- Independent download inspection confirmed exactly junit.xml and coverage-manifest.json, 539 unique matching test IDs in both, equal passing outcomes, exact candidate head binding, no invalid structural entries, and all exporter assertion flags false.
+- Artifact verification-evidence, ID 12628125640, size 42,639 bytes; GitHub SHA-256 digest 669dda634a1b5d44a5ea9760a479c5314d982b112ee7a617832c69984fb99ffd.
+- Independent download inspection confirmed exactly junit.xml and coverage-manifest.json, 539 unique matching test IDs in both, equal passing outcomes, exact head binding, no invalid structural entries, and all exporter assertion flags false.
 
 The implementation and CI gates are verified. A deployment-specific smoke test using the configured GitHub App installation, webhook ingress, evidence database, and Check Run path remains a release-operational prerequisite. Keep the PR draft until that smoke test and human review are complete.
 

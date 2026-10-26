@@ -393,3 +393,15 @@ The same run's evidence job checked out the exact PR head, passed the per-test t
 **Correction to earlier deployment notes:** the current main/base policy trusts .github/workflows/ci.yml, and the workflow source retrieved from main includes the exact-PR-head checkout, per-test coverage/JUnit output, SHA-bound manifest export, and pinned artifact upload contract. Older notes saying this producer was absent from main are superseded by this direct inspection of the current base workflow/policy and successful exact-head producer run.
 
 **Remaining boundary:** this verifies CI and artifact production and the repository's automated worker/service regression coverage. It does not constitute a deployment smoke test of the user's configured GitHub App installation, webhook ingress, database, and Check Run against a live target installation. Phase III should remain draft until that operational smoke test and human review are complete. V1 intentionally rejects ambiguous or multiple eligible runs; cross-run/rerun/shard aggregation is deferred rather than inferred.
+
+
+## Latest exact-head confirmation — 2026-10-26
+
+- Documentation-aligned branch head tested: d68aa02175f412600575e87b2d50e7afcd1198e8.
+- Final workflow [#40269923540](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40269923540) completed successfully on that exact SHA; both quality and evidence jobs succeeded.
+- Quality job: formatting, Ruff, strict mypy passed; 539 tests passed; overall coverage 90.49%, Phase I core 96%, Phase II integration 86%.
+- Evidence artifact: verification-evidence, ID 12628125640, 42,639 bytes, GitHub SHA-256 sha256:669dda634a1b5d44a5ea9760a479c5314d982b112ee7a617832c69984fb99ffd.
+- Downloaded ZIP SHA-256 independently matches the API digest. ZIP has exactly junit.xml and coverage-manifest.json. Both inventories contain 539 unique matching IDs, all passing outcomes, zero duplicate IDs, and manifest head SHA d68aa02175f412600575e87b2d50e7afcd1198e8. Structural validation found no unsafe path/line/branch entries; assertion flags are all false.
+- Remaining acceptance is deployment-specific: exercise the target installed GitHub App, webhook-to-worker path, evidence database, and Check Run publication; then complete human review. No live deployment smoke test was run in this environment.
+
+The previous 95% milestone on a5b09ac remains valid for that implementation checkpoint. The documentation-aligned head d68aa02 was subsequently tested end-to-end with both CI jobs green; use run #40269923540 and artifact 12628125640 as the latest verification anchor. The outstanding deployment-specific smoke test is not achievable without the target installation/configuration and has not been claimed.

@@ -2,9 +2,9 @@
 
 **Snapshot date:** 2026-10-26  
 **Main/base SHA for Phase III PR:** `d9bc46f2fad9ac0527f87b6d692cb8f88929fc37`  
-**Verified Phase III candidate SHA:** `a5b09ac5a34d458e80b89d3b0d1bacc43b98b236`  
+**Verified Phase III head SHA:** `d68aa02175f412600575e87b2d50e7afcd1198e8`  
 **Phase III PR:** [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6), open and draft.  
-**Latest completed exact-SHA CI run:** [#40269457351](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40269457351) — success.
+**Latest completed exact-SHA CI run:** [#40269923540](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40269923540) — success.
 
 
 
@@ -18,6 +18,15 @@
 - Scope boundary: V1 is single-run/single-artifact and fails closed on ambiguity; automatic rerun/shard aggregation is intentionally not implemented. CI and producer behavior are verified, but a deployment-specific worker smoke test with the installed GitHub App and actions:read permission has not been performed from this environment. Keep PR #6 draft until that operational smoke test and human review are complete.
 
 > This 2026-10-26 snapshot supersedes the older progress estimates and CI-status statements below. Those entries are preserved as historical investigation records rather than current status.
+
+## Latest exact-head confirmation — 2026-10-26
+
+- Documentation-aligned branch head tested: d68aa02175f412600575e87b2d50e7afcd1198e8.
+- Final workflow [#40269923540](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40269923540) completed successfully on that exact SHA; both quality and evidence jobs succeeded.
+- Quality job: formatting, Ruff, strict mypy passed; 539 tests passed; overall coverage 90.49%, Phase I core 96%, Phase II integration 86%.
+- Evidence artifact: verification-evidence, ID 12628125640, 42,639 bytes, GitHub SHA-256 sha256:669dda634a1b5d44a5ea9760a479c5314d982b112ee7a617832c69984fb99ffd.
+- Downloaded ZIP SHA-256 independently matches the API digest. ZIP has exactly junit.xml and coverage-manifest.json. Both inventories contain 539 unique matching IDs, all passing outcomes, zero duplicate IDs, and manifest head SHA d68aa02175f412600575e87b2d50e7afcd1198e8. Structural validation found no unsafe path/line/branch entries; assertion flags are all false.
+- Remaining acceptance is deployment-specific: exercise the target installed GitHub App, webhook-to-worker path, evidence database, and Check Run publication; then complete human review. No live deployment smoke test was run in this environment.
 
 ## Verified on main
 
