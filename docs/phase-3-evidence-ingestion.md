@@ -2,16 +2,16 @@
 
 ## Current status (2026-10-26)
 
-The Phase III implementation on draft PR [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6) passed its exact-SHA CI and evidence-producer jobs on head d68aa02175f412600575e87b2d50e7afcd1198e8. See [CI run #40269923540](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40269923540).
+The Phase III implementation on draft PR [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6) passed its exact-SHA CI and evidence-producer jobs on head 5658106e6ef03f6e46e8f5dfefad38056aaebccd. See [CI run #40270614782](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40270614782).
 
 - Formatting, Ruff, and strict mypy passed.
 - 539 tests passed with one non-blocking Starlette/httpx deprecation warning.
 - Overall coverage: 90.49% (90% required); Phase I core: 96% (95% required); Phase II integration: 86% (80% required).
 - The exact-PR-head evidence job passed its per-test test run, manifest export, and artifact upload.
-- Artifact verification-evidence, ID 12628125640, size 42,639 bytes; GitHub SHA-256 digest 669dda634a1b5d44a5ea9760a479c5314d982b112ee7a617832c69984fb99ffd.
+- Artifact verification-evidence, ID 12628146952, size 42,823 bytes; GitHub SHA-256 digest c508f72a6c3faed815d881da2627608c8f82bf78368c9b39e2d1a96e70d5e572.
 - Independent download inspection confirmed exactly junit.xml and coverage-manifest.json, 539 unique matching test IDs in both, equal passing outcomes, exact head binding, no invalid structural entries, and all exporter assertion flags false.
 
-The implementation and CI gates are verified. A deployment-specific smoke test using the configured GitHub App installation, webhook ingress, evidence database, and Check Run path remains a release-operational prerequisite. Keep the PR draft until that smoke test and human review are complete.
+The implementation and CI gates are verified on exact head `5658106e6ef03f6e46e8f5dfefad38056aaebccd` (98% implementation/CI acceptance). A deployment-specific smoke test using the configured GitHub App installation, webhook ingress, evidence database, and Check Run path remains a release-operational prerequisite. Keep the PR draft until that smoke test and human review are complete.
 
 ## Trust chain
 

@@ -405,3 +405,12 @@ The same run's evidence job checked out the exact PR head, passed the per-test t
 - Remaining acceptance is deployment-specific: exercise the target installed GitHub App, webhook-to-worker path, evidence database, and Check Run publication; then complete human review. No live deployment smoke test was run in this environment.
 
 The previous 95% milestone on a5b09ac remains valid for that implementation checkpoint. The documentation-aligned head d68aa02 was subsequently tested end-to-end with both CI jobs green; use run #40269923540 and artifact 12628125640 as the latest verification anchor. The outstanding deployment-specific smoke test is not achievable without the target installation/configuration and has not been claimed.
+
+
+## Final close-out verification — 2026-10-26
+
+Branch head `5658106e6ef03f6e46e8f5dfefad38056aaebccd` passed [CI run #40270614782](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40270614782) on the exact same SHA. Both the quality and evidence-producer jobs succeeded. Formatting, Ruff, strict mypy, 539 tests, 90.49% overall coverage, 96% Phase I core coverage, and 86% Phase II integration coverage all passed.
+
+The new uploaded artifact `12628146952` has GitHub-reported digest `sha256:c508f72a6c3faed815d881da2627608c8f82bf78368c9b39e2d1a96e70d5e572` and size 42,823 bytes. Independently downloaded bytes match that digest. The ZIP has exactly `junit.xml` and `coverage-manifest.json`; each contains 539 unique matching IDs, all outcomes pass, and the manifest's head SHA equals `5658106e6ef03f6e46e8f5dfefad38056aaebccd`. Structural checks found no unsafe path/line/branch entries. Exported assertion flags remain false by design: line/branch coverage is not treated as semantic assertion verification.
+
+The exact-head check resolves the final repository-CI blocker. The only declared remaining release prerequisite is operational: smoke-test the real installed GitHub App, webhook-to-worker path, configured evidence database, and Check Run publication in the target deployment, then complete human review. Those external environment steps were not executed here; PR #6 remains draft until done.

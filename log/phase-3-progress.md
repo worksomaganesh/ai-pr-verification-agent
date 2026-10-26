@@ -5,7 +5,7 @@
 **Draft PR:** [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6)  
 **Last reconciled:** 2026-10-26  
 **Current reported progress:** **95% complete / 5% remaining** (engineering-scope estimate)  
-**Verification status:** Exact-SHA CI and evidence production are green on head d68aa02175f412600575e87b2d50e7afcd1198e8; deployment-specific GitHub App smoke test and human review remain.
+**Verification status:** Exact-SHA CI and evidence production are green on head 5658106e6ef03f6e46e8f5dfefad38056aaebccd; deployment-specific GitHub App smoke test and human review remain.
 
 > Percentages are engineering-scope estimates. They are not CI success percentages, test coverage,
 > or proof of release readiness. Historical entries below preserve the progress figures reported
@@ -30,12 +30,24 @@ The old 62%, 85%, and 90% estimates and previous failures below are historical c
 
 ## Latest exact-head confirmation — 2026-10-26
 
-- Documentation-aligned branch head tested: d68aa02175f412600575e87b2d50e7afcd1198e8.
-- Final workflow [#40269923540](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40269923540) completed successfully on that exact SHA; both quality and evidence jobs succeeded.
+- Documentation-aligned branch head tested: 5658106e6ef03f6e46e8f5dfefad38056aaebccd.
+- Final workflow [#40270614782](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40270614782) completed successfully on that exact SHA; both quality and evidence jobs succeeded.
 - Quality job: formatting, Ruff, strict mypy passed; 539 tests passed; overall coverage 90.49%, Phase I core 96%, Phase II integration 86%.
-- Evidence artifact: verification-evidence, ID 12628125640, 42,639 bytes, GitHub SHA-256 sha256:669dda634a1b5d44a5ea9760a479c5314d982b112ee7a617832c69984fb99ffd.
-- Downloaded ZIP SHA-256 independently matches the API digest. ZIP has exactly junit.xml and coverage-manifest.json. Both inventories contain 539 unique matching IDs, all passing outcomes, zero duplicate IDs, and manifest head SHA d68aa02175f412600575e87b2d50e7afcd1198e8. Structural validation found no unsafe path/line/branch entries; assertion flags are all false.
+- Evidence artifact: verification-evidence, ID 12628146952, 42,823 bytes, GitHub SHA-256 sha256:c508f72a6c3faed815d881da2627608c8f82bf78368c9b39e2d1a96e70d5e572.
+- Downloaded ZIP SHA-256 independently matches the API digest. ZIP has exactly junit.xml and coverage-manifest.json. Both inventories contain 539 unique matching IDs, all passing outcomes, zero duplicate IDs, and manifest head SHA 5658106e6ef03f6e46e8f5dfefad38056aaebccd. Structural validation found no unsafe path/line/branch entries; assertion flags are all false.
 - Remaining acceptance is deployment-specific: exercise the target installed GitHub App, webhook-to-worker path, evidence database, and Check Run publication; then complete human review. No live deployment smoke test was run in this environment.
+
+
+## Final exact-head CI and artifact verification — 2026-10-26
+
+**Branch head:** `5658106e6ef03f6e46e8f5dfefad38056aaebccd`  
+**CI:** [run #40270614782](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40270614782) — **success** on that exact SHA.
+
+- Quality job: formatting, Ruff, strict mypy passed; 539 tests passed; 90.49% overall coverage, 96% Phase I core, 86% Phase II integration.
+- Evidence job: exact-head tests, manifest export, and upload all passed. Artifact `verification-evidence` ID `12628146952`, 42,823 bytes, SHA-256 `c508f72a6c3faed815d881da2627608c8f82bf78368c9b39e2d1a96e70d5e572`.
+- Independently downloaded and checked artifact bytes: ZIP digest matches GitHub; exactly `junit.xml` and `coverage-manifest.json`; 539 unique IDs match on both sides; all outcomes passed; manifest binds to this exact head; no unsafe path/line/branch entries; all semantic assertion flags remain false.
+- Progress is **98% implementation/CI acceptance**. The remaining items are the target deployment's live GitHub App/webhook/database/Check Run smoke test and human review; neither should be implied by repository CI.
+- V1 remains single-run/single-artifact and fails closed on ambiguity. Cross-run, rerun, and shard aggregation are deferred until an explicit completeness/identity protocol is designed.
 
 ## Historical progress increases
 
