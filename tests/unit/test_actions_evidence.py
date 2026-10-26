@@ -9,6 +9,7 @@ import stat
 import zipfile
 from datetime import datetime
 from pathlib import Path
+from typing import Any, cast
 
 import pytest
 
@@ -1272,7 +1273,7 @@ def test_rejects_invalid_policy_and_binding_inputs(
     overrides: dict[str, object], message: str
 ) -> None:
     with pytest.raises(ActionsEvidenceError, match=message):
-        ingest(**overrides)
+        ingest(**cast(Any, overrides))
 
 
 def test_archive_reader_rejects_missing_members_and_special_file_types() -> None:
