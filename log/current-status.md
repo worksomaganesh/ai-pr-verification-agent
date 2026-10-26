@@ -1,10 +1,23 @@
 # Current Verified Status
 
-**Snapshot date:** 2026-10-18  
-**Main/base SHA for Phase III PR:** `1ff87390071491a9a08c9748aca2f36887ac5d77`  
-**Last inspected Phase III head:** `d2a1e0c2a08e3a702ff9814eee408b3606e4ea37`  
+**Snapshot date:** 2026-10-26  
+**Main/base SHA for Phase III PR:** `d9bc46f2fad9ac0527f87b6d692cb8f88929fc37`  
+**Verified Phase III candidate SHA:** `a5b09ac5a34d458e80b89d3b0d1bacc43b98b236`  
 **Phase III PR:** [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6), open and draft.  
-**Last completed CI run:** [#39149971965](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39149971965).
+**Latest completed exact-SHA CI run:** [#40269457351](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40269457351) — success.
+
+
+
+## Latest Phase III exact-SHA verification — 2026-10-26
+
+- Candidate SHA: a5b09ac5a34d458e80b89d3b0d1bacc43b98b236; CI run [#40269457351](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40269457351) completed with conclusion **success** on that exact SHA.
+- Quality job: formatting passed; Ruff passed; strict mypy passed; **539 tests passed**; overall coverage **90.49%** (required 90%); Phase I core **96%** (required 95%); Phase II integration **86%** (required 80%). One existing Starlette/httpx deprecation warning remains non-blocking.
+- Evidence producer job: checked out the exact PR head, ran the same 539 tests with per-test coverage, exported the version-1 coverage manifest, and uploaded artifact verification-evidence, ID 12627419483, size 42,805 bytes. GitHub API digest: sha256:d9017cddb74aba35f5f5ddf4f0e04bb476c1127a7d4754201a72bb93d3848e62.
+- Independent artifact inspection confirmed the downloaded ZIP SHA-256 matches GitHub's digest; it contains exactly junit.xml and coverage-manifest.json. Both contain 539 unique matching test IDs; all outcomes are passed; manifest head SHA equals the candidate; all behavioral_assertion_verified flags are false; no invalid path/line/branch entries were found.
+- The main/base workflow .github/workflows/ci.yml is pinned to SHA-tested actions and includes the exact-PR-head checkout, per-test coverage/JUnit producer, manifest export, and artifact upload contract. The base policy trusts that workflow and treats workflow/policy changes as harness-sensitive.
+- Scope boundary: V1 is single-run/single-artifact and fails closed on ambiguity; automatic rerun/shard aggregation is intentionally not implemented. CI and producer behavior are verified, but a deployment-specific worker smoke test with the installed GitHub App and actions:read permission has not been performed from this environment. Keep PR #6 draft until that operational smoke test and human review are complete.
+
+> This 2026-10-26 snapshot supersedes the older progress estimates and CI-status statements below. Those entries are preserved as historical investigation records rather than current status.
 
 ## Verified on main
 
@@ -18,7 +31,7 @@
 - Tested SHA: `1ff87390071491a9a08c9748aca2f36887ac5d77`.
 - Formatting, Ruff, strict mypy, tests, Phase I core gate, and Phase II integration gate passed: 353 tests, one warning, 92.66% overall coverage.
 
-## Phase III: last observed verification
+## Historical Phase III verification on older SHAs (superseded 2026-10-26)
 
 - Run [#39149971965](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39149971965) tested exact PR head `a2e4b5a49717b350a59d980bc659aea86a47adac`; it was not green.
 - Formatting failed in exactly two files: `src/verification_core/phase_three.py` (conditional-step error formatting and the workflow-run recheck call) and `tests/unit/test_actions_evidence.py` (one parametrized test signature plus an extra blank line).
@@ -26,7 +39,7 @@
 - The current `main` workflow file at the base SHA does not declare the required evidence-upload step. The new trust validator correctly rejects it. A production-capable ingestion run therefore requires a separate trusted-workflow deployment and an honest per-test evidence-manifest producer; a green library test suite alone cannot prove live ingestion is enabled.
 - The implementation uses one run and exactly one configured artifact. Cross-run and shard aggregation are not implemented. Missing or ambiguous evidence is rejected. This change adds an explicit post-download reread of the workflow run and rejects an attempt/identity change.
 
-## Completion estimate
+## Historical completion estimate (2026-10-18; superseded by the latest exact-SHA run)
 
 **Working estimate: 70% implemented / 30% remaining (unchanged).** This is an engineering-scope estimate, not code coverage or release readiness. The remaining release work is concrete: obtain green full CI on the exact candidate SHA; satisfy the coverage gates; deploy a trusted base-branch uploader and per-test manifest producer; validate live GitHub artifact digest behavior; and reconcile the PR metadata, repository logs, and latest CI evidence to the same immutable SHA. Do not report 100% until those conditions are met.
 

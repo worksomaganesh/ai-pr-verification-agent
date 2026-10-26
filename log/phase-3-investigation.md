@@ -379,3 +379,17 @@ Run [#39902428152](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 ## Coverage gate blocker and response — 2026-10-23
 
 Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/39907385124) passed formatting, Ruff, and strict mypy but failed the test command's total coverage threshold: **465 passed, 1 warning, 89.32% total (required 90%)**. Phase-specific coverage gates and the evidence producer were skipped after pytest returned nonzero. The newly added exact-head Actions run-discovery method introduced several defensive branches that lacked tests. Added parameterized API-boundary regressions for malformed totals, negative counts, malformed run collections, non-object items, invalid/duplicate run IDs, pagination-count changes, and missing page items. This is a targeted coverage increase, not a gate bypass; next exact-commit CI must pass all gates before counting progress.
+
+
+## Exact-SHA CI, trusted producer, and artifact integrity verified — 2026-10-26
+
+**Candidate SHA:** a5b09ac5a34d458e80b89d3b0d1bacc43b98b236  
+**CI:** [run #40269457351](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40269457351), conclusion success on that exact SHA.
+
+This resolves several earlier recurring blockers documented above: formatter failures, a strict-mypy issue in the new override-parameterized test, and the 90% overall coverage shortfall. The final quality run passed formatting, Ruff, strict mypy, 539 tests, 90.49% total coverage, 96% Phase I core coverage, and 86% Phase II integration coverage.
+
+The same run's evidence job checked out the exact PR head, passed the per-test test run, exported the manifest, and uploaded the artifact. GitHub reported artifact ID 12627419483, size 42,805 bytes, and digest sha256:d9017cddb74aba35f5f5ddf4f0e04bb476c1127a7d4754201a72bb93d3848e62. I downloaded the artifact and verified that its byte digest matches the API digest, it contains exactly the two expected files, the JUnit and manifest each contain 539 unique matching test node IDs, all outcomes agree as passed, and the manifest head SHA equals the tested candidate. The exporter correctly sets all behavioral-assertion flags to false; it does not claim that line coverage proves assertion semantics.
+
+**Correction to earlier deployment notes:** the current main/base policy trusts .github/workflows/ci.yml, and the workflow source retrieved from main includes the exact-PR-head checkout, per-test coverage/JUnit output, SHA-bound manifest export, and pinned artifact upload contract. Older notes saying this producer was absent from main are superseded by this direct inspection of the current base workflow/policy and successful exact-head producer run.
+
+**Remaining boundary:** this verifies CI and artifact production and the repository's automated worker/service regression coverage. It does not constitute a deployment smoke test of the user's configured GitHub App installation, webhook ingress, database, and Check Run against a live target installation. Phase III should remain draft until that operational smoke test and human review are complete. V1 intentionally rejects ambiguous or multiple eligible runs; cross-run/rerun/shard aggregation is deferred rather than inferred.

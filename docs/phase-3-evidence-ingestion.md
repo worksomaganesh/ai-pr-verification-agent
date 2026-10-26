@@ -1,107 +1,54 @@
-# Phase III — Authenticated evidence ingestion
+# Phase III — Authenticated evidence ingestion and reconciliation
 
-## Status
+## Current status (2026-10-26)
 
-Phase III has begun with a first implementation slice for authenticated GitHub Actions metadata and bounded artifact ingestion. It is not a release-complete evidence reconciliation service yet. Do not enable merge gating based on these primitives until the CI suite passes on the exact commit and the remaining items below are implemented.
+The Phase III implementation on draft PR [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6) passed its exact-SHA CI and evidence-producer jobs on candidate a5b09ac5a34d458e80b89d3b0d1bacc43b98b236. See [CI run #40269457351](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40269457351).
 
-## Trust model
+- Formatting, Ruff, and strict mypy passed.
+- 539 tests passed with one non-blocking Starlette/httpx deprecation warning.
+- Overall coverage: 90.49% (90% required); Phase I core: 96% (95% required); Phase II integration: 86% (80% required).
+- The exact-PR-head evidence job passed its per-test test run, manifest export, and artifact upload.
+- Artifact verification-evidence, ID 12627419483, size 42,805 bytes; GitHub SHA-256 digest d9017cddb74aba35f5f5ddf4f0e04bb476c1127a7d4754201a72bb93d3848e62.
+- Independent download inspection confirmed exactly junit.xml and coverage-manifest.json, 539 unique matching test IDs in both, equal passing outcomes, exact candidate head binding, no invalid structural entries, and all exporter assertion flags false.
 
-1. Obtain workflow-run, job, and artifact metadata directly from the authenticated GitHub Actions REST API using an installation token. Webhook fields and artifact contents are not authoritative.
-2. Bind the run to the expected repository, pull request number, base SHA, and head SHA. Only completed successful `pull_request` runs are eligible.
-3. Require the workflow path to match the trusted workflow list loaded from the base-commit policy. Reject a PR that changes a harness-sensitive path.
-4. Parse the workflow source at the exact base SHA with duplicate-key rejection. Require a `pull_request` trigger and exactly one unconditional, uniquely named `Upload verification evidence` step using a full-SHA-pinned `actions/upload-artifact` reference, the configured artifact name, exactly `junit.xml` and `coverage-manifest.json`, and `if-no-files-found: error`. A conditional or ambiguous uploader is rejected.
-5. Bind artifact metadata to the exact workflow-run ID and repository identity. Require a GitHub-provided SHA-256 digest and compare it to the downloaded bytes before parsing.
-6. Enforce archive size, member count, member size, expansion ratio, regular-file-only entries, exact member names, and safe paths. The accepted archive contains exactly `junit.xml` and `coverage-manifest.json`.
-7. Parse reports with the Phase I bounded parsers and require identical exact test-node inventories, matching outcomes, and the coverage manifest's head SHA to equal the expected head SHA.
+The implementation and CI gates are verified. A deployment-specific smoke test using the configured GitHub App installation, webhook ingress, evidence database, and Check Run path remains a release-operational prerequisite. Keep the PR draft until that smoke test and human review are complete.
 
-## Current modules
+## Trust chain
 
-- `verification_core.github_actions.GitHubActionsClient`: bounded API reads for workflow runs, fully paginated jobs and artifacts, and controlled artifact ZIP download. Signed redirects are allowed only to a narrow HTTPS storage-host allowlist; installation credentials are not forwarded to that host.
-- `verification_core.actions_evidence.ingest_authenticated_artifact`: validates API metadata, workflow trust, artifact digest, ZIP members, JUnit and coverage consistency, and exact commit binding.
-- `verification_core.evidence` and `verification_core.coverage`: deterministic parsers and per-test evidence sufficiency rules from Phase I.
+1. Obtain workflow-run, job, and artifact metadata from the authenticated GitHub Actions REST API; webhook body fields and artifact contents are not authoritative.
+2. Bind the run to the expected repository, PR number, base SHA, and head SHA. Only a completed successful pull_request run matching the exact head is eligible.
+3. Load policy and workflow source from the trusted PR base SHA. The current base policy lists .github/workflows/ci.yml as trusted and marks workflow/policy/harness paths sensitive.
+4. Validate the workflow contract before downloading evidence: exact PR-head checkout, disabled checkout credentials, per-test coverage and JUnit output, manifest export bound to the same PR-head SHA, and one final unconditional artifact upload using a full-SHA-pinned action, exact filenames, expected name, and if-no-files-found: error. Ambiguous or duplicate-key YAML fails closed.
+5. Bind artifact metadata to the requested workflow run and repository identity. Require the platform-reported SHA-256 digest and compare it with the downloaded ZIP bytes.
+6. Enforce archive/member/expanded-size limits, safe relative paths, regular files only, no encryption, bounded compression ratio, no duplicates, and exactly the two expected members.
+7. Parse JUnit and the coverage manifest with Phase I parsers; require exact matching node inventories/outcomes and manifest head SHA equal to the expected commit.
+8. Re-read the workflow-run identity/attempt and the live PR base/head after download; do not persist or publish a decision for stale metadata.
+9. Record authenticated evidence idempotently in the durable ledger starting at INCONCLUSIVE; reconcile obligations using trusted target locations and separate assertion bindings; run the Phase I deterministic state machine and publish a freshness-checked Check Run. Ingestion alone never marks an obligation passed.
 
-## Critical limitation
+## Main modules
 
-A JSON field such as `behavioral_assertion_verified: true` is still a claim inside an artifact. Artifact digest and trusted workflow provenance establish which workflow-produced bytes were retrieved, not that the claim is semantically correct. The current ingestion function preserves this field only as an input to the existing deterministic coverage logic; it does **not** establish a passing obligation by itself. Before a production success can be published, the next slice must derive target lines/branches from the analyzed diff and trusted source metadata, reconcile each obligation against exact JUnit node IDs and coverage records, validate the test harness/workflow definition against the base commit, and call the Phase I state machine.
+- verification_core.github_actions.GitHubActionsClient: authenticated, bounded and fully paginated run/job/artifact reads plus guarded ZIP download. Signed storage redirects are limited to an HTTPS allowlist, and the installation token is not forwarded to external storage.
+- verification_core.actions_evidence: run/workflow/artifact identity, digest, bounded ZIP, JUnit/manifest inventory, outcome, and exact-commit validation.
+- verification_core.manifest_export: exports measured per-test lines and branch arcs. It always emits behavioral_assertion_verified: false.
+- verification_core.evidence_ledger.SQLAlchemyEvidenceLedger: immutable evidence identity and digest metadata, idempotent ingestion, separate terminal reconciliation writes, and conflict protection.
+- verification_core.phase_three and verification_core.phase_three_worker: trusted-base workflow validation, live PR freshness checks, conservative run selection, obligation reconciliation, and deterministic Check Run publication.
+- verification_core.phase_two.PhaseTwoProcessor and verification_core.runtime: explicit VERIFICATION_PHASE_THREE_ENABLED=true opt-in; Actions read permission is requested only on the Phase III path; VERIFICATION_EVIDENCE_DATABASE_URL is mandatory when enabled; clients/ledgers are closed through the worker lifecycle.
 
-## Remaining Phase III release gates
+## Security properties and limits
 
-- [x] Wire the Actions API client into worker-facing evidence ingestion and persist authenticated metadata in the durable evidence ledger (initial slice; requires full CI verification).
-- [x] Revalidate current PR base/head immediately before publishing a Phase III Check Run; stale runs are rejected before any Check Run API call (covered by regression test).
-- [x] Parse the exact base-SHA workflow and validate the narrow evidence-upload contract; reject missing, duplicate, conditional, or unpinned upload steps.
-- [ ] Deploy a trusted workflow on `main` that actually satisfies this contract and generates the per-test evidence manifest. The current base workflow does not satisfy it, so live ingestion remains intentionally unavailable until deployment.
-- [x] Use a conservative single-run/single-artifact policy: no cross-run or shard aggregation; missing/ambiguous artifacts fail closed; workflow run identity and attempt are re-read after download and must remain unchanged.
-- [ ] Add a separate explicit aggregation protocol before supporting shards or combining multiple runs.
-- [ ] Validate GitHub artifact digest semantics against live API responses and supported artifact service versions.
-- [x] Add an initial deterministic obligation-to-evidence reconciliation bridge using exact test IDs, trusted target locations, an independent trusted assertion binding, and the Phase I state machine. End-to-end trusted target/assertion derivation still belongs to the caller.
-- [x] Add adversarial tests for archive size/member limits, malformed/empty ZIPs, unsafe/duplicate paths, symlinks, oversized members, compression ratios, untrusted redirect URLs, stale PR heads, workflow-contract spoofing, and run-attempt changes.
-- [ ] Validate live artifact digest/version semantics and complete production artifact-manifest generation with a deployed trusted workflow.
-- [ ] Add deployment configuration, retention and redaction rules for evidence records.
-- [ ] Run format, lint, strict typing, complete tests, and coverage gates on the exact merge candidate.
+- **Integrity is not authenticity:** the artifact digest verifies bytes; workflow/job/run metadata from the authenticated API establishes provenance.
+- **Coverage is not semantic proof:** the exporter never asserts behavioral assertion verification. Only independently trusted base-policy selector/category/severity bindings can supply assertion semantics to reconciliation.
+- **Fail closed:** stale, missing, malformed, oversized, ambiguous, contradictory, untrusted, or failed evidence cannot become a machine-verified pass. A pending workflow is retryable; invalid completed evidence yields an inconclusive/action-required path.
+- **V1 aggregation policy:** one eligible trusted run and exactly one configured artifact. Multiple eligible runs are treated as ambiguous. Shards and cross-run/rerun aggregation are deliberately unsupported until a separate protocol defines identity, completeness, conflict handling, and freshness semantics.
+- **Operational boundary:** CI proves the code's automated tests and the repository's trusted evidence producer on the exact PR head. It is not a deployment smoke test for a live installed GitHub App or user-specific webhook/DB configuration. That must be run in the target deployment before merge gating is enabled.
 
-## Security note
+## Acceptance status
 
-The current API client uses an explicit timeout, bounded JSON bodies, and no automatic redirects. Artifact signed URLs are bearer capabilities: never log them, persist them, or forward the GitHub installation token to the storage host. Keep artifact contents inert; never extract them to the filesystem or execute code from them.
-
-
-## Durable evidence ledger (initial implementation)
-
-`verification_core.evidence_ledger.SQLAlchemyEvidenceLedger` stores authenticated evidence metadata
-and test-inventory digests in SQLite or PostgreSQL. It intentionally does not store artifact ZIPs,
-JUnit bodies, signed download URLs, or secrets. A record is keyed by repository, PR, exact base/head,
-policy digest, workflow run/attempt, and artifact ID. Replays of the same identity are idempotent;
-conflicting content for that identity is rejected.
-
-Every newly ingested record starts with reconciliation status `INCONCLUSIVE`. A separate
-`record_reconciliation` call is required to persist a terminal decision and its digest, and terminal
-decisions are immutable. This is persistence infrastructure only: the caller must still run the
-deterministic obligation reconciliation and state machine before recording a result. The ledger
-does not independently prove behavioral assertions.
-
-
-### Worker and ledger integration
-
-`ingest_pull_request_run` accepts an optional `EvidenceLedgerPort`. It performs the final freshness
-check before recording metadata and returns the ledger record key. The ledger stores only normalized
-metadata and digests, starts records as `INCONCLUSIVE`, and treats repeated identical ingestion as
-idempotent. A stale PR discovered during collection is rejected before persistence. These changes
-do not publish a Check Run or substitute for the pending obligation reconciliation stage.
-
-
-## Deterministic obligation reconciliation (initial integration)
-
-`verification_core.phase_three.reconcile_authenticated_obligation` now connects the authenticated
-artifact to the Phase I coverage evaluator and obligation state machine. It requires the exact
-candidate test node ID, commit-bound workflow provenance, target line/branch sets from trusted
-analysis, and a separate `trusted_assertion_bindings` mapping. The artifact's own
-`behavioral_assertion_verified` field is never treated as authority to pass an obligation.
-
-A missing trusted assertion binding or missing target coverage results in an inconclusive obligation;
-contradictory outcomes fail closed through the existing state machine. The caller remains responsible
-for deriving target locations and assertion bindings from trusted base-policy/deterministic analysis.
-This helper is not yet connected to Check Run publication, and the ledger decision write remains a
-separate explicit step.
-
-
-## Deterministic publication bridge
-
-`publish_reconciled_verification` evaluates the supplied reconciled obligations using the Phase I
-state machine and publishes its conclusion only after a final live PR open/base/head comparison. A
-stale PR is rejected before the Check Run API call. The summary is generated from the deterministic
-evaluation and obligation states; no model or artifact conclusion is accepted.
-
-If a durable evidence record key is supplied, successful Check Run publication is followed by a
-separate ledger terminal-decision write. Only deterministic `success`, `failure`, and `cancelled`
-conclusions map to `PASSED`, `FAILED`, and `STALE` evidence reconciliation statuses. An
-`action_required` or `neutral` conclusion leaves the evidence record `INCONCLUSIVE`. If the
-post-publication ledger write fails, the result explicitly reports `ledger_persisted=False` so the
-decision can be retried idempotently; the code does not claim durable completion.
-
-
-## Trusted workflow definition contract
-
-The orchestration layer parses the workflow source at the exact base SHA before downloading evidence. It requires one SHA-pinned checkout of the exact PR-head repository/SHA with credentials disabled, a pytest step using `--cov-context=test` and `--junitxml=junit.xml`, a manifest export command bound to that same PR-head SHA, and a final unconditional SHA-pinned upload of exactly the two expected files with `if-no-files-found: error`. The four steps must be unique, ordered, unconditional where applicable, and in the same job. Duplicate YAML keys, ambiguous forms, or unknown step semantics fail closed.
-
-This validates the upload contract declared in trusted source; it does not independently prove that a test assertion is behaviorally sufficient. The platform-reported step must still be completed successfully, downloaded bytes must match the authenticated artifact digest, and obligation reconciliation still uses the deterministic Phase I state machine. The producer workflow exists on the Phase III branch, but the source currently present on `main` does not yet declare it. The service therefore intentionally rejects the current base workflow until the trusted producer is deployed on `main` and a subsequent PR run verifies live ingestion.
-
-The V1 run policy is conservative: one workflow run attempt and exactly one artifact with the configured evidence name. No automatic cross-run, rerun, or shard aggregation is performed. Missing or ambiguous artifacts are rejected; a future aggregation feature must define identity, completeness, and contradiction semantics before it can combine reports.
+- [x] Exact-SHA formatting, Ruff, strict mypy, tests, and all configured coverage gates pass.
+- [x] Exact-PR-head evidence producer succeeds and uploads the required artifact.
+- [x] Actual uploaded ZIP SHA-256 independently matches GitHub's artifact API digest.
+- [x] JUnit and manifest node inventories, outcomes, and manifest head SHA match; exporter assertion flags remain false.
+- [x] Runtime integration is behind explicit opt-in, uses Actions read permission only on that path, and requires durable evidence-ledger configuration.
+- [x] Regression tests cover missing/in-progress/failed/ambiguous workflow paths, malformed metadata/archive, stale PR/run identities, reconciliation and publication/ledger failure behavior.
+- [ ] Run a deployment-specific smoke test with the target installed GitHub App: confirm actions:read, accepted real artifact ingestion, evidence-ledger persistence, and freshness-checked Check Run publication end to end.
+- [ ] Complete human review and merge PR #6 after that operational smoke test.

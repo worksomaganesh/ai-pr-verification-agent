@@ -3,16 +3,32 @@
 **Repository:** `worksomaganesh/ai-pr-verification-agent`  
 **Working branch:** `phase-3-evidence-ingestion`  
 **Draft PR:** [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6)  
-**Last reconciled:** 2026-10-18  
-**Current reported progress:** **62% complete / 38% remaining**  
-**Verification status:** Not green. The latest inspected workflow run failed in Ruff lint before
-strict type checking, tests, and coverage gates ran.
+**Last reconciled:** 2026-10-26  
+**Current reported progress:** **95% complete / 5% remaining** (engineering-scope estimate)  
+**Verification status:** Exact-SHA CI and evidence production are green on candidate a5b09ac5a34d458e80b89d3b0d1bacc43b98b236; deployment-specific GitHub App smoke test and human review remain.
 
 > Percentages are engineering-scope estimates. They are not CI success percentages, test coverage,
 > or proof of release readiness. Historical entries below preserve the progress figures reported
 > during the work and the implementation slice associated with each increase.
 
-## Progress increases
+
+
+## Latest verified milestone — 95% — exact-SHA quality gates and artifact production (2026-10-26)
+
+**Exact run:** [#40269457351](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40269457351)  
+**Verified candidate:** a5b09ac5a34d458e80b89d3b0d1bacc43b98b236  
+**Result:** both jobs succeeded on the same SHA.
+
+- Quality job: formatter, Ruff, strict mypy passed; **539 passed, 1 warning**; total coverage **90.49%**, Phase I core **96%**, Phase II integration **86%**. All three enforced thresholds passed.
+- Evidence job: per-test coverage/JUnit run passed, manifest exporter passed, and artifact upload succeeded. GitHub artifact verification-evidence, ID 12627419483, size 42,805 bytes, digest sha256:d9017cddb74aba35f5f5ddf4f0e04bb476c1127a7d4754201a72bb93d3848e62.
+- Downloaded the uploaded ZIP and independently recomputed its SHA-256. ZIP contains exactly junit.xml and coverage-manifest.json; both inventories contain 539 unique matching IDs and all 539 outcomes are passed. Manifest head SHA equals the candidate; no unsafe path/line/branch entries found. Every behavioral_assertion_verified field remains false: execution coverage is not misrepresented as semantic assertion proof.
+- The trusted workflow contract is present in the current main/base .github/workflows/ci.yml, and .verification-policy.yml trusts that workflow. The workflow/policy/harness paths remain protected as trusted-base inputs.
+- V1 intentionally supports one exact trusted run and one artifact. Ambiguous/multiple runs fail closed; shard/rerun aggregation is deferred until a separately specified identity/completeness protocol exists.
+- **Still operationally pending:** exercise the enabled worker against the installed GitHub App in the target deployment (Actions read permission, evidence database configuration, webhook-to-Check-Run flow), then complete human review and merge PR #6. Do not mark deployment acceptance green from CI alone.
+
+The old 62%, 85%, and 90% estimates and previous failures below are historical checkpoints and are superseded by this verified snapshot.
+
+## Historical progress increases
 
 ### 45% — authenticated Actions evidence foundation
 
@@ -96,9 +112,9 @@ Check Run publication based on a deterministic decision.
 current CI state is **not green**; the latest inspected run failed during Ruff lint, so strict typing,
 the test suite, and coverage checks have not yet been confirmed on the current branch head.
 
-## Current milestone snapshot
+## Historical milestone snapshot — 2026-10-18 (superseded by the 2026-10-26 snapshot)
 
-**Current estimate: 62% complete; 38% remaining.**
+**Estimate at that historical snapshot: 62% complete; 38% remaining.**
 
 | Area | Implementation state | Verification state |
 |---|---|---|
@@ -113,7 +129,7 @@ the test suite, and coverage checks have not yet been confirmed on the current b
 | Reruns, shards, stale/expired artifacts, contradictory evidence | Partial / pending | Must be addressed with fail-closed rules |
 | Full CI (format, lint, strict mypy, tests, coverage) | Pending | Not green on latest inspected run |
 
-## Remaining acceptance criteria
+## Historical acceptance criteria checklist (recorded at the 62% snapshot)
 
 1. **CI baseline:** the exact branch head passes formatting, Ruff lint, strict mypy, unit/property tests,
    and all configured coverage gates.
