@@ -95,7 +95,10 @@ def archive(files: dict[str, bytes] | None = None) -> bytes:
     output = io.BytesIO()
     with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as zf:
         for name, content in files.items():
-            zf.writestr(name, content)
+            # Stable ZIP timestamps keep the same logical fixture byte-identical across calls.
+            info = zipfile.ZipInfo(name, date_time=(2020, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            zf.writestr(info, content)
     return output.getvalue()
 
 
