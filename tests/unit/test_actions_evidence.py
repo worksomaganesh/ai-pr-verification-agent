@@ -1165,7 +1165,6 @@ def test_publication_reports_failed_post_publish_ledger_persistence() -> None:
     assert result.ledger_persisted is False
 
 
-
 @pytest.mark.parametrize(
     ("field", "value"),
     [

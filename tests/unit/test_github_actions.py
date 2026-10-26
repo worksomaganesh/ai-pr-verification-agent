@@ -294,7 +294,10 @@ def test_artifact_redirect_is_not_auto_followed_even_with_redirects_enabled() ->
         with pytest.raises(GitHubActionsAPIError, match="disallowed host"):
             client.download_workflow_artifact(REPO, 7)
 
-    assert visited == ["api.github.com"]\n\n\n@pytest.mark.parametrize(
+    assert visited == ["api.github.com"]
+
+
+@pytest.mark.parametrize(
     ("status", "message"),
     [
         (403, "rejected"),
