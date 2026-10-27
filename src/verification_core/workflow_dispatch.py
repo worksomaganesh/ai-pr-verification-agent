@@ -1,13 +1,14 @@
 """Explicitly opt-in GitHub Actions workflow dispatch for Phase IV.
 
 The caller must supply a token scoped with actions:write and explicit enablement.
-Targets are constrained to an operator-owned workflow allowlist.
+Targets and their accepted inputs are constrained by operator-owned configuration.
 """
 
 from __future__ import annotations
 
 import re
 from collections.abc import Mapping
+from dataclasses import dataclass
 
 import httpx
 
@@ -27,6 +28,40 @@ _MAX_INPUT_VALUE = 1024
 
 class GitHubWorkflowDispatchError(GitHubAPIError):
     """Sanitized error for a rejected or failed workflow dispatch."""
+
+
+@dataclass(frozen=True, slots=True)
+class WorkflowInputRule:
+    """Operator-owned constraint for one named workflow_dispatch input."""
+
+    required: bool = False
+    max_length: int = _MAX_INPUT_VALUE
+    pattern: str | None = None
+    allowed_values: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if type(self.required) is not bool:
+            raise ValueError("required must be a boolean")
+        if type(self.max_length) is not int or not 1 <= self.max_length <= _MAX_INPUT_VALUE:
+            raise ValueError("max_length must be between 1 and 1024")
+        if self.pattern is not None:
+            if not isinstance(self.pattern, str) or not self.pattern:
+                raise ValueError("pattern must be a non-empty regular expression")
+            try:
+                re.compile(self.pattern)
+            except re.error:
+                raise ValueError("pattern must be a valid regular expression") from None
+        if not isinstance(self.allowed_values, tuple):
+            raise ValueError("allowed_values must be a tuple")
+        if any(
+            not isinstance(value, str)
+            or len(value) > self.max_length
+            or any(ord(char) < 32 and char not in "\t" for char in value)
+            for value in self.allowed_values
+        ):
+            raise ValueError("allowed_values must contain bounded, printable strings")
+        if len(set(self.allowed_values)) != len(self.allowed_values):
+            raise ValueError("allowed_values must not contain duplicates")
 
 
 def _valid_repository(repository: str) -> bool:
@@ -57,7 +92,9 @@ class GitHubWorkflowDispatcher:
     """Dispatch an allowlisted workflow only after explicit opt-in.
 
     The caller supplies a token expected to have actions:write scoped to the intended
-    repository. This class does not mint broader credentials automatically.
+    repository. Every allowlisted workflow must also have an explicit input schema;
+    an empty schema deliberately means that workflow accepts no inputs. This class
+    does not mint broader credentials automatically.
     """
 
     def __init__(
@@ -65,6 +102,7 @@ class GitHubWorkflowDispatcher:
         installation_token: str,
         *,
         allowed_workflows: tuple[str, ...],
+        input_schemas: Mapping[str, Mapping[str, WorkflowInputRule]],
         enabled: bool = False,
         http_client: httpx.Client | None = None,
         timeout_seconds: float = 8.0,
@@ -82,8 +120,29 @@ class GitHubWorkflowDispatcher:
             raise ValueError("allowed workflow names must be YAML filenames")
         if len(set(allowed_workflows)) != len(allowed_workflows):
             raise ValueError("allowed_workflows must not contain duplicates")
+        if not isinstance(input_schemas, Mapping) or set(input_schemas) != set(allowed_workflows):
+            raise ValueError("input_schemas must define exactly every allowlisted workflow")
+
+        normalized_schemas: dict[str, dict[str, WorkflowInputRule]] = {}
+        for workflow, schema in input_schemas.items():
+            if not isinstance(schema, Mapping) or len(schema) > _MAX_INPUTS:
+                raise ValueError("each workflow schema must define at most 10 inputs")
+            normalized_schema: dict[str, WorkflowInputRule] = {}
+            for name, rule in schema.items():
+                if (
+                    not isinstance(name, str)
+                    or not _INPUT_NAME_RE.fullmatch(name)
+                    or _SECRETISH_INPUT_RE.search(name)
+                ):
+                    raise ValueError("schema input names must be safe and must not carry credentials")
+                if not isinstance(rule, WorkflowInputRule):
+                    raise ValueError("each schema entry must use WorkflowInputRule")
+                normalized_schema[name] = rule
+            normalized_schemas[workflow] = normalized_schema
+
         self._authorization = f"Bearer {installation_token}"
         self._allowed_workflows = frozenset(allowed_workflows)
+        self._input_schemas = normalized_schemas
         self._enabled = enabled
         self._client = http_client or _make_http_client(timeout_seconds)
         self._owns_client = http_client is None
@@ -107,28 +166,40 @@ class GitHubWorkflowDispatcher:
             raise GitHubWorkflowDispatchError("Workflow is not in the configured allowlist.")
         if not _valid_ref(ref):
             raise ValueError("ref must be a safe branch or tag reference")
+        schema = self._input_schemas[workflow]
         if inputs is None:
-            normalized: dict[str, str] = {}
+            supplied: Mapping[str, str] = {}
         elif not isinstance(inputs, Mapping):
             raise ValueError("inputs must be a mapping of string values")
         else:
-            if len(inputs) > _MAX_INPUTS:
+            supplied = inputs
+            if len(supplied) > _MAX_INPUTS:
                 raise ValueError("inputs exceed the configured count limit")
-            normalized = {}
-            for key, value in inputs.items():
-                if (
-                    not isinstance(key, str)
-                    or not _INPUT_NAME_RE.fullmatch(key)
-                    or _SECRETISH_INPUT_RE.search(key)
-                ):
-                    raise ValueError("input names must be safe and must not carry credentials")
-                if not isinstance(value, str) or len(value) > _MAX_INPUT_VALUE:
-                    raise ValueError(
-                        "input values must be strings within the configured size limit"
-                    )
-                if any(ord(char) < 32 and char not in "\t" for char in value):
-                    raise ValueError("input values must not contain control characters")
-                normalized[key] = value
+
+        normalized: dict[str, str] = {}
+        for key, value in supplied.items():
+            if (
+                not isinstance(key, str)
+                or not _INPUT_NAME_RE.fullmatch(key)
+                or _SECRETISH_INPUT_RE.search(key)
+            ):
+                raise ValueError("input names must be safe and must not carry credentials")
+            if key not in schema:
+                raise ValueError("input name is not configured for this workflow")
+            rule = schema[key]
+            if not isinstance(value, str) or len(value) > rule.max_length:
+                raise ValueError("input value violates the configured workflow schema")
+            if any(ord(char) < 32 and char not in "\t" for char in value):
+                raise ValueError("input values must not contain control characters")
+            if rule.pattern is not None and re.fullmatch(rule.pattern, value) is None:
+                raise ValueError("input value violates the configured workflow schema")
+            if rule.allowed_values and value not in rule.allowed_values:
+                raise ValueError("input value violates the configured workflow schema")
+            normalized[key] = value
+
+        missing = [name for name, rule in schema.items() if rule.required and name not in normalized]
+        if missing:
+            raise ValueError("required workflow inputs are missing")
 
         path = f"/repos/{repository}/actions/workflows/{workflow}/dispatches"
         try:
