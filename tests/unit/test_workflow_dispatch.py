@@ -1,6 +1,5 @@
 """Safety tests for explicit Phase IV workflow dispatch."""
 
-
 from __future__ import annotations
 
 import json

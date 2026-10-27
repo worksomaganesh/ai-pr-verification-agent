@@ -4,7 +4,6 @@ The caller must supply a token scoped with actions:write and explicit enablement
 Targets are constrained to an operator-owned workflow allowlist.
 """
 
-
 from __future__ import annotations
 
 import re
