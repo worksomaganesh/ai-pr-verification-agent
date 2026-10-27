@@ -3,6 +3,8 @@
 The caller must supply a token scoped with actions:write and explicit enablement.
 Targets are constrained to an operator-owned workflow allowlist.
 """
+
+
 from __future__ import annotations
 
 import re
@@ -40,13 +42,15 @@ def _valid_ref(ref: str) -> bool:
         return False
     if ref.startswith(("/", ".")) or ref.endswith(("/", ".", ".lock")):
         return False
-    if "//" in ref or ".." in ref or "@{" in ref or any(
-        char in ref for char in ("\\", "~", "^", ":", "?", "*", "[", " ")
+    if (
+        "//" in ref
+        or ".." in ref
+        or "@{" in ref
+        or any(char in ref for char in ("\\", "~", "^", ":", "?", "*", "[", " "))
     ):
         return False
     return all(
-        part and not part.startswith(".") and not part.endswith(".")
-        for part in ref.split("/")
+        part and not part.startswith(".") and not part.endswith(".") for part in ref.split("/")
     )
 
 
@@ -73,8 +77,7 @@ class GitHubWorkflowDispatcher:
         if not isinstance(allowed_workflows, tuple) or not allowed_workflows:
             raise ValueError("allowed_workflows must be a non-empty tuple")
         if any(
-            not isinstance(workflow, str)
-            or not _WORKFLOW_RE.fullmatch(workflow)
+            not isinstance(workflow, str) or not _WORKFLOW_RE.fullmatch(workflow)
             for workflow in allowed_workflows
         ):
             raise ValueError("allowed workflow names must be YAML filenames")
@@ -121,7 +124,9 @@ class GitHubWorkflowDispatcher:
                 ):
                     raise ValueError("input names must be safe and must not carry credentials")
                 if not isinstance(value, str) or len(value) > _MAX_INPUT_VALUE:
-                    raise ValueError("input values must be strings within the configured size limit")
+                    raise ValueError(
+                        "input values must be strings within the configured size limit"
+                    )
                 if any(ord(char) < 32 and char not in "\t" for char in value):
                     raise ValueError("input values must not contain control characters")
                 normalized[key] = value
@@ -145,7 +150,9 @@ class GitHubWorkflowDispatcher:
         except httpx.TimeoutException:
             raise GitHubWorkflowDispatchError("GitHub workflow dispatch timed out.") from None
         except httpx.HTTPError:
-            raise GitHubWorkflowDispatchError("GitHub workflow dispatch transport failed.") from None
+            raise GitHubWorkflowDispatchError(
+                "GitHub workflow dispatch transport failed."
+            ) from None
 
     def close(self) -> None:
         if self._owns_client:
