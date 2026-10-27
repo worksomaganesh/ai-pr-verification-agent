@@ -36,7 +36,8 @@ def json_response(payload: object, status: int = 200) -> httpx.Response:
     return httpx.Response(status, json=payload)
 
 
-def test_github_app_jwt_and_installation_token() -> None:
+@pytest.mark.parametrize("include_actions_read", [False, True])
+def test_github_app_jwt_and_installation_token(include_actions_read: bool) -> None:
     private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     private_pem = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
@@ -75,16 +76,19 @@ def test_github_app_jwt_and_installation_token() -> None:
     assert claims["iss"] == "123"
     assert claims["iat"] == 1_799_999_970
     assert seen == {}
-    token = authenticator.create_installation_token(456)
+    token = authenticator.create_installation_token(456, include_actions_read=include_actions_read)
     assert token.token == SAMPLE_CREDENTIAL_VALUE
     assert token.expires_at.tzinfo is not None
     assert seen["path"] == "/app/installations/456/access_tokens"
     assert str(seen["authorization"]).startswith("Bearer ")
-    assert seen["body"]["permissions"] == {
+    expected_permissions = {
         "contents": "read",
         "pull_requests": "read",
         "checks": "write",
     }
+    if include_actions_read:
+        expected_permissions["actions"] = "read"
+    assert seen["body"]["permissions"] == expected_permissions
     with pytest.raises(ValueError):
         authenticator.create_installation_token(0)
     authenticator.close()

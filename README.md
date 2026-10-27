@@ -11,7 +11,7 @@ The system answers: what behavior could change, which obligations follow from th
 Phase 1A and 1B provide the deterministic domain core, strict base-policy schema, fixed runner profiles, bounded evidence parsing, evidence sufficiency rules, secret scrubbing, and the adversarial false-green scenario. The Phase I release gate was previously verified with 167 tests and 97.30% coverage; Phase II CI reruns the expanded suite against the integration code.
 
 Phase II now adds:
-- GitHub App RS256 JWT and short-lived installation-token exchange, requesting only contents:read, pull_requests:read, and checks:write;
+- GitHub App RS256 JWT and short-lived installation-token exchange, requesting contents:read, pull_requests:read, and checks:write; Phase III opts in to additional actions:read only when evidence ingestion is enabled;
 - bounded GitHub REST access with exact-SHA policy reads, paginated PR files, commit/tree-based test inventory, response-size limits, timeout/rate-limit classification, and no redirect following;
 - a FastAPI webhook endpoint that verifies the raw HMAC-SHA256 body before parsing, rejects duplicate JSON keys, caps streamed request bodies, and acknowledges only after durable enqueue;
 - a transactional SQLite delivery queue with delivery-ID fingerprinting, duplicate suppression, worker leases, bounded retries, and recovery of expired leases;
@@ -19,7 +19,9 @@ Phase II now adds:
 - a provider-agnostic planning port and optional Gemini hypothesis adapter; model failures fall back to deterministic path rules, and model output cannot mark evidence as passed;
 - deterministic Check Run publication with an external ID, secret-scrubbed summary, and explicit disclosure that Phase II performs planning only and runs no untrusted tests.
 
-The Phase II reference deployment keeps the webhook delivery queue on SQLite and can store run/obligation audit records in PostgreSQL. The queue is still single-host and is not a distributed queue; horizontally scaled ingress/worker deployment requires a shared queue backend. Deploy the ingress behind the operator's normal TLS/reverse-proxy boundary. Phase III remains responsible for platform-authenticated Actions workflow/job/artifact ingestion and actual test-evidence reconciliation.
+The Phase II reference deployment keeps the webhook delivery queue on SQLite and can store run/obligation audit records in PostgreSQL. The queue is still single-host and is not a distributed queue; horizontally scaled ingress/worker deployment requires a shared queue backend. Deploy the ingress behind the operator's normal TLS/reverse-proxy boundary.
+
+Phase III implementation and exact-head CI/evidence production are verified on draft PR [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6), exact head `64700d7ed575296e6874a185938ef585e0f7c5de`. GitHub Actions run [#40464702014](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40464702014) succeeded on that exact SHA: formatting, Ruff, strict mypy, 547 tests, 90.49% overall coverage, 96% Phase I core, and 86% Phase II integration all passed. Artifact `verification-evidence` ID `12716496067` (43,149 bytes) was downloaded and independently verified against GitHub SHA-256 `b71ff7c4f65a3c4b2e248a293d7ac5aa9c1872104e080ef3b767e7df033c299b`. It contains exactly `junit.xml` and `coverage-manifest.json`; both have 547 unique matching test IDs, all outcomes passed, and the manifest binds to the tested head. The deployed GitHub App/webhook/database/Check Run smoke test remains unperformed because target endpoint and secret-managed deployment configuration are not available through the repository integration. Human review is deferred to Phase IV; do not enable production merge gating before live smoke acceptance and review.
 
 ## Security principles
 
@@ -50,7 +52,7 @@ CI runs formatting, lint, strict typing, and tests with a 90% overall coverage f
 | 1A | Deterministic domain models and state machine | Implemented; previously green with 5,000-example property test |
 | 1B | Policy validator, runner allowlist, evidence parsers, ledger, adversarial scenario | Release gate passed on the Phase I release-hardening tree; Phase II CI continues to run the expanded suite |
 | 2 | Diff analysis, planning, persistence, webhook and Check Run service | Implemented on the Phase II integration branch; awaiting CI/review before merge. Includes authenticated GitHub REST transport, durable delivery queue, SQLite/PostgreSQL run ledger, worker orchestration, optional Gemini planning, and honest planning-only Check Runs |
-| 3 | Platform-anchored passive CI artifact ingestion and reconciliation | Not started |
+| 3 | Platform-anchored passive CI artifact ingestion and reconciliation | Implementation + exact-head CI/evidence producer verified on PR #6; deployment-specific GitHub App smoke test and review remain |
 | 4 | Opt-in dispatch, additional adapters, human governance hooks | Not started |
 
 See [docs/verification-semantics.md](docs/verification-semantics.md), [docs/phase-0-architecture.md](docs/phase-0-architecture.md), [docs/phase-1-release-gate.md](docs/phase-1-release-gate.md), [docs/phase-2-planning.md](docs/phase-2-planning.md), and [docs/phase-2-operations.md](docs/phase-2-operations.md).

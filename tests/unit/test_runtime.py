@@ -89,3 +89,28 @@ def test_worker_can_use_a_separate_sqlalchemy_run_ledger(tmp_path: Path) -> None
     assert store is not None
     processor.close()
     authenticator.close()
+
+
+def test_phase_three_runtime_requires_evidence_database_when_enabled(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(RuntimeError, match="VERIFICATION_EVIDENCE_DATABASE_URL"):
+        create_processor_from_environment(
+            {
+                "GITHUB_APP_ID": "123",
+                "GITHUB_APP_PRIVATE_KEY": "-----BEGIN PRIVATE KEY-----\\nfake\\n",
+                "VERIFICATION_DATABASE_PATH": str(tmp_path / "events.sqlite3"),
+                "VERIFICATION_PHASE_THREE_ENABLED": "true",
+            }
+        )
+
+
+def test_phase_three_runtime_rejects_ambiguous_feature_flag() -> None:
+    with pytest.raises(RuntimeError, match="VERIFICATION_PHASE_THREE_ENABLED"):
+        create_processor_from_environment(
+            {
+                "GITHUB_APP_ID": "123",
+                "GITHUB_APP_PRIVATE_KEY": "-----BEGIN PRIVATE KEY-----",
+                "VERIFICATION_PHASE_THREE_ENABLED": "yes",
+            }
+        )

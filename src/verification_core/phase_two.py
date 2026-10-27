@@ -3,16 +3,23 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, cast
 
 from verification_core.delivery_store import DeliveryStoreError, SQLiteDeliveryStore
 from verification_core.domain import (
     ConclusionPolicyConfig,
     VerificationRunEvaluation,
-    evaluate_verification_run,
 )
+from verification_core.domain import evaluate_verification_run as evaluate_verification_run
+from verification_core.github_actions import GitHubActionsClient
 from verification_core.github_app import GitHubAPIError, GitHubRESTClient, InstallationToken
 from verification_core.github_context import assemble_pull_request_context
+from verification_core.phase_three_worker import (
+    PhaseThreeLedgerPort,
+    WorkflowRunListingPort,
+    process_pull_request_evidence,
+)
+from verification_core.phase_three_worker import PhaseThreeRunPending as PhaseThreeRunPending
 from verification_core.planning import (
     PlanningResult,
     VerificationModelPort,
@@ -28,6 +35,20 @@ class InstallationTokenProvider(Protocol):
     """Minimal token provider interface, injectable for tests and alternate runtimes."""
 
     def create_installation_token(self, installation_id: int) -> InstallationToken: ...
+
+
+class PhaseThreeInstallationTokenProvider(InstallationTokenProvider, Protocol):
+    """Installation-token provider capable of adding Actions read permission on demand."""
+
+    def create_installation_token(
+        self, installation_id: int, *, include_actions_read: bool = False
+    ) -> InstallationToken: ...
+
+
+class ActionsClientFactory(Protocol):
+    """Build one token-scoped Actions client for a single queue-processing attempt."""
+
+    def __call__(self, installation_token: str) -> WorkflowRunListingPort: ...
 
 
 class ModelFactory(Protocol):
@@ -139,19 +160,31 @@ class PhaseTwoProcessor:
         model_factory: ModelFactory | None = None,
         run_ledger: VerificationRunLedger | None = None,
         check_name: str = "AI PR Verification",
+        phase_three_enabled: bool = False,
+        evidence_ledger: PhaseThreeLedgerPort | None = None,
+        actions_client_factory: ActionsClientFactory | None = None,
     ) -> None:
         if not check_name or len(check_name) > 100:
             raise ValueError("check_name must contain 1-100 characters")
+        if type(phase_three_enabled) is not bool:
+            raise ValueError("phase_three_enabled must be a boolean")
+        if phase_three_enabled and evidence_ledger is None:
+            raise ValueError("Phase III requires a durable evidence ledger")
         self._store = store
         self._run_ledger = run_ledger or store
         self._authenticator = authenticator
         self._model_factory = model_factory
         self._check_name = check_name
+        self._phase_three_enabled = phase_three_enabled
+        self._evidence_ledger = evidence_ledger
+        self._actions_client_factory = actions_client_factory or GitHubActionsClient
 
     def close(self) -> None:
-        """Release the optional separate SQLAlchemy run-ledger connection pool."""
+        """Release database pools owned by this processor."""
         if self._run_ledger is not self._store:
             self._run_ledger.close()
+        if self._evidence_ledger is not None:
+            self._evidence_ledger.close()
 
     def process_next(self) -> ProcessingResult | None:
         """Claim and process one delivery. Failures are retried with bounded backoff."""
@@ -172,10 +205,19 @@ class PhaseTwoProcessor:
         try:
             if event.installation_id is None:
                 raise GitHubAPIError("Webhook event did not contain an App installation ID.")
-            installation_token = self._authenticator.create_installation_token(
-                event.installation_id
-            )
+            if self._phase_three_enabled:
+                phase_three_authenticator = cast(
+                    PhaseThreeInstallationTokenProvider, self._authenticator
+                )
+                installation_token = phase_three_authenticator.create_installation_token(
+                    event.installation_id, include_actions_read=True
+                )
+            else:
+                installation_token = self._authenticator.create_installation_token(
+                    event.installation_id
+                )
             client = GitHubRESTClient(installation_token.token)
+            actions_client: WorkflowRunListingPort | None = None
             try:
                 context = assemble_pull_request_context(event, client)
                 inventory = client.list_test_inventory(event.repository_full_name, event.head_sha)
@@ -190,50 +232,84 @@ class PhaseTwoProcessor:
                     test_inventory=inventory,
                     model=model,
                 )
-                evaluation = evaluate_verification_run(
-                    commit=context.commit,
-                    obligations=planning.obligations,
-                    analysis_completeness=planning.analysis_completeness,
-                    policy_config=_policy_config(context.policy),
-                    policy_valid=True,
-                )
-                pull_request = client.get_pull_request(event.repository_full_name, event.pr_number)
-                html_url = pull_request.get("html_url")
-                details_url = (
-                    html_url
-                    if isinstance(html_url, str)
-                    and html_url.startswith("https://github.com/")
-                    and len(html_url) <= 2_000
-                    else None
-                )
-                summary = _summary(
-                    planning=planning,
-                    evaluation=evaluation,
-                    analysis_issues=planning.issues,
-                    model_mode=planning.planner_mode,
-                    degradation_reason=planning.degradation_reason,
-                )
-                run_key = self._run_ledger.save_verification_run(
-                    commit=planning.commit,
-                    analysis_completeness=planning.analysis_completeness.value,
-                    planner_mode=planning.planner_mode,
-                    conclusion=evaluation.github_conclusion.value,
-                    summary=summary,
-                    obligations=planning.obligations,
-                )
-                external_id = f"aiprv:{event.pr_number}:{event.head_sha}"
-                check_run_id = client.publish_check_run(
-                    repository=event.repository_full_name,
-                    head_sha=event.head_sha,
-                    name=self._check_name,
-                    conclusion=evaluation.github_conclusion.value,
-                    title=evaluation.summary_title,
-                    summary=summary,
-                    external_id=external_id,
-                    details_url=details_url,
-                )
-                self._run_ledger.set_check_run_id(run_key, check_run_id)
+                if self._phase_three_enabled:
+                    if self._evidence_ledger is None:
+                        raise RuntimeError("Phase III evidence ledger is unavailable")
+                    actions_client = self._actions_client_factory(installation_token.token)
+                    phase_three_result = process_pull_request_evidence(
+                        github=client,
+                        actions=actions_client,
+                        commit=context.commit,
+                        planning=planning,
+                        analysis=analysis,
+                        policy=context.policy,
+                        evidence_ledger=self._evidence_ledger,
+                        policy_config=_policy_config(context.policy),
+                        check_name=self._check_name,
+                    )
+                    evaluation = phase_three_result.publication.evaluation
+                    summary = scrub_secrets(
+                        evaluation.summary_rationale + "\n\n" + phase_three_result.summary
+                    )[:59_000]
+                    run_key = self._run_ledger.save_verification_run(
+                        commit=planning.commit,
+                        analysis_completeness=evaluation.analysis_completeness.value,
+                        planner_mode=f"phase3:{planning.planner_mode}"[:80],
+                        conclusion=evaluation.github_conclusion.value,
+                        summary=summary,
+                        obligations=evaluation.obligations,
+                    )
+                    check_run_id = phase_three_result.publication.check_run_id
+                    self._run_ledger.set_check_run_id(run_key, check_run_id)
+                else:
+                    evaluation = evaluate_verification_run(
+                        commit=context.commit,
+                        obligations=planning.obligations,
+                        analysis_completeness=planning.analysis_completeness,
+                        policy_config=_policy_config(context.policy),
+                        policy_valid=True,
+                    )
+                    pull_request = client.get_pull_request(
+                        event.repository_full_name, event.pr_number
+                    )
+                    html_url = pull_request.get("html_url")
+                    details_url = (
+                        html_url
+                        if isinstance(html_url, str)
+                        and html_url.startswith("https://github.com/")
+                        and len(html_url) <= 2_000
+                        else None
+                    )
+                    summary = _summary(
+                        planning=planning,
+                        evaluation=evaluation,
+                        analysis_issues=planning.issues,
+                        model_mode=planning.planner_mode,
+                        degradation_reason=planning.degradation_reason,
+                    )
+                    run_key = self._run_ledger.save_verification_run(
+                        commit=planning.commit,
+                        analysis_completeness=planning.analysis_completeness.value,
+                        planner_mode=planning.planner_mode,
+                        conclusion=evaluation.github_conclusion.value,
+                        summary=summary,
+                        obligations=planning.obligations,
+                    )
+                    external_id = f"aiprv:{event.pr_number}:{event.head_sha}"
+                    check_run_id = client.publish_check_run(
+                        repository=event.repository_full_name,
+                        head_sha=event.head_sha,
+                        name=self._check_name,
+                        conclusion=evaluation.github_conclusion.value,
+                        title=evaluation.summary_title,
+                        summary=summary,
+                        external_id=external_id,
+                        details_url=details_url,
+                    )
+                    self._run_ledger.set_check_run_id(run_key, check_run_id)
             finally:
+                if actions_client is not None:
+                    actions_client.close()
                 client.close()
 
             self._store.mark_completed(event.delivery_id)
@@ -245,12 +321,15 @@ class PhaseTwoProcessor:
                 run_key=run_key,
             )
         except (GitHubAPIError, ValueError) as exc:
-            reason_code = {
-                "GitHubRateLimitError": "github_rate_limited",
-                "GitHubResponseTooLarge": "github_response_too_large",
-                "GitHubContextError": "github_context_rejected",
-                "DiffAnalysisError": "diff_analysis_rejected",
-            }.get(type(exc).__name__, "processing_failed")
+            if isinstance(exc, PhaseThreeRunPending):
+                reason_code = "phase3_run_pending"
+            else:
+                reason_code = {
+                    "GitHubRateLimitError": "github_rate_limited",
+                    "GitHubResponseTooLarge": "github_response_too_large",
+                    "GitHubContextError": "github_context_rejected",
+                    "DiffAnalysisError": "diff_analysis_rejected",
+                }.get(type(exc).__name__, "processing_failed")
             try:
                 self._store.mark_failed(event.delivery_id, error_code=reason_code, retry=True)
             except DeliveryStoreError:
