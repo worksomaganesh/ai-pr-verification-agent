@@ -1,5 +1,16 @@
 # Phase III — progress history
 
+## Authoritative Phase III snapshot — 2026-10-27
+
+- Latest code + documentation head: `64700d7ed575296e6874a185938ef585e0f7c5de`.
+- Exact-head GitHub Actions run [#40464702014](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40464702014): **success**; both quality and exact-PR-head evidence-producer jobs passed on this SHA.
+- Quality gate: formatting, Ruff, strict mypy passed; **547 tests passed**, one non-blocking Starlette/httpx deprecation warning; overall coverage **90.49%**, Phase I core **96%**, Phase II integration **86%**. Every configured threshold passed.
+- Artifact `verification-evidence`, ID `12716496067`, size **43,149 bytes**, GitHub digest `sha256:b71ff7c4f65a3c4b2e248a293d7ac5aa9c1872104e080ef3b767e7df033c299b`. Downloaded ZIP independently hashes to the same digest.
+- ZIP has exactly `junit.xml` and `coverage-manifest.json`; JUnit and manifest each contain **547 unique test IDs**, inventories match, all 547 outcomes passed, zero JUnit failures/errors/skips, and manifest `head_sha` equals this exact commit. Every `behavioral_assertion_verified` flag is false.
+- Fix sequence: run #40302458004 failed the formatting check; run #40464507140 passed formatting/lint/type-check but exposed a case-sensitive evidence-record regex test failure; commit `64700d7` made that matching explicitly case-insensitive. Latest run confirms both CI jobs pass.
+- **Still not verified:** target-deployment smoke test against the real installed GitHub App, webhook ingress/worker, and the same durable evidence database. The repository integration does not expose a deployment URL, App private key, webhook secret, or database connection, so no live smoke test can honestly be claimed. PR #6 remains draft. Human review is deferred to Phase IV per the project plan; do not enable production merge gating before the operational smoke test and review.
+
+
 **Repository:** `worksomaganesh/ai-pr-verification-agent`  
 **Working branch:** `phase-3-evidence-ingestion`  
 **Draft PR:** [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6)  

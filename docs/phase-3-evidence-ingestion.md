@@ -1,16 +1,14 @@
 # Phase III — Authenticated evidence ingestion and reconciliation
 
+## Current exact-head status — 2026-10-27
+
+The latest branch head `64700d7ed575296e6874a185938ef585e0f7c5de` passed exact-head CI in [run #40464702014](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40464702014). Both the quality job and exact-PR-head evidence producer passed on that same SHA. The quality job passed formatting, Ruff, strict mypy, 547 tests, and coverage gates (90.49% overall, 96% Phase I core, 86% Phase II integration). Artifact `verification-evidence`, ID `12716496067`, size 43,149 bytes, digest `sha256:b71ff7c4f65a3c4b2e248a293d7ac5aa9c1872104e080ef3b767e7df033c299b`, was downloaded and independently verified. Its ZIP contains exactly `junit.xml` and `coverage-manifest.json`; the two inventories contain 547 unique matching IDs, all passing outcomes, and the manifest binds to the exact head. All `behavioral_assertion_verified` flags remain false.
+
+**Operational acceptance is still pending.** The repository integration has no configured target URL or access to the installed App private key, webhook secret, or worker's evidence database URL. Do not claim a live smoke-test pass from CI. PR #6 remains draft. Human review is deferred to Phase IV, but production merge gating must remain disabled until the target smoke test and review pass.
+
 ## Verified baseline and release status
 
-As of 2026-10-26, the previous branch head \`04e20cec32ebba28543c9baabc2b8bd759d51822\` passed exact-head CI in [run #40273344438](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40273344438). Both the Python quality gate and the exact-PR-head evidence producer passed. That CI run is a code/evidence-production verification, not proof that a customer or staging deployment is configured.
-
-- Formatting, Ruff, and strict mypy passed on that baseline.
-- 539 tests passed with one non-blocking Starlette/httpx deprecation warning.
-- Coverage: 90.49% overall, 96% Phase I core, and 86% Phase II integration; all configured gates passed.
-- The exact-head artifact was \`verification-evidence\`, ID \`12628049808\`, 42,862 bytes, API digest \`sha256:c48d46b1a88d2391462afc53dc7c6b90cdba8226c73e5b6b4270eac3e40f6dab\`.
-- The current revision adds the explicit deployment smoke test described below. Wait for CI on that exact revision before treating the new script as CI-verified.
-
-Keep PR [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6) in draft and do not enable production merge gating until the smoke test and human review have passed.
+The previous baseline run [#40273344438](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40273344438) also passed, but the exact head above is now the authoritative CI/evidence checkpoint. Historical snapshots below are retained for context, not as the current branch head.
 
 ## Trust chain
 
