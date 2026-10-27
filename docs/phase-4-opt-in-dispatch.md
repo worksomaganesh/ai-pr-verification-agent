@@ -2,7 +2,7 @@
 
 ## Status
 
-Phase IV's guarded dispatch client now requires an explicit schema for every allowlisted workflow. Exact-head CI must be checked on the latest branch head before claiming the change is validated. Dispatch remains disabled by default; all tests use a mocked GitHub API and no workflow has been dispatched by this change. Phase III deployment smoke acceptance and human review remain open and are retained as Phase IV ending gates.
+Phase IV's guarded dispatch client now requires an explicit schema for every allowlisted workflow. Code head 94f25098af2fd048fe404cd9110ce12ee4a8b308 passed exact-head CI run #40469768700: 391 tests, 91.28% overall coverage, Phase I core 96%, Phase II integration 86%, and both quality/evidence jobs green. Artifact 12717323937 (30,643 bytes; SHA-256 646caf63c61a3cc598680bb3c0b1c2494c186416b2604a70969462c0db28b615) was downloaded and independently verified; it contains junit.xml and coverage-manifest.json, with 391 unique matching tests, all passed, and manifest head SHA equal to the tested code head. A subsequent docs/log reconciliation commit requires its own exact-head CI check. Dispatch remains disabled by default; all tests use a mocked GitHub API and no workflow has been dispatched by this change. Phase III deployment smoke acceptance and human review remain open and are retained as Phase IV ending gates.
 
 ## Phase goals
 
@@ -42,7 +42,7 @@ Workflow dispatch is an external side effect. Before production exposure, caller
 
 ## Remaining work
 
-- Verify exact-head CI and its evidence artifact on the current Phase IV head.
+- Verify exact-head CI and its evidence artifact again after this documentation/log reconciliation commit.
 - Review workflow dispatch API behavior against the supported GitHub App installation permission and repository settings.
 - Add authenticated operator authorization and a durable dispatch audit record before production exposure.
 - Integrate dispatch with Phase III evidence reconciliation only after the Phase III implementation is available in the same branch lineage.
