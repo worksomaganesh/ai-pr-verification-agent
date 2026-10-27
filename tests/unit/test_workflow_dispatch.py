@@ -14,7 +14,7 @@ from verification_core.workflow_dispatch import (
     GitHubWorkflowDispatchError,
 )
 
-INSTALLATION_TOKEN_FIXTURE = "fixture-installation-value"
+AUTH_FIXTURE = "example-auth-value"
 REPO = "acme/service"
 WORKFLOW = "manual-verification.yml"
 Handler = Callable[[httpx.Request], httpx.Response]
@@ -29,7 +29,7 @@ def make_dispatcher(
         follow_redirects=False,
     )
     return GitHubWorkflowDispatcher(
-        INSTALLATION_TOKEN_FIXTURE,
+        AUTH_FIXTURE,
         allowed_workflows=(WORKFLOW,),
         enabled=enabled,
         http_client=raw,
@@ -54,7 +54,7 @@ def test_dispatch_posts_only_allowlisted_workflow_and_explicit_inputs() -> None:
     request = seen[0]
     assert request.method == "POST"
     assert request.url.path == f"/repos/{REPO}/actions/workflows/{WORKFLOW}/dispatches"
-    assert request.headers["Authorization"] == f"Bearer {INSTALLATION_TOKEN_FIXTURE}"
+    assert request.headers["Authorization"] == f"Bearer {AUTH_FIXTURE}"
     assert json.loads(request.content) == {
         "ref": "phase-4-staging",
         "inputs": {"pr_number": "6", "dry_run": "true"},
