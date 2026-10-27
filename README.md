@@ -10,7 +10,7 @@ The system answers: what behavior could change, which obligations follow from th
 
 Phase I and Phase II provide the deterministic domain core, strict policy validation, bounded evidence parsing, authenticated GitHub App transport, durable delivery/run ledgers, webhook ingress, planning, and deterministic Check Run publication. Phase III implementation and exact-head CI/evidence production are on draft PR [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6); the live deployment smoke test remains unperformed because target deployment configuration is not available through the repository integration. Human review is deferred to Phase IV. Do not enable production merge gating before both gates pass.
 
-Phase IV has started on branch phase-4-opt-in-dispatch. Its first slice introduces a disabled-by-default GitHub Actions dispatch client with workflow allowlisting and bounded input validation. No workflow has been dispatched by this change. See docs/phase-4-opt-in-dispatch.md.
+Phase IV has started on branch phase-4-opt-in-dispatch. Its first slice introduces a disabled-by-default GitHub Actions dispatch client with workflow allowlisting and bounded input validation. Exact-head CI run [#40467702807](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40467702807) passed on commit dbfc223d80d7cf2412e2223d09e3cdbe728520e2: 383 tests, 91.35% overall coverage, and both jobs green. No workflow has been dispatched by this change. See docs/phase-4-opt-in-dispatch.md and log/phase-4-build-2026-10-27-ci.md.
 
 ## Security principles
 

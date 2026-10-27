@@ -2,7 +2,7 @@
 
 ## Status
 
-Phase IV has started. The initial implementation slice adds a guarded GitHub Actions workflow-dispatch client and unit tests. Dispatch remains disabled by default; no workflow has been dispatched by this change. Phase III deployment smoke acceptance and human review remain open and are retained as Phase IV ending gates.
+Phase IV has started. The initial implementation slice adds a guarded GitHub Actions workflow-dispatch client and unit tests. Exact-head CI run #40467702807 passed on commit dbfc223d80d7cf2412e2223d09e3cdbe728520e2: formatting, lint, strict mypy, 383 tests, 91.35% overall coverage, Phase I core 96%, and Phase II integration 86%. The evidence job also passed and its artifact digest was independently verified. Dispatch remains disabled by default; no workflow has been dispatched by this change. Phase III deployment smoke acceptance and human review remain open and are retained as Phase IV ending gates.
 
 ## Phase goals
 
