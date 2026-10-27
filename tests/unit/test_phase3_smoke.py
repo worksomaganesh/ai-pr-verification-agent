@@ -67,6 +67,10 @@ def test_eligible_workflow_run_requires_success_exact_head_and_target_pr() -> No
     assert not _eligible_run(run, pr_number=5, head_sha="b" * 40)
     assert not _eligible_run({**run, "status": "in_progress"}, pr_number=5, head_sha="a" * 40)
     assert not _eligible_run({**run, "conclusion": "failure"}, pr_number=5, head_sha="a" * 40)
-    assert not _eligible_run({**run, "path": ".github/workflows/untrusted.yml"}, pr_number=5, head_sha="a" * 40)
-    assert not _eligible_run({**run, "pull_requests": [{"number": 6}]}, pr_number=5, head_sha="a" * 40)
+    assert not _eligible_run(
+        {**run, "path": ".github/workflows/untrusted.yml"}, pr_number=5, head_sha="a" * 40
+    )
+    assert not _eligible_run(
+        {**run, "pull_requests": [{"number": 6}]}, pr_number=5, head_sha="a" * 40
+    )
     assert not _eligible_run({**run, "path": None}, pr_number=5, head_sha="a" * 40)
