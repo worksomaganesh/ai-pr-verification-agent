@@ -134,7 +134,9 @@ class GitHubWorkflowDispatcher:
                     or not _INPUT_NAME_RE.fullmatch(name)
                     or _SECRETISH_INPUT_RE.search(name)
                 ):
-                    raise ValueError("schema input names must be safe and must not carry credentials")
+                    raise ValueError(
+                        "schema input names must be safe and must not carry credentials"
+                    )
                 if not isinstance(rule, WorkflowInputRule):
                     raise ValueError("each schema entry must use WorkflowInputRule")
                 normalized_schema[name] = rule
@@ -197,7 +199,9 @@ class GitHubWorkflowDispatcher:
                 raise ValueError("input value violates the configured workflow schema")
             normalized[key] = value
 
-        missing = [name for name, rule in schema.items() if rule.required and name not in normalized]
+        missing = [
+            name for name, rule in schema.items() if rule.required and name not in normalized
+        ]
         if missing:
             raise ValueError("required workflow inputs are missing")
 
