@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
+from typing import Any
 
 import httpx
 import pytest
@@ -14,9 +16,12 @@ from verification_core.workflow_dispatch import (
 TOKEN = "test-installation-token"
 REPO = "acme/service"
 WORKFLOW = "manual-verification.yml"
+Handler = Callable[[httpx.Request], httpx.Response]
 
 
-def make_dispatcher(handler, *, enabled: bool = True):
+def make_dispatcher(
+    handler: Handler, *, enabled: bool = True
+) -> tuple[GitHubWorkflowDispatcher, httpx.Client]:
     raw = httpx.Client(
         base_url="https://api.github.com",
         transport=httpx.MockTransport(handler),
@@ -31,7 +36,7 @@ def make_dispatcher(handler, *, enabled: bool = True):
 
 
 def test_dispatch_posts_only_allowlisted_workflow_and_explicit_inputs() -> None:
-    seen = []
+    seen: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
         seen.append(request)
@@ -58,11 +63,13 @@ def test_dispatch_posts_only_allowlisted_workflow_and_explicit_inputs() -> None:
 
 
 def test_dispatch_is_disabled_by_default_and_never_sends_request() -> None:
-    seen = []
-    dispatcher, raw = make_dispatcher(
-        lambda request: (seen.append(request), httpx.Response(204))[1],
-        enabled=False,
-    )
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(204)
+
+    dispatcher, raw = make_dispatcher(handler, enabled=False)
     with pytest.raises(GitHubWorkflowDispatchError, match="disabled"):
         dispatcher.dispatch(repository=REPO, workflow=WORKFLOW, ref="main")
     assert seen == []
@@ -70,7 +77,10 @@ def test_dispatch_is_disabled_by_default_and_never_sends_request() -> None:
     raw.close()
 
 
-@pytest.mark.parametrize("workflow", ["other.yml", "../manual-verification.yml", "manual-verification.yaml"])
+@pytest.mark.parametrize(
+    "workflow",
+    ["other.yml", "../manual-verification.yml", "manual-verification.yaml"],
+)
 def test_dispatch_rejects_non_allowlisted_workflow(workflow: str) -> None:
     dispatcher, raw = make_dispatcher(lambda _request: httpx.Response(204))
     with pytest.raises(GitHubWorkflowDispatchError, match="allowlist"):
@@ -81,7 +91,15 @@ def test_dispatch_rejects_non_allowlisted_workflow(workflow: str) -> None:
 
 @pytest.mark.parametrize(
     "ref",
-    ["", "../main", "/main", "main..oops", "feature//test", "main\\evil", "refs/heads/../main"],
+    [
+        "",
+        "../main",
+        "/main",
+        "main..oops",
+        "feature//test",
+        "main\\\\evil",
+        "refs/heads/../main",
+    ],
 )
 def test_dispatch_rejects_unsafe_refs(ref: str) -> None:
     dispatcher, raw = make_dispatcher(lambda _request: httpx.Response(204))
@@ -102,19 +120,27 @@ def test_dispatch_rejects_unsafe_refs(ref: str) -> None:
         {f"input_{i}": "x" for i in range(11)},
     ],
 )
-def test_dispatch_rejects_unsafe_inputs(inputs) -> None:
+def test_dispatch_rejects_unsafe_inputs(inputs: dict[str, Any]) -> None:
     dispatcher, raw = make_dispatcher(lambda _request: httpx.Response(204))
     with pytest.raises(ValueError):
-        dispatcher.dispatch(repository=REPO, workflow=WORKFLOW, ref="main", inputs=inputs)
+        dispatcher.dispatch(
+            repository=REPO,
+            workflow=WORKFLOW,
+            ref="main",
+            inputs=inputs,
+        )
     dispatcher.close()
     raw.close()
 
 
 def test_dispatch_rejects_invalid_repository_before_network() -> None:
-    seen = []
-    dispatcher, raw = make_dispatcher(
-        lambda request: (seen.append(request), httpx.Response(204))[1]
-    )
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(204)
+
+    dispatcher, raw = make_dispatcher(handler)
     with pytest.raises(ValueError, match="owner/name"):
         dispatcher.dispatch(repository="../service", workflow=WORKFLOW, ref="main")
     assert seen == []

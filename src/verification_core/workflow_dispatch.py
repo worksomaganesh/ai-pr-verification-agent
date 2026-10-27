@@ -10,7 +10,7 @@ from collections.abc import Mapping
 
 import httpx
 
-from verification_core.github_app import GitHubAPIError, _make_http_client, _request_json
+from verification_core.github_app import GitHubAPIError, _make_http_client
 
 _REPOSITORY_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 _REF_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,254}$")
@@ -44,7 +44,10 @@ def _valid_ref(ref: str) -> bool:
         char in ref for char in ("\\", "~", "^", ":", "?", "*", "[", " ")
     ):
         return False
-    return all(part and not part.startswith(".") and not part.endswith(".") for part in ref.split("/"))
+    return all(
+        part and not part.startswith(".") and not part.endswith(".")
+        for part in ref.split("/")
+    )
 
 
 class GitHubWorkflowDispatcher:
@@ -69,15 +72,14 @@ class GitHubWorkflowDispatcher:
             raise ValueError("enabled must be a boolean")
         if not isinstance(allowed_workflows, tuple) or not allowed_workflows:
             raise ValueError("allowed_workflows must be a non-empty tuple")
+        if any(
+            not isinstance(workflow, str)
+            or not _WORKFLOW_RE.fullmatch(workflow)
+            for workflow in allowed_workflows
+        ):
+            raise ValueError("allowed workflow names must be YAML filenames")
         if len(set(allowed_workflows)) != len(allowed_workflows):
             raise ValueError("allowed_workflows must not contain duplicates")
-        for workflow in allowed_workflows:
-            if (
-                not isinstance(workflow, str)
-                or not _WORKFLOW_RE.fullmatch(workflow)
-                or workflow in {".", ".."}
-            ):
-                raise ValueError("allowed workflow names must be YAML filenames")
         self._authorization = f"Bearer {installation_token}"
         self._allowed_workflows = frozenset(allowed_workflows)
         self._enabled = enabled
@@ -99,7 +101,7 @@ class GitHubWorkflowDispatcher:
             )
         if not _valid_repository(repository):
             raise ValueError("repository must match owner/name")
-        if workflow not in self._allowed_workflows:
+        if not isinstance(workflow, str) or workflow not in self._allowed_workflows:
             raise GitHubWorkflowDispatchError("Workflow is not in the configured allowlist.")
         if not _valid_ref(ref):
             raise ValueError("ref must be a safe branch or tag reference")
@@ -123,20 +125,27 @@ class GitHubWorkflowDispatcher:
                 if any(ord(char) < 32 and char not in "\t" for char in value):
                     raise ValueError("input values must not contain control characters")
                 normalized[key] = value
+
         path = f"/repos/{repository}/actions/workflows/{workflow}/dispatches"
         try:
-            _request_json(
-                self._client,
+            with self._client.stream(
                 "POST",
                 path,
-                json_body={"ref": ref, "inputs": normalized},
-                authorization=self._authorization,
-                expected_statuses=(204,),
-            )
-        except GitHubAPIError as exc:
-            raise GitHubWorkflowDispatchError(
-                "GitHub rejected the workflow dispatch request."
-            ) from exc
+                json={"ref": ref, "inputs": normalized},
+                headers={"Authorization": self._authorization},
+                follow_redirects=False,
+            ) as response:
+                if response.status_code != 204:
+                    raise GitHubWorkflowDispatchError(
+                        "GitHub rejected the workflow dispatch request.",
+                        status_code=response.status_code,
+                    )
+        except GitHubAPIError:
+            raise
+        except httpx.TimeoutException:
+            raise GitHubWorkflowDispatchError("GitHub workflow dispatch timed out.") from None
+        except httpx.HTTPError:
+            raise GitHubWorkflowDispatchError("GitHub workflow dispatch transport failed.") from None
 
     def close(self) -> None:
         if self._owns_client:
