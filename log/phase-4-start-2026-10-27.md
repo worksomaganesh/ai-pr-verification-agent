@@ -1,30 +1,29 @@
-# Phase IV start — 2026-10-27
+# Phase IV build log — 2026-10-27
 
-## Starting point
+## Change: explicit per-workflow input schemas
 
-- Repository: worksomaganesh/ai-pr-verification-agent
-- Phase IV branch: phase-4-opt-in-dispatch
-- Base commit: d9bc46f2fad9ac0527f87b6d692cb8f88929fc37
-- Phase III work remains on draft PR #6 and must not be treated as merged by this Phase IV branch.
-- Phase III live deployment smoke acceptance and human review are intentionally deferred to the Phase IV ending.
+### Why this was the next step
 
-## First implementation slice
+The initial dispatch client had generic bounds and rejected credential-like input names, but any other input name/value pair could still be sent to an allowlisted workflow. That is too permissive for an external side effect: a workflow may interpret an arbitrary input as a mode, target, or operational flag that the caller did not intend to expose.
 
-Added a guarded workflow-dispatch client in src/verification_core/workflow_dispatch.py and focused tests in tests/unit/test_workflow_dispatch.py. Added docs/phase-4-opt-in-dispatch.md to define phase goals, security boundaries, verification plan, and release gates.
+### Implementation
 
-The dispatch client is intentionally disabled by default. It requires explicit enablement, an exact workflow filename allowlist, a safe repository/ref, bounded non-secret string inputs, and a caller-supplied token. It does not automatically mint actions:write credentials, dispatch workflows in CI, retry external side effects, merge PRs, or deploy to production.
+- Added immutable WorkflowInputRule with required/optional status, maximum value length, optional full-match regular expression, and optional enumerated values.
+- Made input_schemas a required constructor argument and require its workflow keys to match the allowlist exactly.
+- Reject unconfigured input names, missing required inputs, invalid patterns/enumerations, malformed schema definitions, credential-like names, excess inputs, oversized values, non-string values, and control characters before network I/O.
+- Kept dispatch disabled by default and retained the exact HTTP 204 success contract, sanitized remote failures, and no automatic retry.
+- Updated mocked-API tests and Phase IV documentation. No live dispatch was performed.
 
-## Verification status
+### Validation status
 
-- Unit tests and full CI: pending at branch creation.
-- No real workflow dispatch has been triggered.
-- No Phase III live deployment smoke test has been run.
-- No human review has been performed.
-- PR #6 remains draft; production merge gating remains disabled.
+- GitHub contents API accepted the implementation commit d0e69fa80f4883bbe91abef777c6dc855aaef0a7 and test commit a40ab51786899f41d1f9fc7f5e5f6c8363377753.
+- Exact-head CI has not yet been confirmed in this log. Do not claim the change is complete or green until the workflow run for the latest branch head finishes and both jobs are inspected.
+- The new tests cover allowed request shape, default-off behavior, workflow/ref validation, schema-required inputs, unknown keys, required fields, enumerations/patterns, malformed schema configuration, and sanitized API errors.
 
-## Next steps
+### Remaining blockers / next actions
 
-1. Run exact-head CI on this branch and fix failures before adding more scope.
-2. Validate GitHub App Actions:write permission behavior against GitHub's workflow-dispatch API in a staging repository, without enabling production dispatch.
-3. Add an authenticated operator authorization boundary and durable dispatch audit log before production exposure.
-4. Finish Phase IV implementation and, at the phase ending, complete the Phase III live smoke test and human review.
+1. Inspect exact-head workflow run and both job results for the latest commit; fix failures and repeat.
+2. Verify the evidence artifact belongs to that exact SHA and inspect its contents/digest where tooling permits.
+3. Add operator authorization and durable audit trail before exposing dispatch via a production API/UI.
+4. Do not assume Phase III code is included: PR #6 remains separate and draft. Establish the intended branch lineage before building an end-to-end orchestration layer.
+5. Keep live deployment smoke acceptance and human review as Phase IV ending gates; never enable production merge gating based on unit tests alone.
