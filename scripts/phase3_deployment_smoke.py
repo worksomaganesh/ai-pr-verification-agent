@@ -30,7 +30,7 @@ from verification_core.runtime import _private_key
 
 _SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
-_RECORD_KEY_RE = re.compile(r"evidence record ([0-9a-f]{64})\.")
+_RECORD_KEY_RE = re.compile(r"evidence record ([0-9a-f]{64})\.", re.IGNORECASE)
 _TRUSTED_WORKFLOW_PATH = ".github/workflows/ci.yml"
 _ARTIFACT_NAME = "verification-evidence"
 _CHECK_NAME = "AI PR Verification"
