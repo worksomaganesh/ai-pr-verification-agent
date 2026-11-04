@@ -2,7 +2,7 @@
 
 ## Status
 
-Phase IV's guarded dispatch client now requires an explicit schema for every allowlisted workflow. Code head 94f25098af2fd048fe404cd9110ce12ee4a8b308 passed exact-head CI run #40469768700: 391 tests, 91.28% overall coverage, Phase I core 96%, Phase II integration 86%, and both quality/evidence jobs green. Artifact 12717323937 (30,643 bytes; SHA-256 646caf63c61a3cc598680bb3c0b1c2494c186416b2604a70969462c0db28b615) was downloaded and independently verified; it contains junit.xml and coverage-manifest.json, with 391 unique matching tests, all passed, and manifest head SHA equal to the tested code head. A subsequent docs/log reconciliation commit requires its own exact-head CI check. Dispatch remains disabled by default; all tests use a mocked GitHub API and no workflow has been dispatched by this change. Phase III deployment smoke acceptance and human review remain open and are retained as Phase IV ending gates.
+Phase IV now contains the guarded dispatch client, strict per-workflow schemas, GitHub operator allowlisting and repository permission checks, a SQLAlchemy write-ahead audit store, a one-shot dispatch coordinator, and exact-SHA workflow-run reconciliation. Exact-head CI on `15245242e967d1fdb6e912c8686446f5188795e5` passed [run #41805099119](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41805099119): 406 tests, 90% overall coverage, Phase I core 96%, Phase II integration 86%; formatting, Ruff, strict mypy, and all configured coverage gates passed. Focused governance CI passed 43 tests. Artifact 13309248666 (32,239 bytes; SHA-256 `78166497cc7a77d7caacd44ab89282136197240b351905d02f9c7a4b2b0643f4`) was downloaded and independently checked. Its ZIP contains junit.xml and coverage-manifest.json; both identify 406 passing tests with zero failures/errors/skips and exact head `15245242e967d1fdb6e912c8686446f5188795e5`. All behavioral_assertion_verified flags are false; it is test/coverage evidence, not behavioral proof. All dispatch tests use mocked GitHub APIs. No real workflow has been dispatched. PR #9 remains draft. Phase III integration, live deployment smoke acceptance, and human review remain open and are retained as Phase IV ending gates.
 
 ## Phase goals
 
@@ -30,7 +30,7 @@ The client in verification_core.workflow_dispatch:
 
 WorkflowInputRule is immutable and validates its own configuration. The caller must supply input_schemas; an empty schema for an allowlisted workflow means that workflow accepts no inputs. Never put secrets in workflow inputs. Store credentials in a secret manager and pass only secret references or non-sensitive identifiers.
 
-Workflow dispatch is an external side effect. Before production exposure, callers must still add authenticated operator authorization and a durable audit trail; schema validation alone is not authorization.
+Workflow dispatch is an external side effect. The new governance coordinator verifies the token identity against a configured login allowlist and GitHub repository permission, writes dispatch intent before network I/O, prevents duplicate dispatch IDs, and reconciles one correlated Actions run against the authorized SHA. It stores an input digest rather than raw inputs or credentials. This is a library-level capability with mocked API tests; no production route or live staging dispatch has been wired or exercised. Schema validation and a login allowlist do not replace deployment-specific operator policy, least-privilege token configuration, managed database operations, or human approval.
 
 ## Verification plan
 
@@ -42,9 +42,9 @@ Workflow dispatch is an external side effect. Before production exposure, caller
 
 ## Remaining work
 
-- Verify exact-head CI and its evidence artifact again after this documentation/log reconciliation commit.
+- Re-run exact-head CI after any further source or documentation edits; current exact-head CI is green on `15245242e967d1fdb6e912c8686446f5188795e5`.
 - Review workflow dispatch API behavior against the supported GitHub App installation permission and repository settings.
-- Add authenticated operator authorization and a durable dispatch audit record before production exposure.
+- Wire the governance coordinator into a deliberate, authenticated staging-only operator entry point; configure a managed PostgreSQL store and operator policy.
 - Integrate dispatch with Phase III evidence reconciliation only after the Phase III implementation is available in the same branch lineage.
 - Add exact-SHA and stale-run checks to orchestration; no dispatch result may imply verification success.
 - Complete Phase III deployment smoke acceptance and Phase IV human review at the phase ending.
