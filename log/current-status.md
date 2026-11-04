@@ -573,3 +573,23 @@ The Phase IV sequence below is taken from the PR #9 commit ancestry and exact-he
 - Full Phase II CI on latest head: not yet present in Actions at the time of this update.
 - Last full run with coverage >=90: #41815605564 on prior head `1530dce`, 90.01%, 643 passed / 1 failed; therefore not green.
 - Phase IV remains draft. Live staging dispatch, PostgreSQL, installed App credentials, webhook/worker deployment and human review remain external acceptance gates.
+
+
+## Full CI quality-gate result and evidence-job cancellation — 2026-11-04
+
+A fresh full Phase II CI run was created for the PR update. GitHub reports run [#41815952938](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41815952938) as `cancelled`, so the overall workflow is not marked successful. However, inspection of the actual quality job's step conclusions and complete job log establishes that all quality/coverage steps completed successfully before cancellation:
+
+- Ruff formatting: passed.
+- Ruff lint: passed.
+- Strict mypy: passed.
+- Pytest: **643 passed**, 1 warning.
+- Overall coverage: **90.01%**, threshold 90%.
+- Phase I core coverage: **96.39%**, threshold 95%.
+- Phase II integration coverage: **85.99%**, threshold 80%.
+- The evidence producer job was cancelled before producing its artifact.
+
+Why not call this a green full CI? Because GitHub's workflow-level conclusion is cancelled and no exact-head evidence artifact was produced. The quality job is a verified success; the workflow/evidence acceptance is still open. The run's Actions metadata lists head SHA `3d512f7702ea718a30ca2ed1a3cf0a0023494621` while the PR head snapshot had advanced to the documentation commit `c83ef6aa695d97deea2671738225099c81b96ed9`. This is a head-race/cancellation, not a test failure. A new exact-head run must complete both quality and evidence jobs.
+
+The exact test correction on `3d512f7` removed only the unsupported expectation that a dot-prefixed intermediate directory is rejected. The exporter still rejects absolute paths, backslash paths, traversal segments, invalid node IDs and non-Python paths. The preceding run on `1530dce` had 643 passes, one incorrect assertion failure, and 90.01% coverage; this run confirms the corrected suite now has 643 passes and all three coverage gates pass.
+
+Next: trigger/observe a fresh PR full CI for the latest branch head, verify the evidence job completes, then download and inspect its artifact digest and contents. Keep PR #9 draft until that evidence check and live staging acceptance pass.
