@@ -457,3 +457,76 @@ Run [#39907385124](https://github.com/worksomaganesh/ai-pr-verification-agent/ac
 ## Formatter follow-up — 2026-10-25
 
 - Run `40194545728` found one formatting issue in the new worker test's domain-model import; fixed it as a multiline import. Tests and coverage did not run in that attempt.
+
+
+## Phase IV integrated CI investigation and finalizer work — 2026-11-04
+
+### Scope and exact starting point
+
+- Started from integrated Phase III + Phase IV branch head `78fb1bf02c9b8c7fee72a6ad9d9cad74c5ce0b78`.
+- Phase III was integrated into Phase IV by the two-parent merge `8a17bd22abcfdea02111f7fa7768c5ba9b4c29a1` (parents: Phase IV `44a98059632ba07f262c8772ef18bbfee8ad494c` and Phase III `9611cbc6504f3844770540c9d45f87864bdfae08`).
+- The subsequent `78fb1bf` changed coverage reporting precision to two decimal places while preserving `fail_under = 90`.
+
+### Combined full CI root cause
+
+- Exact-head full CI: [run #41812698040](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41812698040), SHA `78fb1bf02c9b8c7fee72a6ad9d9cad74c5ce0b78`.
+- Formatting passed: 63 files already formatted.
+- Ruff passed.
+- Strict mypy passed: 63 source files, no issues.
+- Tests: **593 passed**, 1 warning.
+- Coverage: **89.19%**, below the enforced **90.00%** threshold. This is the exact blocking failure; coverage enforcement exited nonzero and the dependent evidence job was skipped.
+- Main coverage contributors in the report: `dispatch_governance.py` 75.68%; `workflow_dispatch.py` 83.89%; `phase_three_worker.py` 81.41%; `github_actions.py` 84.64%; `github_app.py` 81.58%; `manifest_export.py` 77.29%; `run_ledger.py` 79.49%; `actions_evidence.py` 89.63%; `phase_three.py` 87.76%.
+- The issue is not test failures or typing. Newly integrated modules expanded the measured denominator while their negative/error branches were less exercised. The former rounded report concealed a below-threshold value; precision two correctly surfaced it.
+
+### CI commit-by-commit chronology and what happened between commits
+
+The Phase IV sequence below is taken from the PR #9 commit ancestry and exact-head Actions runs. A push and pull-request event may create two runs for the same SHA; those are not separate code revisions.
+
+| Commit | Work between CI checkpoints | CI observation / lesson |
+|---|---|---|
+| `71079f09b66c` | Added operator identity and repository permission authorization, SQLAlchemy write-ahead dispatch audit, duplicate-ID prevention, dispatch coordinator and exact-SHA reconciliation. | First Phase IV governance implementation; subsequent CI exposed formatting and typing issues. |
+| `7654a229ec19` | Added focused Phase IV governance workflow. | Run #41802425875 failed Ruff formatting and reported missing governance test file at that intermediate commit. |
+| `76df71925943` | Added governance/reconciliation tests. | Run #41802476153: source and test formatting both failed. |
+| `ec51f0700fa5` | Logged first formatting failure. | Run #41802646916 repeated the two-file Ruff failure; no tests ran. |
+| `ab7afea7bce0` | Logged repeated formatter result. | Run #41802776573 confirmed same two-file formatting failure. |
+| `28bb17b06e55` | Formatted governance module. | Run #41802834990 still found governance and test files unformatted. |
+| `912b9005c771` | Formatted governance tests. | Run #41802860090 still found two files requiring exact Ruff output; manual/newline-only corrections were insufficient. |
+| `141b49003c0c` | Applied another exact formatting pass. | Run #41803400031 reduced the failure to a remaining SHA validation line. |
+| `f309692dd647` | Completed formatting of the source file. | Run #41803573915 still found one test file unformatted. |
+| `9234feda656c` | Corrected workflow filename validation and formatting. | Run #41804078616 passed Ruff formatting but strict mypy found three issues: import ordering and unused/incorrect imports. |
+| `708a61b769c4` | Resolved Ruff lint findings. | Run #41804293145: formatting/Ruff passed; mypy rejected conversion of an `object` timestamp to float. |
+| `bc53557ce2d3` | Added audit timestamp validation. | Run #41804570101 narrowed typing failures but left type narrowing incomplete. |
+| `86558845bc40` | Narrowed timestamp type for strict mypy. | Run #41804897801 reported exact Ruff line wrapping needed. |
+| `15245242e967` | Applied timestamp formatting correction. | Runs #41805093613 (push), #41805099119 (full CI PR), and #41805099089 (focused governance PR) passed. This was the first green governance checkpoint. |
+| `911bf5881b70` | Added governance documentation and exact-head CI verification record. | Runs #41805818410 (push), #41805830214 (full CI PR), and #41805830592 (focused governance PR) passed. |
+| `a22a39fb3eb6` | Added fail-closed checks for incomplete/over-limit workflow-run pages and malformed run entries, with regression tests. | First CI exposed Ruff formatting in the fixture; governance and full CI failed. |
+| `44a98059632b` | Applied Ruff's exact fixture formatting. | Runs #41811752312 (push), #41811759527 (full CI PR), and #41811759410 (focused governance PR) passed. |
+| `8a17bd22abcf` | Integrated all Phase III changes into Phase IV with a two-parent merge; reconciled README status. | Focused governance runs #41812644117 and #41812647351 passed. Full CI #41812647400 was cancelled by a newer run; cancellation is not a pass. |
+| `78fb1bf02c9b` | Set coverage report precision to two decimal places, retaining 90% minimum. | Focused governance #41812690587 and #41812697953 passed. Full CI #41812698040 exposed the real 89.19% coverage failure; 593 tests still passed. |
+| `d3e3565dde8e` | Hardened dispatch/audit timestamp validation, workflow-run timestamp trust, integer workflow IDs, and the ordering of durable submission state vs dispatcher cleanup. Added tests for invalid timestamps, rejected/unknown/head-mismatch terminal states, timezone-naive run metadata, and cleanup failure after a successful dispatch. | Focused push CI #41814172307 passed. Full CI #41814179708 and focused PR CI #41814179691 were running at the time of this log entry; no final result is claimed here. |
+
+### Theoretical review: threat and failure model
+
+1. **Authorization:** A user token must resolve through GitHub `/user`, match a configured login allowlist, and have write-capable repository permission. Mocked tests prove the code paths, not a live token's actual scopes or installation configuration.
+2. **Write-ahead semantics:** The authorization intent is persisted before external network I/O. A repeated ID must never dispatch twice. A provider timeout is ambiguous and must become `dispatch_outcome_unknown`, not an automatic retry.
+3. **Accepted dispatch vs cleanup:** Once GitHub has accepted the dispatch, local HTTP client cleanup must not leave the audit record in `authorized`. The new code persists `submitted_unreconciled` immediately after a successful dispatch response, before closing the client.
+4. **Reconciliation:** A candidate must match workflow ID, workflow_dispatch event, correlation run-name, operator login, complete bounded result page, valid run ID/SHA/branch/timestamp, and creation cutoff. Multiple matches or malformed/incomplete responses fail closed.
+5. **Time trust:** NaN/infinite/negative cutoffs and audit timestamps are rejected. Workflow run timestamps must be timezone-aware. Out-of-range Unix timestamps produce a sanitized reconciliation failure.
+6. **Evidence semantics:** Dispatch acceptance is not evidence and is not a verification pass. Phase III still has to retrieve platform-anchored job/artifact metadata, verify exact commit, parse evidence and reconcile obligations. Missing/ambiguous/stale evidence cannot become success.
+7. **Deployment:** SQLite and mocked transports are appropriate for unit tests only. A staging deployment needs a managed PostgreSQL instance, secrets, App installation and permission setup, authenticated operator policy, worker and webhook reachability, and a run-name/input correlation contract.
+
+### Finalizer plan
+
+- First complete exact-head full CI and preserve all formatter/lint/type/test/coverage outputs.
+- Use the coverage report's missing lines as the test plan; prioritize high-risk branches in dispatch governance, dispatcher validation, evidence parsing and worker orchestration. Do not lower or exclude code from the coverage denominator just to make the gate green.
+- Verify the 95% Phase I and 80% Phase II sub-gates independently after the overall gate passes.
+- Inspect the exact-head evidence artifact: artifact digest, archive contents, JUnit count/failures/skips, manifest commit binding and no behavioral-assertion overclaim.
+- Complete staging-only authenticated entry point and end-to-end lifecycle only with real deployment configuration. Until then, keep PR #9 draft and production merge gating disabled.
+
+### Current verified position
+
+- Latest code commit at log creation: `d3e3565dde8e6800c16debd3150ff9f41443f8a3`.
+- Focused Phase IV push workflow #41814172307: passed.
+- Full CI #41814179708: in progress at log creation; result unknown.
+- Focused Phase IV PR workflow #41814179691: in progress at log creation; result unknown.
+- Phase IV is not complete. Repository CI coverage and live staging acceptance remain explicit gates.
