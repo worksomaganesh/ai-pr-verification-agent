@@ -57,8 +57,9 @@ def payload(*, sha: str = HEAD, run_id: int = 100, created: float = 1_000) -> di
     }
 
 
-def transport(*, permission: str = "write", login: str = "operator",
-              runs: list[dict[str, Any]] | None = None) -> httpx.MockTransport:
+def transport(
+    *, permission: str = "write", login: str = "operator", runs: list[dict[str, Any]] | None = None
+) -> httpx.MockTransport:
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == "/user":
             return httpx.Response(200, json={"login": login})
@@ -72,10 +73,13 @@ def transport(*, permission: str = "write", login: str = "operator",
     return httpx.MockTransport(handler)
 
 
-def setup(tmp_path: Path, *, permission: str = "write",
-          runs: list[dict[str, Any]] | None = None,
-          dispatcher: FakeDispatcher | None = None
-          ) -> tuple[WorkflowDispatchCoordinator, SQLAlchemyDispatchAuditLog, FakeDispatcher]:
+def setup(
+    tmp_path: Path,
+    *,
+    permission: str = "write",
+    runs: list[dict[str, Any]] | None = None,
+    dispatcher: FakeDispatcher | None = None,
+) -> tuple[WorkflowDispatchCoordinator, SQLAlchemyDispatchAuditLog, FakeDispatcher]:
     mock = transport(permission=permission, runs=runs)
     auth_client = httpx.Client(base_url="https://api.github.com", transport=mock)
     verifier_client = httpx.Client(base_url="https://api.github.com", transport=mock)
@@ -84,17 +88,24 @@ def setup(tmp_path: Path, *, permission: str = "write",
     audit = SQLAlchemyDispatchAuditLog(f"sqlite:///{tmp_path / 'audit.sqlite3'}")
     actual = dispatcher or FakeDispatcher()
     coordinator = WorkflowDispatchCoordinator(
-        authenticator=auth, audit_log=audit,
-        dispatcher_factory=lambda _access: actual, run_verifier=verifier,
+        authenticator=auth,
+        audit_log=audit,
+        dispatcher_factory=lambda _access: actual,
+        run_verifier=verifier,
     )
     return coordinator, audit, actual
 
 
 def dispatch(coordinator: WorkflowDispatchCoordinator, *, now: float = 1_000) -> Any:
     return coordinator.dispatch(
-        access_token=ACCESS, dispatch_id=DISPATCH_ID, repository=REPOSITORY,
-        workflow=WORKFLOW, ref="phase-4-staging", expected_head_sha=HEAD,
-        inputs={"dry_run": "true"}, now=now,
+        access_token=ACCESS,
+        dispatch_id=DISPATCH_ID,
+        repository=REPOSITORY,
+        workflow=WORKFLOW,
+        ref="phase-4-staging",
+        expected_head_sha=HEAD,
+        inputs={"dry_run": "true"},
+        now=now,
     )
 
 
@@ -106,9 +117,7 @@ def test_authenticator_requires_allowlisted_login_and_write_permission() -> None
     read_client = httpx.Client(
         base_url="https://api.github.com", transport=transport(permission="read")
     )
-    read_auth = GitHubOperatorAuthenticator(
-        allowed_logins=("operator",), http_client=read_client
-    )
+    read_auth = GitHubOperatorAuthenticator(allowed_logins=("operator",), http_client=read_client)
     with pytest.raises(DispatchAuthorizationError, match="write, maintain, or admin"):
         read_auth.authenticate(ACCESS, REPOSITORY)
     read_client.close()
@@ -134,7 +143,8 @@ def test_dispatch_is_write_ahead_audited_and_correlated(tmp_path: Path) -> None:
     assert ACCESS not in str(record) and "dry_run" not in str(record)
     assert fake.closed
     assert fake.requests[0]["inputs"] == {
-        "dry_run": "true", "verification_dispatch_id": DISPATCH_ID
+        "dry_run": "true",
+        "verification_dispatch_id": DISPATCH_ID
     }
     audit.close()
 
@@ -194,9 +204,14 @@ def test_audit_survives_store_reopen_and_transitions_are_guarded(tmp_path: Path)
     url = f"sqlite:///{tmp_path / 'durable.sqlite3'}"
     first = SQLAlchemyDispatchAuditLog(url)
     first.record_authorized(
-        dispatch_id=DISPATCH_ID, repository=REPOSITORY, workflow=WORKFLOW, ref="main",
-        expected_head_sha=HEAD, inputs_sha256="d" * 64,
-        operator=GitHubOperator("operator", "write"), now=10,
+        dispatch_id=DISPATCH_ID,
+        repository=REPOSITORY,
+        workflow=WORKFLOW,
+        ref="main",
+        expected_head_sha=HEAD,
+        inputs_sha256="d" * 64,
+        operator=GitHubOperator("operator", "write"),
+        now=10,
     )
     first.mark_submitted(DISPATCH_ID, now=11)
     first.close()
@@ -212,13 +227,25 @@ def test_duplicate_identifier_conflict_is_never_overwritten(tmp_path: Path) -> N
     audit = SQLAlchemyDispatchAuditLog(f"sqlite:///{tmp_path / 'conflict.sqlite3'}")
     operator = GitHubOperator("operator", "write")
     audit.record_authorized(
-        dispatch_id=DISPATCH_ID, repository=REPOSITORY, workflow=WORKFLOW, ref="main",
-        expected_head_sha=HEAD, inputs_sha256="d" * 64, operator=operator, now=10,
+        dispatch_id=DISPATCH_ID,
+        repository=REPOSITORY,
+        workflow=WORKFLOW,
+        ref="main",
+        expected_head_sha=HEAD,
+        inputs_sha256="d" * 64,
+        operator=operator,
+        now=10,
     )
     with pytest.raises(DuplicateDispatchError):
         audit.record_authorized(
-            dispatch_id=DISPATCH_ID, repository=REPOSITORY, workflow=WORKFLOW, ref="main",
-            expected_head_sha=OTHER_HEAD, inputs_sha256="e" * 64, operator=operator, now=10,
+            dispatch_id=DISPATCH_ID,
+            repository=REPOSITORY,
+            workflow=WORKFLOW,
+            ref="main",
+            expected_head_sha=OTHER_HEAD,
+            inputs_sha256="e" * 64,
+            operator=operator,
+            now=10,
         )
     audit.close()
 
@@ -231,8 +258,12 @@ def test_multiple_runs_matching_one_correlation_are_rejected(tmp_path: Path) -> 
     verifier = GitHubWorkflowRunVerifier(http_client=client)
     with pytest.raises(Exception, match="Multiple workflow runs"):
         verifier.find_dispatch_run(
-            access_token=ACCESS, repository=REPOSITORY, workflow=WORKFLOW,
-            dispatch_id=DISPATCH_ID, operator_login="operator", created_after=1_000,
+            access_token=ACCESS,
+            repository=REPOSITORY,
+            workflow=WORKFLOW,
+            dispatch_id=DISPATCH_ID,
+            operator_login="operator",
+            created_after=1_000,
         )
     client.close()
 
@@ -242,8 +273,13 @@ def test_dispatch_rejects_invalid_id_before_side_effect(tmp_path: Path, identifi
     coordinator, audit, fake = setup(tmp_path)
     with pytest.raises(ValueError, match="dispatch_id"):
         coordinator.dispatch(
-            access_token=ACCESS, dispatch_id=identifier, repository=REPOSITORY,
-            workflow=WORKFLOW, ref="main", expected_head_sha=HEAD, inputs={},
+            access_token=ACCESS,
+            dispatch_id=identifier,
+            repository=REPOSITORY,
+            workflow=WORKFLOW,
+            ref="main",
+            expected_head_sha=HEAD,
+            inputs={},
         )
     assert fake.requests == []
     audit.close()

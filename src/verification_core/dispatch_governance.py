@@ -152,7 +152,9 @@ class GitHubOperatorAuthenticator:
     ) -> None:
         if not isinstance(allowed_logins, tuple) or not allowed_logins:
             raise ValueError("allowed_logins must be a non-empty tuple")
-        if any(not isinstance(name, str) or not _LOGIN_RE.fullmatch(name) for name in allowed_logins):
+        if any(
+            not isinstance(name, str) or not _LOGIN_RE.fullmatch(name) for name in allowed_logins
+        ):
             raise ValueError("allowed_logins contains an invalid GitHub login")
         folded = tuple(name.casefold() for name in allowed_logins)
         if len(set(folded)) != len(folded):
@@ -180,9 +182,7 @@ class GitHubOperatorAuthenticator:
                 f"/repos/{quote(owner, safe='')}/{quote(name, safe='')}"
                 f"/collaborators/{quote(login, safe='')}/permission"
             )
-            permission_data = _request_json(
-                self._client, "GET", path, authorization=headers_token
-            )
+            permission_data = _request_json(self._client, "GET", path, authorization=headers_token)
             if not isinstance(permission_data, Mapping):
                 raise DispatchAuthorizationError("GitHub returned invalid repository permissions.")
             permission = permission_data.get("permission")
@@ -361,9 +361,7 @@ class SQLAlchemyDispatchAuditLog:
         if record is None:
             raise DispatchAuditError("The dispatch audit record does not exist.")
         if record["expected_head_sha"] != observed_sha:
-            self.mark_head_mismatch(
-                dispatch_id, run_id=run_id, observed_sha=observed_sha, now=now
-            )
+            self.mark_head_mismatch(dispatch_id, run_id=run_id, observed_sha=observed_sha, now=now)
             raise ExactHeadMismatchError(
                 "The workflow run SHA does not match the authorized commit."
             )
@@ -549,8 +547,7 @@ class WorkflowDispatchCoordinator:
         if not isinstance(ref, str) or not ref or len(ref) > 255:
             raise ValueError("ref must be a non-empty bounded git ref")
         if not isinstance(inputs, Mapping) or any(
-            not isinstance(key, str) or not isinstance(value, str)
-            for key, value in inputs.items()
+            not isinstance(key, str) or not isinstance(value, str) for key, value in inputs.items()
         ):
             raise ValueError("inputs must map strings to strings")
         if CORRELATION_INPUT in inputs:
@@ -595,11 +592,13 @@ class WorkflowDispatchCoordinator:
         finally:
             if dispatcher is not None:
                 dispatcher.close()
-        self._audit_log.mark_submitted(
-            dispatch_id, now=time.time() if now is None else timestamp
-        )
+        self._audit_log.mark_submitted(dispatch_id, now=time.time() if now is None else timestamp)
         return DispatchReceipt(
-            dispatch_id, repository, workflow, expected_head_sha, operator.login,
+            dispatch_id,
+            repository,
+            workflow,
+            expected_head_sha,
+            operator.login,
             "submitted_unreconciled"
         )
 
@@ -647,7 +646,11 @@ class WorkflowDispatchCoordinator:
             now=timestamp,
         )
         return DispatchReceipt(
-            dispatch_id, repository, str(record["workflow"]), expected_sha, operator.login,
+            dispatch_id,
+            repository,
+            str(record["workflow"]),
+            expected_sha,
+            operator.login,
             "reconciled"
         )
 
