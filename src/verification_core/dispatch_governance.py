@@ -31,7 +31,6 @@ from verification_core.delivery_store import DeliveryStoreError
 from verification_core.github_app import GitHubAPIError, _make_http_client, _request_json
 from verification_core.workflow_dispatch import (
     GitHubWorkflowDispatchError,
-    WorkflowInputRule,
 )
 
 _SHA_RE = re.compile(r"^[0-9a-f]{40}$")
@@ -278,7 +277,8 @@ class SQLAlchemyDispatchAuditLog:
                 connection.execute(insert(_DISPATCHES).values(**values))
         except IntegrityError:
             raise DuplicateDispatchError(
-                "This dispatch identifier was already recorded; inspect its audit state instead of retrying."
+                "This dispatch identifier was already recorded; inspect its audit state "
+                "instead of retrying."
             ) from None
         except SQLAlchemyError:
             raise DispatchAuditError("Could not write the dispatch authorization record.") from None

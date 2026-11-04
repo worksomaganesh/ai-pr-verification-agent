@@ -10,8 +10,8 @@ import httpx
 import pytest
 
 from verification_core.dispatch_governance import (
-    DispatchAuthorizationError,
     DispatchAuditError,
+    DispatchAuthorizationError,
     DuplicateDispatchError,
     ExactHeadMismatchError,
     GitHubOperator,
