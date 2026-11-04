@@ -26,44 +26,65 @@ REVIEWER = "reviewer"
 
 
 def review(
-    *, review_id: int = 101, login: str = REVIEWER, state: str = "APPROVED",
-    sha: str = HEAD, submitted: str = "2026-11-04T10:00:00Z",
+    *,
+    review_id: int = 101,
+    login: str = REVIEWER,
+    state: str = "APPROVED",
+    sha: str = HEAD,
+    submitted: str = "2026-11-04T10:00:00Z",
     body: str = "Reviewed security boundaries and exact-head test evidence carefully.",
 ) -> dict[str, Any]:
     return {
-        "id": review_id, "user": {"login": login}, "state": state, "commit_id": sha,
-        "submitted_at": submitted, "body": body,
+        "id": review_id,
+        "user": {"login": login},
+        "state": state,
+        "commit_id": sha,
+        "submitted_at": submitted,
+        "body": body,
     }
 
 
 def transport(
-    *, base: str = BASE, head: str = HEAD, reviews: list[Any] | None = None,
-    state: str = "open", review_status: int = 200,
+    *,
+    base: str = BASE,
+    head: str = HEAD,
+    reviews: list[Any] | None = None,
+    state: str = "open",
+    review_status: int = 200,
 ) -> httpx.MockTransport:
-    calls = {"pr": 0}
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == f"/repos/{REPO}/pulls/{PR}":
-            calls["pr"] += 1
-            return httpx.Response(200, json={
-                "state": state,
-                "base": {"sha": base, "repo": {"full_name": REPO}},
-                "head": {"sha": head, "repo": {"full_name": REPO}},
-            })
+            return httpx.Response(
+                200,
+                json={
+                    "state": state,
+                    "base": {"sha": base, "repo": {"full_name": REPO}},
+                    "head": {"sha": head, "repo": {"full_name": REPO}},
+                },
+            )
         if request.url.path == f"/repos/{REPO}/pulls/{PR}/reviews":
             return httpx.Response(review_status, json=reviews or [])
         return httpx.Response(404, json={"message": "not found"})
+
     return httpx.MockTransport(handler)
 
 
-def verifier(mock: httpx.MockTransport, allow: tuple[str, ...] = (REVIEWER,)) -> GitHubReviewVerifier:
+def verifier(
+    mock: httpx.MockTransport, allow: tuple[str, ...] = (REVIEWER,)
+) -> GitHubReviewVerifier:
     client = httpx.Client(base_url="https://api.github.com", transport=mock)
     return GitHubReviewVerifier(allowed_reviewers=allow, http_client=client)
 
 
-def verify(v: GitHubReviewVerifier, *, base: str = BASE, head: str = HEAD):
+def verify(
+    v: GitHubReviewVerifier, *, base: str = BASE, head: str = HEAD
+) -> tuple[GitHubPullRequestApproval, ...]:
     return v.verify_current_approvals(
-        access_token=TOKEN, repository=REPO, pr_number=PR,
-        expected_base_sha=base, expected_head_sha=head,
+        access_token=TOKEN,
+        repository=REPO,
+        pr_number=PR,
+        expected_base_sha=base,
+        expected_head_sha=head,
     )
 
 
@@ -81,18 +102,26 @@ def test_verifier_returns_allowlisted_approval_bound_to_exact_head() -> None:
 
 @pytest.mark.parametrize("state", ["COMMENTED", "CHANGES_REQUESTED", "DISMISSED"])
 def test_latest_nonapproval_supersedes_older_approval(state: str) -> None:
-    v = verifier(transport(reviews=[
-        review(review_id=100, submitted="2026-11-04T09:00:00Z"),
-        review(review_id=101, state=state, submitted="2026-11-04T10:00:00Z"),
-    ]))
+    v = verifier(
+        transport(
+            reviews=[
+                review(review_id=100, submitted="2026-11-04T09:00:00Z"),
+                review(review_id=101, state=state, submitted="2026-11-04T10:00:00Z"),
+            ]
+        )
+    )
     assert verify(v) == ()
 
 
 def test_older_approval_does_not_override_later_changes_requested() -> None:
-    v = verifier(transport(reviews=[
-        review(review_id=101, state="CHANGES_REQUESTED", submitted="2026-11-04T10:00:00Z"),
-        review(review_id=100, submitted="2026-11-04T09:00:00Z"),
-    ]))
+    v = verifier(
+        transport(
+            reviews=[
+                review(review_id=101, state="CHANGES_REQUESTED", submitted="2026-11-04T10:00:00Z"),
+                review(review_id=100, submitted="2026-11-04T09:00:00Z"),
+            ]
+        )
+    )
     assert verify(v) == ()
 
 
@@ -144,12 +173,19 @@ def test_github_review_api_failure_is_fail_closed() -> None:
 
 
 def make_approval(
-    *, review_id: int = 101, rationale: str = "Reviewed security boundaries and exact-head test evidence carefully."
+    *,
+    review_id: int = 101,
+    rationale: str = "Reviewed security boundaries and exact-head test evidence carefully.",
 ) -> GitHubPullRequestApproval:
     return GitHubPullRequestApproval(
-        repository=REPO, pr_number=PR, review_id=review_id, reviewer_login=REVIEWER,
-        base_sha=BASE, head_sha=HEAD,
-        submitted_at=datetime(2026, 11, 4, 10, 0, tzinfo=UTC), rationale=rationale,
+        repository=REPO,
+        pr_number=PR,
+        review_id=review_id,
+        reviewer_login=REVIEWER,
+        base_sha=BASE,
+        head_sha=HEAD,
+        submitted_at=datetime(2026, 11, 4, 10, 0, tzinfo=UTC),
+        rationale=rationale,
     )
 
 
@@ -173,7 +209,9 @@ def test_audit_rejects_review_id_with_conflicting_content(tmp_path: Path) -> Non
     log.record_approval(make_approval(), now=100)
     with pytest.raises(HumanReviewAuditConflict, match="different approval"):
         log.record_approval(
-            make_approval(rationale="A materially different review rationale for this same ID."),
+            make_approval(
+                rationale="A materially different review rationale for this same ID."
+            ),
             now=101,
         )
     log.close()
@@ -190,8 +228,13 @@ def test_audit_rejects_invalid_record_timestamp(tmp_path: Path, bad_now: float) 
 def test_approval_model_rejects_naive_timestamp_and_short_rationale() -> None:
     with pytest.raises(ValueError, match="timezone-aware"):
         GitHubPullRequestApproval(
-            repository=REPO, pr_number=PR, review_id=101, reviewer_login=REVIEWER,
-            base_sha=BASE, head_sha=HEAD, submitted_at=datetime(2026, 11, 4),
+            repository=REPO,
+            pr_number=PR,
+            review_id=101,
+            reviewer_login=REVIEWER,
+            base_sha=BASE,
+            head_sha=HEAD,
+            submitted_at=datetime(2026, 11, 4),
             rationale="Reviewed security boundaries and exact-head test evidence carefully.",
         )
     with pytest.raises(ValueError, match="rationale"):

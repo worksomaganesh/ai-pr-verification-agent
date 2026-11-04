@@ -30,8 +30,8 @@ from sqlalchemy import (
     insert,
     select,
 )
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from verification_core.github_app import _make_http_client
 
@@ -173,7 +173,6 @@ class GitHubReviewVerifier:
         *,
         access_token: str,
         params: Mapping[str, str | int] | None = None,
-        allow_next_page: bool = False,
     ) -> object:
         if not path.startswith("/") or path.startswith("//") or ".." in path.split("/"):
             raise HumanReviewVerificationError("Refusing an unsafe GitHub API path.")
@@ -189,10 +188,10 @@ class GitHubReviewVerifier:
                     raise HumanReviewVerificationError(
                         "GitHub could not verify pull-request review metadata."
                     )
-                if not allow_next_page and response.links.get("next") is not None:
+                if response.links.get("next") is not None:
                     raise HumanReviewVerificationError(
-                        "The pull request has more than 100 reviews; review pagination is not "
-                        "supported by this verifier."
+                        "The pull request has more than 100 reviews; review pagination is "
+                        "not supported by this verifier."
                     )
                 length = response.headers.get("Content-Length")
                 if length is not None:
@@ -329,7 +328,7 @@ class GitHubReviewVerifier:
                 latest[login.casefold()] = (submitted_at, review_id, item)
 
         approvals: list[GitHubPullRequestApproval] = []
-        for login_key, (submitted_at, review_id, item) in latest.items():
+        for _, (submitted_at, review_id, item) in latest.items():
             if item.get("state") != "APPROVED" or item.get("commit_id") != expected_head_sha:
                 continue
             user = item.get("user")
@@ -362,7 +361,9 @@ class GitHubReviewVerifier:
             raise HumanReviewVerificationError(
                 "The pull request changed during review verification; approval is stale."
             )
-        return tuple(sorted(approvals, key=lambda approval: (approval.submitted_at, approval.review_id)))
+        return tuple(
+            sorted(approvals, key=lambda approval: (approval.submitted_at, approval.review_id))
+        )
 
     def close(self) -> None:
         if self._owns_client:
@@ -401,7 +402,9 @@ class SQLAlchemyHumanReviewAuditLog:
                 )
             _METADATA.create_all(self._engine)
         except SQLAlchemyError:
-            raise HumanReviewAuditError("Could not initialize the human-review audit database.") from None
+            raise HumanReviewAuditError(
+                "Could not initialize the human-review audit database."
+            ) from None
 
     def record_approval(
         self,
@@ -453,7 +456,9 @@ class SQLAlchemyHumanReviewAuditLog:
                 "A GitHub review ID already exists with different approval content."
             ) from None
         except SQLAlchemyError:
-            raise HumanReviewAuditError("Could not persist the human-review audit record.") from None
+            raise HumanReviewAuditError(
+                "Could not persist the human-review audit record."
+            ) from None
 
     def get_approval(
         self, repository: str, pr_number: int, review_id: int
@@ -478,7 +483,9 @@ class SQLAlchemyHumanReviewAuditLog:
                 )
                 return None if row is None else dict(row)
         except SQLAlchemyError:
-            raise HumanReviewAuditError("Could not read the human-review audit record.") from None
+            raise HumanReviewAuditError(
+                "Could not read the human-review audit record."
+            ) from None
 
     def list_approvals(
         self,
@@ -507,7 +514,9 @@ class SQLAlchemyHumanReviewAuditLog:
                 )
                 return tuple(dict(row) for row in rows)
         except SQLAlchemyError:
-            raise HumanReviewAuditError("Could not list human-review audit records.") from None
+            raise HumanReviewAuditError(
+                "Could not list human-review audit records."
+            ) from None
 
     def close(self) -> None:
         self._engine.dispose()
