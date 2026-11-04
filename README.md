@@ -11,7 +11,7 @@ The agent evaluates what behavior could change in a pull request, derives verifi
 <details>
 <summary><strong>Latest integrated verification: passed</strong> — 4 November 2026</summary>
 
-The integrated Phase III + Phase IV feature branch completed combined CI, exact-PR-head evidence production, and independent artifact inspection on the same commit.
+The current integrated branch head is `0c9ef6056123ad3b5b9103e85d31b0a9648b8068` on `phase-4-opt-in-dispatch`. This head is documentation-only relative to the last source-bearing checkpoint; the full workflow and exact-PR-head evidence producer were rerun successfully against this exact head.
 
 | Verification | Result | Required |
 | --- | ---: | ---: |
@@ -22,28 +22,14 @@ The integrated Phase III + Phase IV feature branch completed combined CI, exact-
 | Formatting | Passed | Pass |
 | Ruff lint | Passed | Pass |
 | Strict mypy | Passed | Pass |
-| Evidence producer | Passed | Pass |
+| Exact-head evidence producer | Passed | Pass |
 
-- Integrated branch: `phase-4-opt-in-dispatch`
-- Exact verified head: `3046eeb2681e0102f4ca9b978802e008a6baa13a`
-- Combined CI: [run #41850039278](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41850039278)
-- Focused Phase IV governance CI: [run #41850039261](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41850039261)
-- Phase III + IV integration: Phase III is included through the two-parent merge commit `8a17bd22abcfdea02111f7fa7768c5ba9b4c29a1`.
-
-The exact-head evidence artifact was uploaded by the same successful full CI run and independently inspected:
-
-| Artifact field | Verified value |
-| --- | --- |
-| Name | `verification-evidence` |
-| Artifact ID | `13334261929` |
-| Size | 50,013 bytes |
-| SHA-256 | `72d5a21ff1bf191f4f56e84d9a14db8242db71e28ee4de2cca361d48eb76ae87` |
-| Archive members | `junit.xml`, `coverage-manifest.json` |
-| JUnit inventory | 687 unique tests; 0 failures, 0 errors, 0 skips |
-| Manifest inventory | 687 unique test entries; all outcomes passed |
-| Manifest commit binding | Exact head `3046eeb2681e0102f4ca9b978802e008a6baa13a` |
-
-The downloaded ZIP digest was independently recomputed and matches GitHub's artifact API digest. Both inventories were parsed and compared by count; each contains 687 unique test cases. Every `behavioral_assertion_verified` value is `false`: the artifact proves test execution and measured coverage, **not that the tests' assertions establish every required behavior**.
+- Current branch head: `0c9ef6056123ad3b5b9103e85d31b0a9648b8068`
+- Combined full CI: [run #41850967572](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41850967572) — success on the exact head.
+- Focused Phase IV governance CI: [run #41850967471](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41850967471) — success; formatting, Ruff, strict mypy, dispatch governance and human-governance tests passed.
+- Latest exact-head artifact: `verification-evidence`, ID `13335151007`, 49,841 bytes, GitHub SHA-256 `30d2efc2f3b0b5abfd9b3882c78c6a902781f21c4f7aa247b7370738529f1bc8`. The CI upload log and GitHub artifact metadata agree; this latest archive has not been independently downloaded and parsed in this checkpoint.
+- The source-bearing checkpoint `3046eeb2681e0102f4ca9b978802e008a6baa13a` also passed full and focused CI (#41850039278 and #41850039261). Its artifact ID `13334261929` was downloaded and independently inspected: both JUnit and manifest inventories contained 687 matching passing tests. Every `behavioral_assertion_verified` flag was false; that artifact proves test execution and coverage, not behavioral assertion sufficiency.
+- Phase III source integration is confirmed: PR #6 head `9611cbc6504f3844770540c9d45f87864bdfae08` is an ancestor of this Phase IV head (72 commits ahead, 0 behind), via integration commit `8a17bd22abcfdea02111f7fa7768c5ba9b4c29a1`.
 
 </details>
 
