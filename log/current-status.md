@@ -1,5 +1,22 @@
 # Current Verified Status
 
+## Latest integrated Phase III + Phase IV verification — 2026-11-04
+
+- Latest verified code head: `3046eeb2681e0102f4ca9b978802e008a6baa13a` on `phase-4-opt-in-dispatch`.
+- Combined full CI: [run #41850039278](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41850039278), **success** on that exact head.
+- Quality gates: Ruff formatting, Ruff lint, strict mypy all passed; **687 tests passed**, one non-blocking Starlette/httpx deprecation warning.
+- Coverage: overall **90.23%** (90.00% required), Phase I core **96.39%** (95.00% required), Phase II integration **85.99%** (80.00% required). No threshold was reduced and no production source was excluded.
+- Focused Phase IV governance CI: [run #41850039261](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41850039261), success; format, Ruff, mypy, dispatch and human-governance tests passed.
+- Exact-head evidence artifact: `verification-evidence`, ID `13334261929`, 50,013 bytes, GitHub digest `sha256:72d5a21ff1bf191f4f56e84d9a14db8242db71e28ee4de2cca361d48eb76ae87`.
+- Artifact independently downloaded and inspected. ZIP SHA-256 matches GitHub. Exactly two members: `junit.xml` and `coverage-manifest.json`. JUnit has 687 unique testcases, 0 failures, 0 errors, 0 skips. Manifest has 687 unique entries, all passed, exact `head_sha` binding to the commit above. All `behavioral_assertion_verified` flags are false; this is execution/coverage evidence, not a claim of behavioral proof.
+- Phase IV now includes exact-head GitHub review verification, reviewer allowlisting, latest-review supersession, rationale validation, fail-closed API handling, append-only review audit, and an adapter into the existing obligation state machine. The adapter checks repository, PR number, base SHA and head SHA, applies existing severity/state policy, and records the audit before returning the approved obligation.
+- Earlier combined CI failure on head `5f8ce5e`: 667 tests passed but coverage was 89.19%. Adversarial tests were added without changing thresholds; the final head reached 90.23%.
+- **Still not complete operationally:** no real staging dispatch, no authenticated staging-only operator entry point exercise, no target deployment smoke test, and no human release approval. PR #9 remains draft; production merge gating must remain disabled until these gates pass.
+
+---
+
+# Current Verified Status
+
 ## Authoritative Phase III snapshot — 2026-10-27
 
 - Latest code + documentation head: `64700d7ed575296e6874a185938ef585e0f7c5de`.

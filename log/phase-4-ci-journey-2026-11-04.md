@@ -220,3 +220,55 @@ This confirms the corrected test suite is green and all three coverage threshold
 - Do not make any further commits while the next exact-head full CI is running.
 - Wait for the complete Phase II CI and dependent evidence job; inspect the artifact and only then update this journal.
 - Focused governance success remains supplementary; it does not substitute for full CI.
+
+
+## Human-review governance implementation and exact-head CI journey — 2026-11-04 evening
+
+The following commits continue from the previously recorded Phase IV branch head `7bf7b43cfb213d821cb42a2d1d0b79a066a9b786`. Every CI result below is attributed only to the SHA it actually tested.
+
+| Commit | Work between CI checkpoints | CI observation and root cause |
+| --- | --- | --- |
+| `7bf7b43` | Added `human_governance.py` and initial exact-head reviewer/audit tests. | Focused dispatch workflow passed but did not yet include the new files. Combined Phase II CI #41838773297 failed at Ruff formatting: the new module and test file were not Ruff-formatted. |
+| `2c64a62` | Applied the initial Ruff formatting corrections. | Focused dispatch workflow #41846986007 passed its then-current, narrower scope. Combined CI #41846994429 still failed formatting; subsequent logs showed the canonical formatting corrections had not yet been fully applied. |
+| `37c3089` | Added human-governance paths to the focused workflow, included the new module/tests in format, Ruff, mypy and pytest commands, and corrected the malformed-review fixture so a JSON object remains an object instead of being replaced by an empty list. | Combined CI #41847194450 and focused CI #41847180845 failed Ruff lint: S105 flagged a test constant named `TOKEN`, and I001 flagged import ordering. The focused workflow now exercised the new component, exposing issues previously missed. |
+| `510fdd1` | Connected verified GitHub approvals to the existing domain state machine through `apply_verified_human_approval`; added repository/PR/base/head binding and integration tests. | Combined CI #41847431159 and focused CI #41847421432 failed Ruff formatting. The new adapter/test section needed canonical blank-line formatting. |
+| `5cf413f` | Attempted to resolve the adapter/test formatting diff. | CI #41847596690 and focused #41847585738 still reported Ruff blank-line differences. The diff showed that the file-level separation and the test-section spacing were not yet canonical. |
+| `1846b7d` | Adjusted module separation and reran checks. | CI #41848018754 and focused #41848007869 still found a formatting boundary; Ruff's diff indicated one more blank line was required before the module-level adapter. |
+| `14a5d2c` | Restored the required module separation. | Focused CI #41848282395 then passed formatting but failed Ruff: B008 rejected constructing `ConclusionPolicyConfig()` in a function default, and I001 required import ordering. |
+| `5f8ce5e` | Changed the adapter's policy argument to optional and instantiate the default inside the function; fixed import order. | Focused push #41848570800 passed. Full CI #41848583378 reached pytest: **667 passed**, but overall coverage was **89.19%**, below the unchanged 90.00% threshold. New governance code was only 76.26% covered. Formatting, lint and strict mypy had passed. |
+| `9ee4c27` | Added adversarial tests for malformed model fields, reviewer allowlists, request identity, unsafe paths, malformed JSON, transport timeout/connection failures, oversized/paginated responses, malformed PR payloads, and audit constructor/lookup validation. | CI #41849091455 / focused #41849084207 failed Ruff formatting. The formatter identified one lambda layout and excess blank-line spacing. |
+| `93f141e` | Applied the reported lambda formatting and test spacing correction. | CI #41849324739 / focused #41849313105 still reported one extra blank line before the parameterized adversarial tests. |
+| `a5782c0` | Corrected the test-section blank-line count. | CI #41849578697 and focused #41849566731 advanced beyond formatting but Ruff lint reported a hardcoded blank auth value (S106) and an undefined `HumanReviewAuditError` test import (F821). |
+| `063a043` | Applied another blank-line adjustment based on Ruff's exact diff. | CI #41849804368 / focused #41849792678 still showed the extra blank line; the source needed two blank lines between module-level definitions, while the decorated test group needed exactly the Ruff-required separation. |
+| `3046eeb` | Imported `HumanReviewAuditError` and moved the blank auth fixture to a neutral-named constant, avoiding secret-scanner false positives. | **Full CI #41850039278 passed** on exact SHA `3046eeb2681e0102f4ca9b978802e008a6baa13a`. Focused Phase IV CI #41850039261 also passed. |
+
+### Final CI and artifact evidence on `3046eeb`
+
+- Formatting, Ruff lint and strict mypy: passed.
+- Tests: **687 passed**, one non-blocking Starlette/httpx deprecation warning.
+- Overall coverage: **90.23%** (90.00% required).
+- Phase I core coverage: **96.39%** (95.00% required).
+- Phase II integration coverage: **85.99%** (80.00% required).
+- Evidence producer: passed on the exact PR head.
+- Artifact: `verification-evidence`, ID `13334261929`, size 50,013 bytes, SHA-256 `72d5a21ff1bf191f4f56e84d9a14db8242db71e28ee4de2cca361d48eb76ae87`.
+- Independently downloaded ZIP hash matched GitHub metadata. Archive has exactly `junit.xml` and `coverage-manifest.json`; JUnit and manifest each contain 687 unique matching test IDs, all passed, zero failures/errors/skips, exact head binding. All behavioral assertion flags are false.
+
+### What the work taught us
+
+1. A focused workflow is only meaningful if its path filters and commands include the new module and tests. The initial green focused runs were not evidence that human governance passed.
+2. Test fixtures must preserve malformed data intentionally. Using `reviews or []` silently converted an empty/falsey fixture into a valid empty collection and invalidated the malformed-response test.
+3. Exact Ruff output should be treated as the source of truth. Hand-adjusting blank lines without inspecting the diff caused several avoidable CI cycles.
+4. Security lint checks apply to tests too. Even fake credentials and blank auth values should be named/constructed so scanners do not mistake them for real hardcoded secrets.
+5. Human approval must not be a parallel, disconnected status. The adapter now binds the review to repository + PR + base/head, converts it to the existing domain record, applies the existing state machine and severity policy, and persists the audit before returning an approved obligation.
+6. Coverage is a project-level gate, not a local-module vanity metric. The first implementation produced 667 passing tests but only 89.19% overall coverage. Adversarial tests raised the final overall coverage to 90.23% without changing thresholds or excluding production code.
+
+### Remaining end-of-phase acceptance
+
+Repository implementation and CI are green, but Phase IV is **not operationally released**. The following require staging configuration and an authorized human operator, not more speculative code commits:
+
+- Configure a staging-only authenticated operator entry point and deployment-specific operator policy.
+- Configure managed PostgreSQL and least-privilege GitHub App/Actions credentials in the target environment.
+- Perform a real non-production workflow dispatch and reconcile the exact workflow/run/actor/SHA correlation.
+- Follow the dispatched run through the integrated Phase III authenticated artifact ingestion, freshness checks, evidence ledger and Check Run publication.
+- Execute the Phase III deployment smoke test against the installed App, webhook ingress/worker and durable evidence database.
+- Complete human review and explicit release approval. Keep PR #9 draft and production merge gating disabled until these are done.

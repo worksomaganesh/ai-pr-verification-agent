@@ -11,12 +11,12 @@ The agent evaluates what behavior could change in a pull request, derives verifi
 <details>
 <summary><strong>Latest integrated verification: passed</strong> — 4 November 2026</summary>
 
-The integrated Phase III + Phase IV feature branch has completed its combined CI and exact-PR-head evidence workflow successfully.
+The integrated Phase III + Phase IV feature branch completed combined CI, exact-PR-head evidence production, and independent artifact inspection on the same commit.
 
 | Verification | Result | Required |
 | --- | ---: | ---: |
-| Tests | **643 passed** | All pass |
-| Overall coverage | **90.01%** | 90.00% |
+| Tests | **687 passed** | All pass |
+| Overall coverage | **90.23%** | 90.00% |
 | Phase I core coverage | **96.39%** | 95.00% |
 | Phase II integration coverage | **85.99%** | 80.00% |
 | Formatting | Passed | Pass |
@@ -25,25 +25,25 @@ The integrated Phase III + Phase IV feature branch has completed its combined CI
 | Evidence producer | Passed | Pass |
 
 - Integrated branch: `phase-4-opt-in-dispatch`
-- Exact verified head: `38d0c2bd4403dd0767d8d5705d87d5aa98b03026`
-- Combined CI: [run #41816301952](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41816301952)
-- Focused Phase IV governance CI: [run #41816301946](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41816301946)
+- Exact verified head: `3046eeb2681e0102f4ca9b978802e008a6baa13a`
+- Combined CI: [run #41850039278](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41850039278)
+- Focused Phase IV governance CI: [run #41850039261](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41850039261)
 - Phase III + IV integration: Phase III is included through the two-parent merge commit `8a17bd22abcfdea02111f7fa7768c5ba9b4c29a1`.
 
-The exact-head evidence artifact was uploaded by the same successful full CI run:
+The exact-head evidence artifact was uploaded by the same successful full CI run and independently inspected:
 
 | Artifact field | Verified value |
 | --- | --- |
 | Name | `verification-evidence` |
-| Artifact ID | `13315116157` |
-| Size | 46,919 bytes |
-| SHA-256 | `b19e98d7264360a4af036a457fa84a4e351c873ece5ba8ad76bffa3412d1c964` |
+| Artifact ID | `13334261929` |
+| Size | 50,013 bytes |
+| SHA-256 | `72d5a21ff1bf191f4f56e84d9a14db8242db71e28ee4de2cca361d48eb76ae87` |
 | Archive members | `junit.xml`, `coverage-manifest.json` |
-| JUnit inventory | 643 tests; 0 failures, 0 errors, 0 skips |
-| Manifest inventory | 643 unique test entries; all outcomes passed |
-| Manifest commit binding | Exact head `38d0c2bd4403dd0767d8d5705d87d5aa98b03026` |
+| JUnit inventory | 687 unique tests; 0 failures, 0 errors, 0 skips |
+| Manifest inventory | 687 unique test entries; all outcomes passed |
+| Manifest commit binding | Exact head `3046eeb2681e0102f4ca9b978802e008a6baa13a` |
 
-The ZIP digest was independently recomputed and matched the GitHub artifact API digest. The JUnit and coverage-manifest inventories were inspected. Every `behavioral_assertion_verified` value in the manifest is `false`: the artifact proves test execution and measured coverage, **not that the tests' assertions establish every required behavior**.
+The downloaded ZIP digest was independently recomputed and matches GitHub's artifact API digest. Both inventories were parsed and compared by count; each contains 687 unique test cases. Every `behavioral_assertion_verified` value is `false`: the artifact proves test execution and measured coverage, **not that the tests' assertions establish every required behavior**.
 
 </details>
 
@@ -66,7 +66,7 @@ Keep production merge gating disabled until the staging smoke test and human rev
 | **Phase I — deterministic core** | Domain models, verification state machine, policy validation, evidence parsers, obligation semantics, and adversarial scenarios | Implemented; core coverage gate passes at 96.39% |
 | **Phase II — PR verification service** | GitHub App integration, diff/planning flow, persistence, webhook ingress, delivery/run ledgers, and deterministic Check Run publication | Implemented; integration coverage gate passes at 85.99% |
 | **Phase III — authenticated evidence ingestion** | Authenticated GitHub Actions run/job/artifact retrieval, digest and archive validation, JUnit/coverage-manifest binding, durable evidence ledger, obligation reconciliation, and freshness-checked Check Runs | Integrated into the Phase IV branch; combined exact-head CI and evidence production pass; live deployment smoke test remains |
-| **Phase IV — guarded dispatch and human governance** | Explicitly enabled workflow dispatch, strict workflow/input allowlists, operator authorization, write-ahead audit, duplicate protection, exact-SHA run reconciliation, and governance foundations | Implementation and integrated CI pass; real staging dispatch, deployment wiring, human review, and release acceptance remain |
+| **Phase IV — guarded dispatch and human governance** | Explicitly enabled workflow dispatch, strict workflow/input allowlists, operator authorization, write-ahead audit, duplicate protection, exact-SHA run reconciliation, and governance foundations | Dispatch and human-governance implementation pass integrated CI; real staging dispatch, deployment wiring, human review, and release acceptance remain |
 
 ### Phase I — deterministic verification core
 
@@ -113,6 +113,9 @@ The current implementation includes:
 - A one-shot dispatch coordinator and exact-SHA workflow-run reconciliation.
 - Fail-closed handling for malformed, incomplete, over-limit, ambiguous, or incorrectly correlated workflow-run responses.
 - Durable distinction between rejected, unknown, submitted-unreconciled, reconciled, and mismatched outcomes.
+- Exact-head GitHub review verification with a configured reviewer allowlist, latest-review semantics, rationale checks, same-repository/open-PR checks, pagination/response limits, and fail-closed API handling.
+- Append-only SQLAlchemy human-review audit records with rationale digests, replay idempotency, and conflicting review-ID detection.
+- An adapter that binds verified review repository, PR number, base SHA, and head SHA to the evaluated commit, then applies the existing domain state-machine severity/transition policy and persists the audit before returning the approved obligation.
 
 A successful dispatch is **not** evidence of successful verification. The resulting workflow must still pass the Phase III provenance, artifact, freshness, and obligation-reconciliation checks. The current dispatcher has mocked API tests; it has not been used to dispatch a real workflow. The staging operator entry point and deployment-specific governance policy remain to be wired and exercised.
 

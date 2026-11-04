@@ -41,3 +41,31 @@
 3. Add a staging workflow with the required correlation run-name/input contract and verify run/job/artifact authenticity, freshness, and exact SHA against Phase III.
 4. Execute the Phase III live smoke test and record the human review against the same exact head.
 5. Only after all gates and review pass, remove draft status and request review; keep production merge gating disabled until approved.
+
+
+## Human review verification and state-machine integration — 2026-11-04
+
+The following human-governance implementation is now part of the integrated branch:
+
+- `src/verification_core/human_governance.py`:
+  - `GitHubPullRequestApproval` is an immutable validated review fact containing repository, PR number, review ID, reviewer, base/head SHA, timezone-aware submitted timestamp and rationale.
+  - `GitHubReviewVerifier` reads GitHub PR identity and review history, checks an explicit reviewer allowlist, requires an open same-repository PR, rejects stale expected base/head SHAs, and re-reads PR identity after review collection to detect a head change during verification.
+  - Only the latest review by each allowlisted reviewer is authoritative; a later COMMENTED, CHANGES_REQUESTED or DISMISSED review supersedes an earlier approval.
+  - Approvals must target the exact current head and include a bounded minimum rationale. Malformed identity/timestamps, unsupported pagination, oversized response bodies, HTTP errors, timeouts and malformed JSON fail closed.
+  - `SQLAlchemyHumanReviewAuditLog` stores immutable approval records with rationale SHA-256, idempotent exact replay and conflict detection for reuse of a review ID with different content.
+  - `apply_verified_human_approval` verifies repository, PR, base and head against `CommitIdentity`, converts the review into `HumanApprovalRecord`, delegates transition/severity policy to `apply_human_approval`, and writes the audit before returning the approved obligation.
+- `tests/unit/test_human_governance.py` now exercises the verifier, malformed/hostile API inputs, transport failures, audit behavior and the domain state-machine adapter.
+- `.github/workflows/phase4-governance.yml` now explicitly runs formatting, Ruff, mypy and pytest for both dispatch governance and human governance files.
+
+## Final exact-head verification
+
+- Branch head: `3046eeb2681e0102f4ca9b978802e008a6baa13a`.
+- Combined full CI: [#41850039278](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41850039278), success.
+- Focused governance CI: [#41850039261](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41850039261), success.
+- 687 tests passed; formatting, Ruff, strict mypy and all coverage gates passed.
+- Overall coverage 90.23%; Phase I 96.39%; Phase II 85.99%.
+- Evidence artifact ID 13334261929, 50,013 bytes, SHA-256 `72d5a21ff1bf191f4f56e84d9a14db8242db71e28ee4de2cca361d48eb76ae87`. Downloaded ZIP hash independently matches GitHub metadata. Exactly `junit.xml` and `coverage-manifest.json`; each inventory has 687 unique passing tests, zero failures/errors/skips and exact head binding. All behavioral assertion flags remain false.
+
+## Explicit operational boundary
+
+The repository implementation and exact-head CI are green. No real staging workflow dispatch or target deployment smoke test has been performed. A production/staging operator route, managed PostgreSQL configuration, installed App credentials, webhook/worker deployment, and a human release approval remain environment/operator acceptance tasks. PR #9 remains draft. Do not enable production merge gating or merge on the strength of mocked API tests alone.
