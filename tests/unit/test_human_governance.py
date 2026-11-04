@@ -304,3 +304,183 @@ def test_verified_approval_rejects_wrong_pr_binding_before_audit(tmp_path: Path)
         )
     assert log.get_approval(REPO, PR, 101) is None
     log.close()
+
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    [
+        ({"pr_number": 0}, "pr_number"),
+        ({"review_id": 0}, "review_id"),
+        ({"reviewer_login": "bad login"}, "reviewer_login"),
+        ({"base_sha": "bad"}, "base_sha"),
+        ({"head_sha": "bad"}, "head_sha"),
+        ({"submitted_at": "not-a-datetime"}, "submitted_at"),
+        ({"rationale": None}, "rationale"),
+    ],
+)
+def test_approval_model_rejects_invalid_fields(kwargs: dict[str, Any], message: str) -> None:
+    values: dict[str, Any] = {
+        "repository": REPO,
+        "pr_number": PR,
+        "review_id": 101,
+        "reviewer_login": REVIEWER,
+        "base_sha": BASE,
+        "head_sha": HEAD,
+        "submitted_at": datetime(2026, 11, 4, 10, 0, tzinfo=UTC),
+        "rationale": "Reviewed security boundaries and exact-head test evidence carefully.",
+    }
+    values.update(kwargs)
+    with pytest.raises(ValueError, match=message):
+        GitHubPullRequestApproval(**values)
+
+
+@pytest.mark.parametrize(
+    "reviewers",
+    [(), [], ("bad login",), ("Reviewer", "reviewer")],
+)
+def test_verifier_rejects_invalid_reviewer_allowlists(reviewers: Any) -> None:
+    with pytest.raises(ValueError, match="allowed_reviewers"):
+        GitHubReviewVerifier(allowed_reviewers=reviewers)
+
+
+def test_verifier_rejects_invalid_request_identity() -> None:
+    v = verifier(transport(reviews=[review()]))
+    with pytest.raises(ValueError, match="repository"):
+        v.verify_current_approvals(
+            access_token=AUTH_VALUE,
+            repository="bad",
+            pr_number=PR,
+            expected_base_sha=BASE,
+            expected_head_sha=HEAD,
+        )
+    with pytest.raises(ValueError, match="access_token"):
+        v.verify_current_approvals(
+            access_token=" ",
+            repository=REPO,
+            pr_number=PR,
+            expected_base_sha=BASE,
+            expected_head_sha=HEAD,
+        )
+    with pytest.raises(ValueError, match="pr_number"):
+        v.verify_current_approvals(
+            access_token=AUTH_VALUE,
+            repository=REPO,
+            pr_number=True,
+            expected_base_sha=BASE,
+            expected_head_sha=HEAD,
+        )
+    v.close()
+
+
+def test_get_json_rejects_unsafe_paths_and_malformed_json() -> None:
+    v = verifier(transport())
+    with pytest.raises(HumanReviewVerificationError, match="unsafe"):
+        v._get_json("../pulls", access_token=AUTH_VALUE)
+    v.close()
+
+    client = httpx.Client(
+        base_url="https://api.github.com",
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(200, content=b"not-json")
+        ),
+    )
+    malformed = GitHubReviewVerifier(allowed_reviewers=(REVIEWER,), http_client=client)
+    with pytest.raises(HumanReviewVerificationError, match="malformed review JSON"):
+        malformed._get_json("/test", access_token=AUTH_VALUE)
+    client.close()
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [httpx.ReadTimeout("timeout"), httpx.ConnectError("connection failed")],
+)
+def test_get_json_sanitizes_transport_failures(failure: Exception) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise failure
+
+    client = httpx.Client(
+        base_url="https://api.github.com",
+        transport=httpx.MockTransport(handler),
+    )
+    v = GitHubReviewVerifier(allowed_reviewers=(REVIEWER,), http_client=client)
+    with pytest.raises(HumanReviewVerificationError, match="lookup"):
+        v._get_json("/test", access_token=AUTH_VALUE)
+    client.close()
+
+
+def test_get_json_rejects_oversized_and_paginated_responses() -> None:
+    oversized = httpx.Client(
+        base_url="https://api.github.com",
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(
+                200,
+                headers={"Content-Length": str(3 * 1024 * 1024)},
+                content=b"{}",
+            )
+        ),
+    )
+    v = GitHubReviewVerifier(allowed_reviewers=(REVIEWER,), http_client=oversized)
+    with pytest.raises(HumanReviewVerificationError, match="size limit"):
+        v._get_json("/test", access_token=AUTH_VALUE)
+    oversized.close()
+
+    paginated = httpx.Client(
+        base_url="https://api.github.com",
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(
+                200,
+                headers={"Link": '<https://api.github.com/test?page=2>; rel="next"'},
+                json=[],
+            )
+        ),
+    )
+    v = GitHubReviewVerifier(allowed_reviewers=(REVIEWER,), http_client=paginated)
+    with pytest.raises(HumanReviewVerificationError, match="pagination"):
+        v._get_json("/test", access_token=AUTH_VALUE)
+    paginated.close()
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        [],
+        {"base": None, "head": None},
+        {
+            "state": "open",
+            "base": {"sha": "bad", "repo": {"full_name": REPO}},
+            "head": {"sha": HEAD, "repo": {"full_name": REPO}},
+        },
+    ],
+)
+def test_pr_identity_rejects_malformed_github_payloads(payload: object) -> None:
+    client = httpx.Client(
+        base_url="https://api.github.com",
+        transport=httpx.MockTransport(lambda request: httpx.Response(200, json=payload)),
+    )
+    v = GitHubReviewVerifier(allowed_reviewers=(REVIEWER,), http_client=client)
+    with pytest.raises(HumanReviewVerificationError):
+        v._read_pr_identity(access_token=AUTH_VALUE, repository=REPO, pr_number=PR)
+    client.close()
+
+
+def test_approval_audit_rejects_invalid_constructor_and_lookup_arguments(tmp_path: Path) -> None:
+    with pytest.raises(HumanReviewAuditError, match="initialize"):
+        SQLAlchemyHumanReviewAuditLog("missingdialect://")
+    with pytest.raises(ValueError, match="database_url"):
+        SQLAlchemyHumanReviewAuditLog(" ")
+    with pytest.raises(ValueError, match="pool_size"):
+        SQLAlchemyHumanReviewAuditLog("sqlite:///:memory:", pool_size=0)
+    with pytest.raises(ValueError, match="max_overflow"):
+        SQLAlchemyHumanReviewAuditLog("sqlite:///:memory:", max_overflow=-1)
+
+    log = SQLAlchemyHumanReviewAuditLog(f"sqlite:///{tmp_path / 'validation.sqlite3'}")
+    with pytest.raises(ValueError, match="approval"):
+        log.record_approval(object(), now=100)  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="pr_number"):
+        log.get_approval(REPO, 0, 101)
+    with pytest.raises(ValueError, match="review_id"):
+        log.get_approval(REPO, PR, 0)
+    with pytest.raises(ValueError, match="pr_number"):
+        log.list_approvals(REPO, 0, HEAD)
+    log.close()
