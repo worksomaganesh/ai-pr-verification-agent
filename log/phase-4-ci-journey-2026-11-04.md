@@ -130,3 +130,46 @@ Changes:
 ## Honest status
 
 At the time this file was authored, repository-level governance CI on `d3e3565` was green, while the combined full CI was still running. Phase IV is not yet complete.
+
+
+## Follow-up CI investigation and coverage closure attempt — 2026-11-04
+
+### Commits and exact CI outcomes after the first journal entry
+
+| Commit | Change since previous CI checkpoint | Exact CI result and diagnosis |
+|---|---|---|
+| `8a7e06413908` | Added the first integrated Phase III/IV CI journey and status log. | Full CI #41814439670 failed strict mypy because the new audit-state test indexed optional `get_dispatch()` results without narrowing. Focused governance #41814439754 passed. |
+| `d3e3565dde8e` | Added dispatch accepted-before-cleanup state ordering, finite timestamp validation, timezone-aware run timestamps, exact-int workflow ID check, and regression tests. | Full CI #41814179708: formatting/Ruff/mypy passed; pytest coverage stage failed at 89.32%, 601 passed. Focused PR #41814179691 and push #41814172307 passed. |
+| `054202eecd4a` | Narrowed the three optional audit records in the test with explicit non-None checks. | Full CI #41814491777: format/Ruff/mypy passed; 601 tests passed; coverage 89.32%, still below 90. Focused PR #41814491736 and push #41814487899 passed. |
+| `65f97eb9fb9c` | Added parameterized dispatcher configuration, repository, Git ref, secret-like input, control-character, empty-schema and network-failure tests. | Full CI #41814683239 failed formatting only (one test file); focused PR #41814683343 and push #41814674189 passed. Ruff supplied exact formatting: wrap one long tuple and collapse one test signature. |
+| `83b5b4c481b2` | Applied exact Ruff formatting to dispatcher tests. | Full CI #41814801425: format/Ruff/mypy passed; 634 passed, coverage 89.71%. Focused PR #41814801400 passed. This increased measured coverage by 0.39 percentage points but did not yet meet 90. |
+| `b51832c3e709` | Added manifest exporter path and context-boundary tests: malformed node IDs, unsafe paths, external/non-Python files, duplicate JUnit IDs, and non-run-phase contexts. | First full CI #41815018465 failed Ruff formatting in the new manifest test. Focused PR #41815018472 and push #41815006136 passed. |
+| `b524d6174ed4` | Applied exact Ruff formatting to manifest exporter tests. | Full CI #41815133710 failed Ruff S108 because the test fixture used a literal `/tmp` path. Focused PR #41815133630 and push #41815123279 passed. |
+| `f747a68ddfb9` | Changed the test-only absolute path from `/tmp` to `/outside` to avoid the S108 temporary-path rule. | Full CI #41815235670: format/Ruff/mypy passed; coverage 89.92%; 641 passed but four exporter tests failed. Root causes: PurePosixPath normalizes duplicate slash and dot segments, a .txt filename fails the earlier .py:: node-ID marker, and CoverageData cannot combine line-only and branch-only measurement writes. Focused PR #41815235570 and push #41815230927 passed. |
+| `87070d9a1132` | Corrected exporter tests to check actual traversal/absolute/backslash contract and use branch-only CoverageData for the setup-only context case. | Full CI #41815494157 failed Ruff RUF043 because the regex alternation passed to `match=` was not a raw string. Focused PR #41815493993 and push #41815486370 passed. |
+| `1530dce3bb8c` | Made the regex assertion raw. | Full CI #41815605564: format/Ruff/mypy passed; 643 passed and one failed because a test expected a dot-prefixed intermediate path to be rejected, which the current exporter does not define as unsafe. Coverage was 90.01% despite the one failing test. Focused PR #41815605531 and push #41815598918 passed. |
+| `3d512f7702ea` | Removed the unsupported dot-prefixed-directory expectation; retained absolute path, backslash, traversal and non-Python node-ID rejection coverage. | Latest focused push #41815752977 passed format, Ruff, strict mypy and Phase IV governance/dispatcher tests. **A full Phase II CI run on this exact SHA has not yet appeared in the Actions run list at the time of this update.** Do not infer the previous 90.01% result as a green full CI for this head. |
+
+### What is actually stopping the project now
+
+- The original combined full CI stopper was true coverage below 90%. It has been raised from 89.19% (`78fb1bf`) to 89.32% (`054202e`), 89.71% (`83b5b4c`), 89.92% (`f747a68`), and 90.01% on `1530dce` (but that run had one failing test).
+- On `1530dce`, all quality gates through strict mypy passed; pytest had 643 passing tests and one failing assertion. Thus the last observed full-run state crossed coverage but did not pass tests.
+- The latest commit `3d512f7` removes that unsupported assertion. Its focused governance CI is green. The exact-head full workflow still needs to run and prove all tests pass, coverage >=90.00%, Phase I >=95%, Phase II >=80%, and the dependent evidence producer job completes.
+- No production code was excluded from coverage, no threshold was reduced, and no test failure was hidden.
+
+### Theoretical test corrections and lessons
+
+- Test the implemented trust contract, not an imagined stricter contract. `PurePosixPath` canonicalizes redundant slash and `.` segments; traversal `..` remains a security-sensitive case and is explicitly rejected by the exporter.
+- A pytest node ID without the `.py::` delimiter is rejected before the filesystem path validator, so assertions must expect the actual first failing boundary.
+- Coverage.py's `CoverageData` cannot accept line-only measurements and later branch-only measurements for the same file in the same data object. The non-run-phase fixture now writes branch arcs only.
+- Ruff's S108 catches literal temporary paths in tests. Use a clearly external non-temporary path when testing absolute-path rejection.
+- Ruff RUF043 requires a raw regex string for alternation in pytest `match=`.
+- A green focused workflow validates governance code, not the combined application. Only the full exact-head Phase II CI and evidence job can close the combined CI gate.
+
+### Current exact-head status
+
+- Latest code head: `3d512f7702ea718a30ca2ed1a3cf0a0023494621`.
+- Latest exact-head focused push: #41815752977, passed.
+- Full Phase II CI on latest head: not yet present in Actions at the time of this update.
+- Last full run with coverage >=90: #41815605564 on prior head `1530dce`, 90.01%, 643 passed / 1 failed; therefore not green.
+- Phase IV remains draft. Live staging dispatch, PostgreSQL, installed App credentials, webhook/worker deployment and human review remain external acceptance gates.
