@@ -161,7 +161,8 @@ def test_approval_without_minimum_rationale_is_not_accepted(body: str) -> None:
 
 
 def test_malformed_review_collection_fails_closed() -> None:
-    v = verifier(transport(reviews={"not": "a list"}))  # type: ignore[arg-type]
+    v = verifier(transport(reviews=None))
+    v._client.close()
     with pytest.raises(HumanReviewVerificationError, match="collection"):
         verify(v)
 
