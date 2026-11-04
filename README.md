@@ -8,18 +8,30 @@ The system answers: what behavior could change, which obligations follow from th
 
 ## Current status
 
-Phase I and Phase II provide the deterministic domain core, strict policy validation, bounded evidence parsing, authenticated GitHub App transport, durable delivery/run ledgers, webhook ingress, planning, and deterministic Check Run publication. Phase III implementation and exact-head CI/evidence production are on draft PR [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6); the live deployment smoke test remains unperformed because target deployment configuration is not available through the repository integration. Human review is deferred to Phase IV. Do not enable production merge gating before both gates pass.
+Phase I and Phase II provide the deterministic domain core, strict policy validation, bounded evidence parsing, authenticated GitHub App transport, durable delivery/run ledgers, webhook ingress, planning, and deterministic Check Run publication. The Phase II reference deployment still uses a single-host SQLite delivery queue; horizontally scaled ingress/worker deployment requires a shared queue backend.
 
-Phase IV is on branch phase-4-opt-in-dispatch and draft PR [#9](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/9). It now includes guarded workflow dispatch, explicit per-workflow schemas, GitHub operator allowlisting and repository permission checks, SQLAlchemy write-ahead audit, one-shot dispatch coordination, and workflow-run exact-SHA reconciliation. Exact-head CI on `15245242e967d1fdb6e912c8686446f5188795e5` passed [run #41805099119](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41805099119): 406 tests, 90% overall coverage, Phase I core 96%, Phase II integration 86%; format, Ruff, strict mypy, and all configured coverage gates passed. The focused governance workflow also passed 43 tests. Evidence artifact 13309248666 (32,239 bytes; SHA-256 `78166497cc7a77d7caacd44ab89282136197240b351905d02f9c7a4b2b0643f4`) was downloaded and independently checked: ZIP contains junit.xml and coverage-manifest.json; 406 matching testcases, zero failures/errors/skips; manifest is bound to exact SHA `15245242e967d1fdb6e912c8686446f5188795e5`. All behavioral_assertion_verified flags are false, so this is test/coverage evidence, not independent proof of behavior. No real workflow was dispatched. PR #9 remains draft. Phase III integration/deployment smoke acceptance and human review remain open; no production merge gating is enabled.
+### Phase III — authenticated evidence ingestion
+
+The Phase III implementation is on draft PR [#6](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/6), branch `phase-3-evidence-ingestion`. Its current branch head is `9611cbc6504f3844770540c9d45f87864bdfae08`; exact-head workflow run [#40465327360](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40465327360) completed successfully on that SHA, including the quality and evidence-producer jobs. The code-bearing checkpoint `64700d7ed575296e6874a185938ef585e0f7c5de` previously passed [run #40464702014](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40464702014) with 547 tests, 90.49% overall coverage, 96% Phase I core coverage, and 86% Phase II integration coverage. Its evidence artifact `12716496067` was independently checked against GitHub's SHA-256 digest `b71ff7c4f65a3c4b2e248a293d7ac5aa9c1872104e080ef3b767e7df033c299b`; the JUnit and manifest inventories matched, were bound to the exact head, and did not claim behavioral assertions were proven.
+
+Phase III adds authenticated Actions run/job/artifact retrieval, bounded archive and JUnit/coverage validation, a durable evidence ledger, deterministic obligation reconciliation, and freshness-checked Check Run publication. The enabled worker path is opt-in. **The live deployment smoke test has not been performed** because the target URL, installed App credentials, webhook secret, and worker database configuration are not available through this repository integration. Keep PR #6 draft until that operational gate and review are complete.
+
+### Phase IV — guarded dispatch and human governance
+
+Phase IV is developed on branch `phase-4-opt-in-dispatch` and draft PR [#9](https://github.com/worksomaganesh/ai-pr-verification-agent/pull/9). It now includes a disabled-by-default workflow dispatcher, exact workflow allowlists, per-workflow input schemas, credential-like input rejection, GitHub operator login allowlisting and repository permission checks, SQLAlchemy write-ahead audit, duplicate-dispatch protection, one-shot dispatch coordination, and exact-SHA workflow-run reconciliation.
+
+The verifier now rejects incomplete or over-limit run-list responses and malformed run entries instead of silently ignoring them. On pre-integration head `44a98059632ba07f262c8772ef18bbfee8ad494c`, full CI [#41811759527](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41811759527) and focused governance CI [#41811759410](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41811759410) passed. The full suite reported 409 passing tests; its detailed overall coverage was 89.82% (the current integer-rounded gate displayed 90%), Phase I core coverage 96%, and Phase II integration coverage 86%. **The overall coverage threshold is being tightened to enforce a true 90.00% minimum rather than relying on rounded reporting.** Exact-head artifact `13311839944` (32,424 bytes; SHA-256 `e55d439f6ed8d411d62c86adf581e9a0de434ad5adf8f645db7c5cbfef715aa4`) was uploaded by the exact-PR-head evidence job.
+
+No real workflow has been dispatched. The coordinator is not yet wired to a staging-only authenticated operator entry point with managed PostgreSQL and deployment-specific operator policy. Phase III has now been integrated into this Phase IV feature branch as a two-parent feature-branch merge; combined-head CI is required before the integrated tree is treated as verified. Do not enable production merge gating. Keep both PRs draft while operational smoke acceptance and human review remain open.
 
 ## Security principles
 
 - Integrity is not authenticity. Hashes detect changes; they do not prove who generated a report.
-- Platform workflow, job, step, and artifact metadata must be verified out-of-band through GitHub's API.
+- Platform workflow, job, step, artifact, and commit metadata must be verified out-of-band through GitHub's API.
 - Coverage is a negative filter, not behavioral proof. Happy-path line hits do not prove negative or boundary behavior.
 - Untrusted PR code, artifact fields, and LLM output are data, never authority.
-- Human approvals and policy waivers are distinct from machine proof.
-- Missing, malformed, stale, or weak evidence for critical/high-risk obligations must never become success or neutral.
+- Human approvals and policy waivers are distinct from machine-verified results.
+- Missing, malformed, stale, ambiguous, or weak evidence for critical/high-risk obligations must never become success or neutral.
 - The Phase I core requires no GitHub permissions and makes no network calls.
 
 ## Development
@@ -31,8 +43,9 @@ Requires Python 3.12+.
     ruff check src tests
     mypy --strict src tests
     pytest --cov=src/verification_core --cov-report=term-missing --cov-report=xml
+    coverage report --fail-under=90
 
-CI runs formatting, lint, strict typing, and tests with a 90% overall coverage floor, a 95% Phase I core coverage gate, and an 80% Phase II integration coverage gate.
+The intended gates are formatting, Ruff, strict mypy, the full test suite, 90% overall coverage, 95% Phase I core coverage, and 80% Phase II integration coverage. The overall coverage report must use sufficient precision so a value below 90.00% cannot round up and pass.
 
 ## Roadmap
 
@@ -41,7 +54,7 @@ CI runs formatting, lint, strict typing, and tests with a 90% overall coverage f
 | 1A | Deterministic domain models and state machine | Implemented |
 | 1B | Policy validator, runner allowlist, evidence parsers, ledger, adversarial scenarios | Implemented |
 | 2 | Diff analysis, planning, persistence, webhook and Check Run service | Implemented; release review pending |
-| 3 | Platform-anchored passive CI artifact ingestion and reconciliation | Implementation and exact-head CI/evidence production verified on draft PR #6; live deployment smoke test pending |
-| 4 | Opt-in dispatch, additional adapters, human governance hooks | Guarded dispatch plus explicit workflow input schemas; orchestration, operator audit, staging validation, human review, and live Phase III smoke acceptance remain |
+| 3 | Platform-anchored passive CI artifact ingestion and reconciliation | Implementation and exact-head CI/evidence production verified on PR #6; live deployment smoke test pending |
+| 4 | Opt-in dispatch, additional adapters, human governance hooks | Guarded dispatch and audit/reconciliation implementation; staging entry point, full integration validation, live smoke test, and human review remain |
 
-See docs/phase-4-opt-in-dispatch.md and docs/verification-semantics.md.
+See `docs/phase-3-evidence-ingestion.md`, `docs/phase-4-opt-in-dispatch.md`, and `docs/verification-semantics.md`.
