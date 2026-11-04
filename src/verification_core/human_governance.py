@@ -524,6 +524,7 @@ class SQLAlchemyHumanReviewAuditLog:
     def close(self) -> None:
         self._engine.dispose()
 
+
 def apply_verified_human_approval(
     obligation: VerificationObligation,
     *,
