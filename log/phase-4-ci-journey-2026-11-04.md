@@ -272,3 +272,40 @@ Repository implementation and CI are green, but Phase IV is **not operationally 
 - Follow the dispatched run through the integrated Phase III authenticated artifact ingestion, freshness checks, evidence ledger and Check Run publication.
 - Execute the Phase III deployment smoke test against the installed App, webhook ingress/worker and durable evidence database.
 - Complete human review and explicit release approval. Keep PR #9 draft and production merge gating disabled until these are done.
+
+
+## Exact-head integrated verification and branch-lineage confirmation — 2026-11-04
+
+This checkpoint follows documentation commit `0c9ef6056123ad3b5b9103e85d31b0a9648b8068`. No production source code changed in this commit; the complete CI suite was nevertheless rerun against the exact branch head.
+
+| Check | Run | Result |
+| --- | --- | --- |
+| Full quality + authenticated evidence producer | [#41850967572](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41850967572) | Success on exact head `0c9ef6056123ad3b5b9103e85d31b0a9648b8068` |
+| Focused Phase IV governance | [#41850967471](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41850967471) | Success on exact head |
+
+### What the runs established
+
+- Main quality job: Ruff formatting, Ruff lint, strict mypy, all configured coverage gates passed.
+- Full suite: **687 passed**, one non-blocking Starlette/httpx deprecation warning.
+- Coverage: **90.23% overall**, **96.39% Phase I core**, **85.99% Phase II integration**. No coverage threshold was lowered and no production module was excluded to obtain a pass.
+- Evidence producer: checked out the exact PR head, reran all 687 tests with per-test coverage, exported the manifest bound to `0c9ef6056123ad3b5b9103e85d31b0a9648b8068`, and uploaded artifact `verification-evidence`, ID `13335151007`, size 49,841 bytes.
+- GitHub artifact metadata reports SHA-256 `30d2efc2f3b0b5abfd9b3882c78c6a902781f21c4f7aa247b7370738529f1bc8`. The upload log and metadata were checked; the archive itself was not independently downloaded and parsed for this checkpoint.
+- Focused governance job: formatting, Ruff, strict mypy and tests for dispatch governance, workflow dispatch and human governance all passed.
+
+### Branch-lineage investigation
+
+- Compared PR #6 head `9611cbc6504f3844770540c9d45f87864bdfae08` to Phase IV head `0c9ef6056123ad3b5b9103e85d31b0a9648b8068`.
+- GitHub reports the Phase IV branch as **72 commits ahead and 0 behind**, with the Phase III head as the merge base. The Phase III branch head is therefore an ancestor of Phase IV.
+- The explicit integration commit is `8a17bd22abcfdea02111f7fa7768c5ba9b4c29a1` (`Integrate Phase III evidence ingestion into Phase IV feature branch`).
+- This corrects historical status text that previously described Phase III as separate/not integrated. Phase III source code is integrated; only its target-deployment smoke acceptance remains outstanding.
+
+### What did not happen
+
+- No real Actions workflow was dispatched. The Phase IV API tests remain mocked.
+- No staging-only operator route/command has been configured or exercised.
+- No managed PostgreSQL, GitHub App staging secrets, webhook/worker target deployment, or deployment URL was available to run the live smoke test.
+- No human review or release approval was obtained, and no PR was marked ready or merged.
+
+### Next safe action
+
+Provision the staging environment and a deliberately authenticated operator entry point, then run a single allowlisted non-production dispatch and trace its exact run through the Phase III evidence pipeline. Keep PR #9 draft and production merge gating disabled until the live smoke test and human review both pass.
