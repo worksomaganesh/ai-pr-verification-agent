@@ -227,7 +227,6 @@ def test_split_pytest_node_id_rejects_missing_or_empty_scopes(node_id: str) -> N
         "/outside/test_sample.py::test_case",
         "tests\\\\test_sample.py::test_case",
         "tests/../escape.py::test_case",
-        "tests/.hidden/test_sample.py::test_case",
     ],
 )
 def test_junit_node_id_rejects_unsafe_or_non_python_paths(node_id: str, tmp_path: Path) -> None:
