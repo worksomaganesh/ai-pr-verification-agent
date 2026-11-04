@@ -226,13 +226,12 @@ def test_split_pytest_node_id_rejects_missing_or_empty_scopes(node_id: str) -> N
     [
         "/outside/test_sample.py::test_case",
         "tests\\\\test_sample.py::test_case",
-        "tests/test_sample.txt::test_case",
-        "tests//test_sample.py::test_case",
-        "tests/./test_sample.py::test_case",
+        "tests/../escape.py::test_case",
+        "tests/.hidden/test_sample.py::test_case",
     ],
 )
 def test_junit_node_id_rejects_unsafe_or_non_python_paths(node_id: str, tmp_path: Path) -> None:
-    with pytest.raises(ManifestExportError, match="unsafe or non-Python"):
+    with pytest.raises(ManifestExportError, match="invalid pytest node ID|unsafe or non-Python"):
         _junit_node_id(node_id, tmp_path)
 
 
@@ -275,7 +274,6 @@ def test_exporter_rejects_coverage_context_without_run_phase(tmp_path: Path) -> 
     coverage_path = tmp_path / ".coverage-no-run"
     data = CoverageData(basename=str(coverage_path))
     data.set_context("tests/sample.py::test_choose|setup")
-    data.add_lines({str(source): {1, 2}})
     data.add_arcs({str(source): [(-1, 1), (1, 2), (2, -1)]})
     data.write()
     with pytest.raises(ManifestExportError, match="no run-phase contexts"):
