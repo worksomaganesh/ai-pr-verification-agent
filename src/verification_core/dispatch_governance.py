@@ -37,7 +37,7 @@ from verification_core.workflow_dispatch import (
 _SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 _ID_RE = re.compile(r"^[0-9a-f]{32}$")
 _REPOSITORY_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
-_WORKFLOW_RE = re.compile(r"^[A-Za-z0-9_.-]+\\.ya?ml$")
+_WORKFLOW_RE = re.compile(r"^[A-Za-z0-9_.-]+\.ya?ml$")
 _LOGIN_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37})$")
 _PERMISSION_LEVELS = frozenset({"admin", "maintain", "write"})
 CORRELATION_INPUT = "verification_dispatch_id"

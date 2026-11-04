@@ -70,6 +70,7 @@ def transport(
         if request.url.path == f"/repos/{REPOSITORY}/actions/workflows/77/runs":
             return httpx.Response(200, json={"workflow_runs": runs or []})
         return httpx.Response(404, json={"message": "not found"})
+
     return httpx.MockTransport(handler)
 
 
@@ -124,9 +125,7 @@ def test_authenticator_requires_allowlisted_login_and_write_permission() -> None
 
 
 def test_authenticator_rejects_non_allowlisted_identity() -> None:
-    client = httpx.Client(
-        base_url="https://api.github.com", transport=transport(login="intruder")
-    )
+    client = httpx.Client(base_url="https://api.github.com", transport=transport(login="intruder"))
     auth = GitHubOperatorAuthenticator(allowed_logins=("operator",), http_client=client)
     with pytest.raises(DispatchAuthorizationError, match="not an allowed operator"):
         auth.authenticate(ACCESS, REPOSITORY)
@@ -283,4 +282,3 @@ def test_dispatch_rejects_invalid_id_before_side_effect(tmp_path: Path, identifi
         )
     assert fake.requests == []
     audit.close()
-
