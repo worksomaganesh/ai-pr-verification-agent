@@ -245,7 +245,12 @@ def test_workflow_input_rule_rejects_invalid_configuration() -> None:
             (WORKFLOW, WORKFLOW),
             {WORKFLOW: SCHEMA[WORKFLOW]},
         ),
-        (AUTH_FIXTURE, True, (WORKFLOW,), {WORKFLOW: {f"field_{i}": WorkflowInputRule() for i in range(11)}}),
+        (
+            AUTH_FIXTURE,
+            True,
+            (WORKFLOW,),
+            {WORKFLOW: {f"field_{i}": WorkflowInputRule() for i in range(11)}},
+        ),
         (AUTH_FIXTURE, True, (WORKFLOW,), {WORKFLOW: {"private_key": WorkflowInputRule()}}),
     ],
 )
@@ -324,9 +329,7 @@ def test_dispatcher_rejects_git_ref_metacharacters(ref: str) -> None:
         {"pr_number": "6\r"},
     ],
 )
-def test_dispatcher_rejects_secretish_names_and_control_values(
-    inputs: dict[str, str]
-) -> None:
+def test_dispatcher_rejects_secretish_names_and_control_values(inputs: dict[str, str]) -> None:
     dispatcher, raw = make_dispatcher(lambda _request: httpx.Response(204))
     with pytest.raises(ValueError):
         dispatcher.dispatch(
