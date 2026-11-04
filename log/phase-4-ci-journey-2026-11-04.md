@@ -193,3 +193,30 @@ Why not call this a green full CI? Because GitHub's workflow-level conclusion is
 The exact test correction on `3d512f7` removed only the unsupported expectation that a dot-prefixed intermediate directory is rejected. The exporter still rejects absolute paths, backslash paths, traversal segments, invalid node IDs and non-Python paths. The preceding run on `1530dce` had 643 passes, one incorrect assertion failure, and 90.01% coverage; this run confirms the corrected suite now has 643 passes and all three coverage gates pass.
 
 Next: trigger/observe a fresh PR full CI for the latest branch head, verify the evidence job completes, then download and inspect its artifact digest and contents. Keep PR #9 draft until that evidence check and live staging acceptance pass.
+
+
+## Exact-head full CI quality result and cancellation analysis — 2026-11-04
+
+A second integrated full CI run [#41816006910](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41816006910) also reached the end of the quality checks but was cancelled at workflow level. The Actions metadata shows:
+- Workflow run head SHA: `c83ef6aa695d97deea2671738225099c81b96ed9`.
+- PR head snapshot at run completion: `b32ff2f952154334b334b19d400e669f72cc828c`.
+- The branch was advanced by a documentation-only log commit while this workflow was running. GitHub's concurrency cancellation stopped the evidence job and marked the overall run cancelled.
+
+The quality job's completed steps and log are independently readable:
+- Formatting: passed.
+- Ruff: passed.
+- Strict mypy: passed.
+- Tests: **643 passed**, 1 warning.
+- Overall coverage: **90.01%** (90.00% gate).
+- Phase I core: **96.39%** (95.00% gate).
+- Phase II integration: **85.99%** (80.00% gate).
+- Evidence artifact job: cancelled; artifact not produced by this run.
+
+This confirms the corrected test suite is green and all three coverage thresholds pass, but it is not yet a workflow-level success and cannot be used as an exact-current-head artifact claim. The repeated cancellation pattern is explained by the branch being updated while a pull-request workflow is executing. The next attempt must be allowed to run without another commit or branch update until both quality and evidence jobs finish. No code change is needed solely to address the coverage threshold at this point.
+
+### Current worktree/branch policy
+
+- Keep the 90.00% overall, 95.00% Phase I and 80.00% Phase II thresholds unchanged.
+- Do not make any further commits while the next exact-head full CI is running.
+- Wait for the complete Phase II CI and dependent evidence job; inspect the artifact and only then update this journal.
+- Focused governance success remains supplementary; it does not substitute for full CI.
