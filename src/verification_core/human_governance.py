@@ -532,7 +532,7 @@ def apply_verified_human_approval(
     expected_commit: CommitIdentity,
     audit_log: SQLAlchemyHumanReviewAuditLog,
     now: float,
-    policy_config: ConclusionPolicyConfig = ConclusionPolicyConfig(),
+    policy_config: ConclusionPolicyConfig | None = None,
 ) -> VerificationObligation:
     """Apply a verified GitHub review to one obligation and persist its audit first.
 
@@ -562,7 +562,7 @@ def apply_verified_human_approval(
         obligation,
         approval=domain_record,
         expected_commit=expected_commit,
-        policy_config=policy_config,
+        policy_config=policy_config or ConclusionPolicyConfig(),
     )
     audit_log.record_approval(approval, now=now)
     return approved_obligation

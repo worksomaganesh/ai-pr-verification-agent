@@ -12,12 +12,12 @@ import pytest
 from verification_core.domain.enums import ObligationSource, ObligationStatus, Severity
 from verification_core.domain.models import CommitIdentity, VerificationObligation
 from verification_core.human_governance import (
-    apply_verified_human_approval,
     GitHubPullRequestApproval,
     GitHubReviewVerifier,
     HumanReviewAuditConflict,
     HumanReviewVerificationError,
     SQLAlchemyHumanReviewAuditLog,
+    apply_verified_human_approval,
 )
 
 REPO = "acme/service"
