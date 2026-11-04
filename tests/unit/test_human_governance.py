@@ -306,7 +306,6 @@ def test_verified_approval_rejects_wrong_pr_binding_before_audit(tmp_path: Path)
     log.close()
 
 
-
 @pytest.mark.parametrize(
     ("kwargs", "message"),
     [
