@@ -381,9 +381,7 @@ def test_get_json_rejects_unsafe_paths_and_malformed_json() -> None:
 
     client = httpx.Client(
         base_url="https://api.github.com",
-        transport=httpx.MockTransport(
-            lambda request: httpx.Response(200, content=b"not-json")
-        ),
+        transport=httpx.MockTransport(lambda request: httpx.Response(200, content=b"not-json")),
     )
     malformed = GitHubReviewVerifier(allowed_reviewers=(REVIEWER,), http_client=client)
     with pytest.raises(HumanReviewVerificationError, match="malformed review JSON"):
