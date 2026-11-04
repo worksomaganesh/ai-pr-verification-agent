@@ -618,7 +618,11 @@ class WorkflowDispatchCoordinator:
                 "Only the operator who authorized the dispatch may reconcile it."
             )
         created_at = record["created_at"]
-        if not isinstance(created_at, (int, float)) or isinstance(created_at, bool) or created_at < 0:
+        if (
+            not isinstance(created_at, (int, float))
+            or isinstance(created_at, bool)
+            or created_at < 0
+        ):
             raise DispatchAuditError("The dispatch audit record has an invalid creation timestamp.")
         observation = self._run_verifier.find_dispatch_run(
             access_token=access_token,
