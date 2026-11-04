@@ -224,7 +224,7 @@ def test_split_pytest_node_id_rejects_missing_or_empty_scopes(node_id: str) -> N
 @pytest.mark.parametrize(
     "node_id",
     [
-        "/tmp/test_sample.py::test_case",
+        "/outside/test_sample.py::test_case",
         "tests\\\\test_sample.py::test_case",
         "tests/test_sample.txt::test_case",
         "tests//test_sample.py::test_case",
