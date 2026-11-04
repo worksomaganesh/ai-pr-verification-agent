@@ -229,3 +229,148 @@ def test_workflow_input_rule_rejects_invalid_configuration() -> None:
         WorkflowInputRule(pattern="[")
     with pytest.raises(ValueError, match="allowed_values"):
         WorkflowInputRule(allowed_values=("ok", "a\nb"))
+
+
+@pytest.mark.parametrize(
+    ("token", "enabled", "workflows", "schemas"),
+    [
+        (" ", True, (WORKFLOW,), {WORKFLOW: SCHEMA[WORKFLOW]}),
+        (AUTH_FIXTURE, 1, (WORKFLOW,), {WORKFLOW: SCHEMA[WORKFLOW]}),
+        (AUTH_FIXTURE, True, (), {}),
+        (AUTH_FIXTURE, True, ["manual-verification.yml"], {WORKFLOW: SCHEMA[WORKFLOW]}),
+        (AUTH_FIXTURE, True, ("bad workflow",), {"bad workflow": {}}),
+        (
+            AUTH_FIXTURE,
+            True,
+            (WORKFLOW, WORKFLOW),
+            {WORKFLOW: SCHEMA[WORKFLOW]},
+        ),
+        (AUTH_FIXTURE, True, (WORKFLOW,), {WORKFLOW: {f"field_{i}": WorkflowInputRule() for i in range(11)}}),
+        (AUTH_FIXTURE, True, (WORKFLOW,), {WORKFLOW: {"private_key": WorkflowInputRule()}}),
+    ],
+)
+def test_dispatcher_rejects_unsafe_configuration(
+    token: str, enabled: Any, workflows: Any, schemas: Any
+) -> None:
+    raw = httpx.Client(
+        base_url="https://api.github.com",
+        transport=httpx.MockTransport(lambda _request: httpx.Response(204)),
+    )
+    with pytest.raises(ValueError):
+        GitHubWorkflowDispatcher(
+            token,
+            allowed_workflows=workflows,
+            input_schemas=schemas,
+            enabled=enabled,
+            http_client=raw,
+        )
+    raw.close()
+
+
+@pytest.mark.parametrize(
+    "repository",
+    ["", "../service", "owner/..", "./service", "owner/service/extra"],
+)
+def test_dispatcher_rejects_invalid_repository_variants(repository: str) -> None:
+    dispatcher, raw = make_dispatcher(lambda _request: httpx.Response(204))
+    with pytest.raises(ValueError, match="repository"):
+        dispatcher.dispatch(
+            repository=repository,
+            workflow=WORKFLOW,
+            ref="main",
+            inputs={"pr_number": "6"},
+        )
+    dispatcher.close()
+    raw.close()
+
+
+@pytest.mark.parametrize(
+    "ref",
+    [
+        ".hidden",
+        "main.",
+        "main.lock",
+        "main@{1}",
+        "main?query",
+        "main*",
+        "main[0]",
+        "main:tag",
+        "main~1",
+        "feature/.hidden",
+        "feature/trailing.",
+    ],
+)
+def test_dispatcher_rejects_git_ref_metacharacters(ref: str) -> None:
+    dispatcher, raw = make_dispatcher(lambda _request: httpx.Response(204))
+    with pytest.raises(ValueError, match="safe"):
+        dispatcher.dispatch(
+            repository=REPO,
+            workflow=WORKFLOW,
+            ref=ref,
+            inputs={"pr_number": "6"},
+        )
+    dispatcher.close()
+    raw.close()
+
+
+@pytest.mark.parametrize(
+    "inputs",
+    [
+        {"token": "secret", "pr_number": "6"},
+        {"private-key": "secret", "pr_number": "6"},
+        {"api_key": "secret", "pr_number": "6"},
+        {"bad\nname": "x", "pr_number": "6"},
+        {"pr_number": "6\x00"},
+        {"pr_number": "6\r"},
+    ],
+)
+def test_dispatcher_rejects_secretish_names_and_control_values(
+    inputs: dict[str, str]
+) -> None:
+    dispatcher, raw = make_dispatcher(lambda _request: httpx.Response(204))
+    with pytest.raises(ValueError):
+        dispatcher.dispatch(
+            repository=REPO,
+            workflow=WORKFLOW,
+            ref="main",
+            inputs=inputs,
+        )
+    dispatcher.close()
+    raw.close()
+
+
+def test_dispatcher_accepts_empty_schema_for_no_input_workflow() -> None:
+    raw = httpx.Client(
+        base_url="https://api.github.com",
+        transport=httpx.MockTransport(lambda request: httpx.Response(204)),
+    )
+    dispatcher = GitHubWorkflowDispatcher(
+        AUTH_FIXTURE,
+        allowed_workflows=(WORKFLOW,),
+        input_schemas={WORKFLOW: {}},
+        enabled=True,
+        http_client=raw,
+    )
+    dispatcher.dispatch(repository=REPO, workflow=WORKFLOW, ref="main")
+    dispatcher.close()
+    raw.close()
+
+
+@pytest.mark.parametrize("failure", ["timeout", "transport"])
+def test_dispatcher_sanitizes_network_failures(failure: str) -> None:
+    def handler(_request: httpx.Request) -> httpx.Response:
+        if failure == "timeout":
+            raise httpx.ReadTimeout("private timeout detail")
+        raise httpx.ConnectError("private connection detail")
+
+    dispatcher, raw = make_dispatcher(handler)
+    with pytest.raises(GitHubWorkflowDispatchError) as error:
+        dispatcher.dispatch(
+            repository=REPO,
+            workflow=WORKFLOW,
+            ref="main",
+            inputs={"pr_number": "6"},
+        )
+    assert "private" not in str(error.value)
+    dispatcher.close()
+    raw.close()
