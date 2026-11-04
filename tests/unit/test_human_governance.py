@@ -76,9 +76,7 @@ def verifier(
     return GitHubReviewVerifier(allowed_reviewers=allow, http_client=client)
 
 
-def verify(
-    v: GitHubReviewVerifier, *, base: str = BASE, head: str = HEAD
-) -> tuple[GitHubPullRequestApproval, ...]:
+def verify(v: GitHubReviewVerifier, *, base: str = BASE, head: str = HEAD) -> tuple[GitHubPullRequestApproval, ...]:
     return v.verify_current_approvals(
         access_token=TOKEN,
         repository=REPO,
