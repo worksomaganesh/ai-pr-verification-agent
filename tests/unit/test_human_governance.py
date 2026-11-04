@@ -49,7 +49,7 @@ def transport(
     *,
     base: str = BASE,
     head: str = HEAD,
-    reviews: list[Any] | None = None,
+    reviews: Any = None,
     state: str = "open",
     review_status: int = 200,
 ) -> httpx.MockTransport:
@@ -64,7 +64,7 @@ def transport(
                 },
             )
         if request.url.path == f"/repos/{REPO}/pulls/{PR}/reviews":
-            return httpx.Response(review_status, json=reviews or [])
+            return httpx.Response(review_status, json=reviews if reviews is not None else [])
         return httpx.Response(404, json={"message": "not found"})
 
     return httpx.MockTransport(handler)
@@ -162,8 +162,7 @@ def test_approval_without_minimum_rationale_is_not_accepted(body: str) -> None:
 
 
 def test_malformed_review_collection_fails_closed() -> None:
-    v = verifier(transport(reviews=None))
-    v._client.close()
+    v = verifier(transport(reviews={"not": "a list"}))
     with pytest.raises(HumanReviewVerificationError, match="collection"):
         verify(v)
 
