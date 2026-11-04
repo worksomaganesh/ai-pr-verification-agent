@@ -322,3 +322,89 @@ def test_dispatch_rejects_invalid_id_before_side_effect(tmp_path: Path, identifi
         )
     assert fake.requests == []
     audit.close()
+
+
+@pytest.mark.parametrize("timestamp", [float("nan"), float("inf"), float("-inf"), -1, True])
+def test_audit_rejects_invalid_timestamps(tmp_path: Path, timestamp: Any) -> None:
+    audit = SQLAlchemyDispatchAuditLog(f"sqlite:///{tmp_path / 'timestamp.sqlite3'}")
+    with pytest.raises(ValueError, match="timestamp"):
+        audit.record_authorized(
+            dispatch_id=DISPATCH_ID,
+            repository=REPOSITORY,
+            workflow=WORKFLOW,
+            ref="main",
+            expected_head_sha=HEAD,
+            inputs_sha256="d" * 64,
+            operator=GitHubOperator("operator", "write"),
+            now=timestamp,
+        )
+    audit.close()
+
+
+def test_audit_records_rejected_unknown_and_mismatched_states(tmp_path: Path) -> None:
+    audit = SQLAlchemyDispatchAuditLog(f"sqlite:///{tmp_path / 'states.sqlite3'}")
+    operator = GitHubOperator("operator", "write")
+    identifiers = ("1" * 32, "2" * 32, "3" * 32)
+    for identifier in identifiers:
+        audit.record_authorized(
+            dispatch_id=identifier,
+            repository=REPOSITORY,
+            workflow=WORKFLOW,
+            ref="main",
+            expected_head_sha=HEAD,
+            inputs_sha256="d" * 64,
+            operator=operator,
+            now=10,
+        )
+    audit.mark_rejected(identifiers[0], now=11)
+    audit.mark_outcome_unknown(identifiers[1], now=12)
+    audit.mark_submitted(identifiers[2], now=13)
+    with pytest.raises(ExactHeadMismatchError):
+        audit.mark_reconciled(identifiers[2], run_id=100, observed_sha=OTHER_HEAD, now=14)
+    assert audit.get_dispatch(identifiers[0])["state"] == "rejected"
+    assert audit.get_dispatch(identifiers[1])["state"] == "dispatch_outcome_unknown"
+    assert audit.get_dispatch(identifiers[2])["state"] == "head_mismatch"
+    audit.close()
+
+
+def test_run_verifier_rejects_naive_timestamps_and_invalid_cutoff() -> None:
+    naive = dict(payload(), created_at="2026-11-04T10:00:00")
+    client = httpx.Client(
+        base_url="https://api.github.com",
+        transport=transport(runs=[naive]),
+    )
+    verifier = GitHubWorkflowRunVerifier(http_client=client)
+    with pytest.raises(DispatchReconciliationError, match="invalid timestamp"):
+        verifier.find_dispatch_run(
+            access_token=ACCESS,
+            repository=REPOSITORY,
+            workflow=WORKFLOW,
+            dispatch_id=DISPATCH_ID,
+            operator_login="operator",
+            created_after=1_000,
+        )
+    with pytest.raises(ValueError, match="created_after"):
+        verifier.find_dispatch_run(
+            access_token=ACCESS,
+            repository=REPOSITORY,
+            workflow=WORKFLOW,
+            dispatch_id=DISPATCH_ID,
+            operator_login="operator",
+            created_after=float("nan"),
+        )
+    client.close()
+
+
+def test_successful_dispatch_is_audited_before_cleanup_failure(tmp_path: Path) -> None:
+    class CloseFailingDispatcher(FakeDispatcher):
+        def close(self) -> None:
+            self.closed = True
+            raise RuntimeError("synthetic cleanup failure")
+
+    fake = CloseFailingDispatcher()
+    coordinator, audit, _ = setup(tmp_path, dispatcher=fake)
+    with pytest.raises(RuntimeError, match="cleanup failure"):
+        dispatch(coordinator)
+    record = audit.get_dispatch(DISPATCH_ID)
+    assert record is not None and record["state"] == "submitted_unreconciled"
+    audit.close()

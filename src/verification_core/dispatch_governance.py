@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 import time
 from collections.abc import Callable, Mapping
@@ -257,8 +258,8 @@ class SQLAlchemyDispatchAuditLog:
         _validate_sha(expected_head_sha, "expected_head_sha")
         if not re.fullmatch(r"[0-9a-f]{64}", inputs_sha256):
             raise ValueError("inputs_sha256 must be a SHA-256 hex digest")
-        if type(now) not in (int, float) or now < 0:
-            raise ValueError("now must be a non-negative timestamp")
+        if type(now) not in (int, float) or not math.isfinite(now) or now < 0:
+            raise ValueError("now must be a finite, non-negative timestamp")
         values: dict[str, object] = {
             "dispatch_id": dispatch_id,
             "repository": repository,
@@ -428,6 +429,12 @@ class GitHubWorkflowRunVerifier:
         _validate_workflow(workflow)
         if not isinstance(access_token, str) or not access_token.strip():
             raise ValueError("access_token must not be empty")
+        if (
+            type(created_after) not in (int, float)
+            or not math.isfinite(created_after)
+            or created_after < 0
+        ):
+            raise ValueError("created_after must be a finite, non-negative timestamp")
         repo_path = quote(repository, safe="/")
         authorization = f"Bearer {access_token}"
         try:
@@ -442,7 +449,12 @@ class GitHubWorkflowRunVerifier:
             workflow_id = workflow_data.get("id")
             if type(workflow_id) is not int or workflow_id < 1:
                 raise DispatchReconciliationError("GitHub returned an invalid workflow identifier.")
-            created_filter = datetime.fromtimestamp(created_after, UTC).isoformat()
+            try:
+                created_filter = datetime.fromtimestamp(created_after, UTC).isoformat()
+            except (OverflowError, OSError, ValueError):
+                raise DispatchReconciliationError(
+                    "The dispatch creation timestamp is outside the supported range."
+                ) from None
             runs_data = _request_json(
                 self._client,
                 "GET",
@@ -478,7 +490,8 @@ class GitHubWorkflowRunVerifier:
                 actor = candidate.get("actor")
                 login = actor.get("login") if isinstance(actor, Mapping) else None
                 if (
-                    candidate.get("workflow_id") == workflow_id
+                    type(candidate.get("workflow_id")) is int
+                    and candidate.get("workflow_id") == workflow_id
                     and candidate.get("event") == "workflow_dispatch"
                     and candidate.get("display_title") == marker
                     and isinstance(login, str)
@@ -506,7 +519,10 @@ class GitHubWorkflowRunVerifier:
             ):
                 raise DispatchReconciliationError("The matching workflow run was malformed.")
             try:
-                timestamp = datetime.fromisoformat(created_at.replace("Z", "+00:00")).timestamp()
+                parsed_created_at = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                if parsed_created_at.tzinfo is None or parsed_created_at.utcoffset() is None:
+                    raise ValueError("workflow-run timestamp must include a timezone")
+                timestamp = parsed_created_at.timestamp()
             except ValueError:
                 raise DispatchReconciliationError(
                     "The matching workflow run has an invalid timestamp."
@@ -592,6 +608,10 @@ class WorkflowDispatchCoordinator:
                 ref=ref,
                 inputs=dispatch_inputs,
             )
+            # Record confirmed submission before client cleanup can raise.
+            self._audit_log.mark_submitted(
+                dispatch_id, now=time.time() if now is None else timestamp
+            )
         except GitHubWorkflowDispatchError as exc:
             if exc.status_code is not None and exc.status_code < 500:
                 self._audit_log.mark_rejected(dispatch_id, now=timestamp)
@@ -604,7 +624,6 @@ class WorkflowDispatchCoordinator:
         finally:
             if dispatcher is not None:
                 dispatcher.close()
-        self._audit_log.mark_submitted(dispatch_id, now=time.time() if now is None else timestamp)
         return DispatchReceipt(
             dispatch_id,
             repository,
