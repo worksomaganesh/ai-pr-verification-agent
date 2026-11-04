@@ -1,0 +1,31 @@
+name: Phase IV Dispatch Integration Tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/verification_core/dispatch_governance.py"
+      - "tests/unit/test_dispatch_governance.py"
+      - "src/verification_core/workflow_dispatch.py"
+      - "tests/unit/test_workflow_dispatch.py"
+      - "pyproject.toml"
+  push:
+    branches: [phase-4-opt-in-dispatch]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  governance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e ".[dev]"
+      - run: ruff format --check src/verification_core/dispatch_governance.py tests/unit/test_dispatch_governance.py
+      - run: ruff check src/verification_core/dispatch_governance.py tests/unit/test_dispatch_governance.py
+      - run: mypy src/verification_core/dispatch_governance.py
+      - run: pytest -q tests/unit/test_dispatch_governance.py tests/unit/test_workflow_dispatch.py
