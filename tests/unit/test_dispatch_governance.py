@@ -12,6 +12,7 @@ import pytest
 from verification_core.dispatch_governance import (
     DispatchAuditError,
     DispatchAuthorizationError,
+    DispatchReconciliationError,
     DuplicateDispatchError,
     ExactHeadMismatchError,
     GitHubOperator,
@@ -58,7 +59,8 @@ def payload(*, sha: str = HEAD, run_id: int = 100, created: float = 1_000) -> di
 
 
 def transport(
-    *, permission: str = "write", login: str = "operator", runs: list[dict[str, Any]] | None = None
+    *, permission: str = "write", login: str = "operator", runs: list[Any] | None = None,
+    total_count: int | None = None,
 ) -> httpx.MockTransport:
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == "/user":
@@ -68,7 +70,14 @@ def transport(
         if request.url.path == f"/repos/{REPOSITORY}/actions/workflows/{WORKFLOW}":
             return httpx.Response(200, json={"id": 77})
         if request.url.path == f"/repos/{REPOSITORY}/actions/workflows/77/runs":
-            return httpx.Response(200, json={"workflow_runs": runs or []})
+            workflow_runs = runs or []
+            return httpx.Response(
+                200,
+                json={
+                    "total_count": len(workflow_runs) if total_count is None else total_count,
+                    "workflow_runs": workflow_runs,
+                },
+            )
         return httpx.Response(404, json={"message": "not found"})
 
     return httpx.MockTransport(handler)
@@ -78,7 +87,7 @@ def setup(
     tmp_path: Path,
     *,
     permission: str = "write",
-    runs: list[dict[str, Any]] | None = None,
+    runs: list[Any] | None = None,
     dispatcher: FakeDispatcher | None = None,
 ) -> tuple[WorkflowDispatchCoordinator, SQLAlchemyDispatchAuditLog, FakeDispatcher]:
     mock = transport(permission=permission, runs=runs)
@@ -256,6 +265,34 @@ def test_multiple_runs_matching_one_correlation_are_rejected(tmp_path: Path) -> 
     )
     verifier = GitHubWorkflowRunVerifier(http_client=client)
     with pytest.raises(Exception, match="Multiple workflow runs"):
+        verifier.find_dispatch_run(
+            access_token=ACCESS,
+            repository=REPOSITORY,
+            workflow=WORKFLOW,
+            dispatch_id=DISPATCH_ID,
+            operator_login="operator",
+            created_after=1_000,
+        )
+    client.close()
+
+
+@pytest.mark.parametrize(
+    ("reported_total", "items"),
+    [
+        (101, [payload()]),
+        (2, [payload()]),
+        (1, [None]),
+    ],
+)
+def test_run_verifier_rejects_incomplete_or_malformed_pages(
+    reported_total: int, items: list[Any]
+) -> None:
+    client = httpx.Client(
+        base_url="https://api.github.com",
+        transport=transport(runs=items, total_count=reported_total),
+    )
+    verifier = GitHubWorkflowRunVerifier(http_client=client)
+    with pytest.raises(DispatchReconciliationError):
         verifier.find_dispatch_run(
             access_token=ACCESS,
             repository=REPOSITORY,

@@ -396,7 +396,7 @@ class SQLAlchemyDispatchAuditLog:
 
 
 class GitHubWorkflowRunVerifier:
-    """Find one run matching workflow, event, marker, actor, and dispatch time.
+    """Find one run from a complete, bounded page matching workflow, event, marker, actor, and time.
 
     Each workflow must set its Actions run-name to
     'verification-dispatch:<input verification_dispatch_id>'. The Actions inputs
@@ -454,15 +454,27 @@ class GitHubWorkflowRunVerifier:
                 },
                 authorization=authorization,
             )
-            if not isinstance(runs_data, Mapping) or not isinstance(
-                runs_data.get("workflow_runs"), list
-            ):
+            if not isinstance(runs_data, Mapping):
                 raise DispatchReconciliationError("GitHub returned invalid workflow-run metadata.")
+            workflow_runs = runs_data.get("workflow_runs")
+            total_count = runs_data.get("total_count")
+            if (
+                not isinstance(workflow_runs, list)
+                or type(total_count) is not int
+                or total_count < 0
+                or total_count > 100
+                or len(workflow_runs) != total_count
+            ):
+                raise DispatchReconciliationError(
+                    "GitHub returned an incomplete or over-limit workflow-run page."
+                )
             marker = f"{RUN_NAME_PREFIX}{dispatch_id}"
             matches: list[Mapping[str, object]] = []
-            for candidate in runs_data["workflow_runs"]:
+            for candidate in workflow_runs:
                 if not isinstance(candidate, Mapping):
-                    continue
+                    raise DispatchReconciliationError(
+                        "GitHub returned an invalid workflow-run entry."
+                    )
                 actor = candidate.get("actor")
                 login = actor.get("login") if isinstance(actor, Mapping) else None
                 if (
