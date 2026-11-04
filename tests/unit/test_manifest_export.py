@@ -231,7 +231,7 @@ def test_split_pytest_node_id_rejects_missing_or_empty_scopes(node_id: str) -> N
     ],
 )
 def test_junit_node_id_rejects_unsafe_or_non_python_paths(node_id: str, tmp_path: Path) -> None:
-    with pytest.raises(ManifestExportError, match="invalid pytest node ID|unsafe or non-Python"):
+    with pytest.raises(ManifestExportError, match=r"invalid pytest node ID|unsafe or non-Python"):
         _junit_node_id(node_id, tmp_path)
 
 
