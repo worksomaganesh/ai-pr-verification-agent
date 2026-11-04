@@ -1,5 +1,18 @@
 # Phase IV governance and CI record — 2026-11-04
 
+## Latest integrated state and corrections
+
+- Current Phase IV branch head: `0c9ef6056123ad3b5b9103e85d31b0a9648b8068`.
+- Full exact-head CI [#41850967572](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41850967572): passed — 687 tests, 90.23% overall coverage, 96.39% Phase I coverage, 85.99% Phase II coverage; formatting, Ruff, strict mypy and all coverage gates passed.
+- Focused governance CI [#41850967471](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41850967471): passed — formatting, Ruff, strict mypy and dispatch/workflow/human-governance tests.
+- Exact-head artifact `13335151007`, size 49,841 bytes, SHA-256 `30d2efc2f3b0b5abfd9b3882c78c6a902781f21c4f7aa247b7370738529f1bc8`; CI upload and GitHub metadata confirm the artifact belongs to the exact branch head. It has not been independently downloaded and parsed.
+- Phase III is no longer awaiting source integration. PR #6 head `9611cbc6504f3844770540c9d45f87864bdfae08` is an ancestor of this branch (72 commits ahead, 0 behind) through merge commit `8a17bd22abcfdea02111f7fa7768c5ba9b4c29a1`. The earlier statement below that Phase III was still separate is a historical snapshot and is superseded.
+- Live deployment smoke testing, real staging dispatch, operator entry-point configuration and human release approval remain outstanding. No production merge gating should be enabled.
+
+---
+
+# Phase IV governance and CI record — 2026-11-04
+
 ## Implemented on branch `phase-4-opt-in-dispatch`
 
 - `dispatch_governance.py`: GitHub `/user` identity lookup, configured login allowlist, repository collaborator permission check, SQLAlchemy audit table, write-ahead authorization record, duplicate dispatch ID rejection, explicit outcome states, one-shot dispatch coordinator, unique correlation marker, and workflow-run lookup.
