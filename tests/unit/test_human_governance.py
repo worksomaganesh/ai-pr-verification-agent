@@ -243,7 +243,6 @@ def test_approval_model_rejects_naive_timestamp_and_short_rationale() -> None:
         make_approval(rationale="short")
 
 
-
 def test_verified_approval_is_applied_to_domain_and_audited(tmp_path: Path) -> None:
     log = SQLAlchemyHumanReviewAuditLog(f"sqlite:///{tmp_path / 'integrated.sqlite3'}")
     commit = CommitIdentity(
