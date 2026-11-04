@@ -33,6 +33,13 @@ from sqlalchemy import (
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
+from verification_core.domain.models import (
+    CommitIdentity,
+    ConclusionPolicyConfig,
+    HumanApprovalRecord,
+    VerificationObligation,
+)
+from verification_core.domain.state_machine import apply_human_approval
 from verification_core.github_app import _make_http_client
 
 _REPOSITORY_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
@@ -516,3 +523,47 @@ class SQLAlchemyHumanReviewAuditLog:
 
     def close(self) -> None:
         self._engine.dispose()
+
+
+
+def apply_verified_human_approval(
+    obligation: VerificationObligation,
+    *,
+    approval: GitHubPullRequestApproval,
+    expected_commit: CommitIdentity,
+    audit_log: SQLAlchemyHumanReviewAuditLog,
+    now: float,
+    policy_config: ConclusionPolicyConfig = ConclusionPolicyConfig(),
+) -> VerificationObligation:
+    """Apply a verified GitHub review to one obligation and persist its audit first.
+
+    Repository, PR number, base SHA, and head SHA must all match the commit under
+    evaluation. The domain state machine remains authoritative for transition and
+    severity policy; the audit insert must succeed before the approved state is
+    returned to the caller.
+    """
+    if (
+        approval.repository != expected_commit.repo_full_name
+        or approval.pr_number != expected_commit.pr_number
+        or approval.base_sha != expected_commit.base_sha
+        or approval.head_sha != expected_commit.head_sha
+    ):
+        raise HumanReviewVerificationError(
+            "Verified review repository, PR, base, or head does not match the evaluated commit."
+        )
+
+    domain_record = HumanApprovalRecord(
+        reviewer_login=approval.reviewer_login,
+        review_id=approval.review_id,
+        approved_head_sha=approval.head_sha,
+        rationale=approval.rationale,
+        approved_at=approval.submitted_at,
+    )
+    approved_obligation = apply_human_approval(
+        obligation,
+        approval=domain_record,
+        expected_commit=expected_commit,
+        policy_config=policy_config,
+    )
+    audit_log.record_approval(approval, now=now)
+    return approved_obligation

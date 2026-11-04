@@ -9,7 +9,10 @@ from typing import Any
 import httpx
 import pytest
 
+from verification_core.domain.enums import ObligationSource, ObligationStatus, Severity
+from verification_core.domain.models import CommitIdentity, VerificationObligation
 from verification_core.human_governance import (
+    apply_verified_human_approval,
     GitHubReviewVerifier,
     GitHubPullRequestApproval,
     HumanReviewAuditConflict,
@@ -238,3 +241,67 @@ def test_approval_model_rejects_naive_timestamp_and_short_rationale() -> None:
         )
     with pytest.raises(ValueError, match="rationale"):
         make_approval(rationale="short")
+
+
+
+def test_verified_approval_is_applied_to_domain_and_audited(tmp_path: Path) -> None:
+    log = SQLAlchemyHumanReviewAuditLog(f"sqlite:///{tmp_path / 'integrated.sqlite3'}")
+    commit = CommitIdentity(
+        repo_full_name=REPO,
+        pr_number=PR,
+        base_sha=BASE,
+        head_sha=HEAD,
+        policy_sha256="4" * 64,
+    )
+    obligation = VerificationObligation(
+        obligation_id="OBL-HUMAN-1",
+        category="security",
+        description="Review the security-sensitive behavior.",
+        severity=Severity.HIGH,
+        source=ObligationSource.DETERMINISTIC_POLICY,
+        affected_files=("src/secure.py",),
+        status=ObligationStatus.NOT_RUN,
+        status_reason="No automated test can fully establish this obligation.",
+    )
+    approved = apply_verified_human_approval(
+        obligation,
+        approval=make_approval(),
+        expected_commit=commit,
+        audit_log=log,
+        now=200,
+    )
+    assert approved.status == ObligationStatus.APPROVED_BY_HUMAN
+    assert approved.human_approval is not None
+    assert approved.human_approval.review_id == 101
+    assert log.get_approval(REPO, PR, 101) is not None
+    log.close()
+
+
+def test_verified_approval_rejects_wrong_pr_binding_before_audit(tmp_path: Path) -> None:
+    log = SQLAlchemyHumanReviewAuditLog(f"sqlite:///{tmp_path / 'mismatch.sqlite3'}")
+    commit = CommitIdentity(
+        repo_full_name=REPO,
+        pr_number=PR + 1,
+        base_sha=BASE,
+        head_sha=HEAD,
+        policy_sha256="4" * 64,
+    )
+    obligation = VerificationObligation(
+        obligation_id="OBL-HUMAN-2",
+        category="security",
+        description="Review the security-sensitive behavior.",
+        severity=Severity.HIGH,
+        source=ObligationSource.DETERMINISTIC_POLICY,
+        affected_files=("src/secure.py",),
+        status=ObligationStatus.NOT_RUN,
+    )
+    with pytest.raises(HumanReviewVerificationError, match="does not match"):
+        apply_verified_human_approval(
+            obligation,
+            approval=make_approval(),
+            expected_commit=commit,
+            audit_log=log,
+            now=200,
+        )
+    assert log.get_approval(REPO, PR, 101) is None
+    log.close()
