@@ -247,3 +247,4 @@ def test_dispatch_rejects_invalid_id_before_side_effect(tmp_path: Path, identifi
         )
     assert fake.requests == []
     audit.close()
+
