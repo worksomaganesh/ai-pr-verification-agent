@@ -1,4 +1,5 @@
 """Tests for exact-head human approval verification and append-only audit."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -76,7 +77,9 @@ def verifier(
     return GitHubReviewVerifier(allowed_reviewers=allow, http_client=client)
 
 
-def verify(v: GitHubReviewVerifier, *, base: str = BASE, head: str = HEAD) -> tuple[GitHubPullRequestApproval, ...]:
+def verify(
+    v: GitHubReviewVerifier, *, base: str = BASE, head: str = HEAD
+) -> tuple[GitHubPullRequestApproval, ...]:
     return v.verify_current_approvals(
         access_token=TOKEN,
         repository=REPO,
@@ -208,9 +211,7 @@ def test_audit_rejects_review_id_with_conflicting_content(tmp_path: Path) -> Non
     log.record_approval(make_approval(), now=100)
     with pytest.raises(HumanReviewAuditConflict, match="different approval"):
         log.record_approval(
-            make_approval(
-                rationale="A materially different review rationale for this same ID."
-            ),
+            make_approval(rationale="A materially different review rationale for this same ID."),
             now=101,
         )
     log.close()

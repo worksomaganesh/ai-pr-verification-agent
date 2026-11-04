@@ -402,7 +402,9 @@ class SQLAlchemyHumanReviewAuditLog:
                 )
             _METADATA.create_all(self._engine)
         except SQLAlchemyError:
-            raise HumanReviewAuditError("Could not initialize the human-review audit database.") from None
+            raise HumanReviewAuditError(
+                "Could not initialize the human-review audit database."
+            ) from None
 
     def record_approval(
         self,
@@ -454,7 +456,9 @@ class SQLAlchemyHumanReviewAuditLog:
                 "A GitHub review ID already exists with different approval content."
             ) from None
         except SQLAlchemyError:
-            raise HumanReviewAuditError("Could not persist the human-review audit record.") from None
+            raise HumanReviewAuditError(
+                "Could not persist the human-review audit record."
+            ) from None
 
     def get_approval(
         self, repository: str, pr_number: int, review_id: int
