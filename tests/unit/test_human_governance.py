@@ -15,6 +15,7 @@ from verification_core.human_governance import (
     GitHubPullRequestApproval,
     GitHubReviewVerifier,
     HumanReviewAuditConflict,
+    HumanReviewAuditError,
     HumanReviewVerificationError,
     SQLAlchemyHumanReviewAuditLog,
     apply_verified_human_approval,
@@ -26,6 +27,7 @@ BASE = "1" * 40
 HEAD = "2" * 40
 OTHER = "3" * 40
 AUTH_VALUE = "example-review-token"
+EMPTY_AUTH_VALUE = " "
 REVIEWER = "reviewer"
 
 
@@ -355,7 +357,7 @@ def test_verifier_rejects_invalid_request_identity() -> None:
         )
     with pytest.raises(ValueError, match="access_token"):
         v.verify_current_approvals(
-            access_token=" ",
+            access_token=EMPTY_AUTH_VALUE,
             repository=REPO,
             pr_number=PR,
             expected_base_sha=BASE,
