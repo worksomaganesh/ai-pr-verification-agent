@@ -13,8 +13,8 @@ from verification_core.domain.enums import ObligationSource, ObligationStatus, S
 from verification_core.domain.models import CommitIdentity, VerificationObligation
 from verification_core.human_governance import (
     apply_verified_human_approval,
-    GitHubReviewVerifier,
     GitHubPullRequestApproval,
+    GitHubReviewVerifier,
     HumanReviewAuditConflict,
     HumanReviewVerificationError,
     SQLAlchemyHumanReviewAuditLog,
@@ -25,7 +25,7 @@ PR = 7
 BASE = "1" * 40
 HEAD = "2" * 40
 OTHER = "3" * 40
-TOKEN = "example-review-token"
+AUTH_VALUE = "example-review-token"
 REVIEWER = "reviewer"
 
 
@@ -84,7 +84,7 @@ def verify(
     v: GitHubReviewVerifier, *, base: str = BASE, head: str = HEAD
 ) -> tuple[GitHubPullRequestApproval, ...]:
     return v.verify_current_approvals(
-        access_token=TOKEN,
+        access_token=AUTH_VALUE,
         repository=REPO,
         pr_number=PR,
         expected_base_sha=base,
