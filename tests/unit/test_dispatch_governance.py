@@ -59,7 +59,10 @@ def payload(*, sha: str = HEAD, run_id: int = 100, created: float = 1_000) -> di
 
 
 def transport(
-    *, permission: str = "write", login: str = "operator", runs: list[Any] | None = None,
+    *,
+    permission: str = "write",
+    login: str = "operator",
+    runs: list[Any] | None = None,
     total_count: int | None = None,
 ) -> httpx.MockTransport:
     def handler(request: httpx.Request) -> httpx.Response:
