@@ -2,21 +2,22 @@
 
 ## Status
 
-Phase IV contains the guarded dispatch client, strict per-workflow schemas, GitHub operator allowlisting and repository permission checks, a SQLAlchemy write-ahead dispatch audit, a one-shot dispatch coordinator, exact-SHA workflow-run reconciliation, and exact-head human-review verification/audit integration.
+The integrated Phase IV feature branch is at exact head `0c9ef6056123ad3b5b9103e85d31b0a9648b8068`. The latest full CI run [#41850967572](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41850967572) and focused governance run [#41850967471](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41850967471) both completed successfully on that exact SHA.
 
-The latest integrated exact-head full CI passed on `3046eeb2681e0102f4ca9b978802e008a6baa13a` ([run #41850039278](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41850039278)):
+The full workflow passed:
 - **687 tests passed**, one non-blocking Starlette/httpx deprecation warning.
 - Overall coverage **90.23%** (90.00% gate).
 - Phase I core coverage **96.39%** (95.00% gate).
 - Phase II integration coverage **85.99%** (80.00% gate).
-- Formatting, Ruff, strict mypy, all coverage gates, and the exact-head evidence producer passed.
-- Focused Phase IV governance CI passed on the same SHA ([run #41850039261](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41850039261)).
+- Ruff formatting, Ruff lint, strict mypy, all configured coverage gates, and the exact-head evidence producer passed.
 
-The same full run produced artifact `verification-evidence`, ID `13334261929`, size 50,013 bytes, SHA-256 `72d5a21ff1bf191f4f56e84d9a14db8242db71e28ee4de2cca361d48eb76ae87`. Its ZIP contains `junit.xml` and `coverage-manifest.json`; both inventories contain 687 unique passing tests, zero failures/errors/skips, and the exact head SHA above. The downloaded ZIP digest was independently recomputed and matched GitHub's artifact metadata. All manifest `behavioral_assertion_verified` flags are false: this artifact proves test execution and measured coverage, not behavioral assertion sufficiency.
+The exact-head producer uploaded artifact `verification-evidence`, ID `13335151007`, size 49,841 bytes, GitHub SHA-256 `30d2efc2f3b0b5abfd9b3882c78c6a902781f21c4f7aa247b7370738529f1bc8`. The run log confirms upload and GitHub metadata confirms the exact head association. The archive has not been independently downloaded and parsed as part of this checkpoint. The preceding source-bearing head `3046eeb2681e0102f4ca9b978802e008a6baa13a` produced artifact `13334261929`, which was independently downloaded and checked; its JUnit and coverage-manifest inventories each contained 687 unique matching passing tests and all behavioral assertion flags were false.
 
-Human-governance implementation now includes `src/verification_core/human_governance.py` and `tests/unit/test_human_governance.py`. The verifier accepts only current approvals from configured reviewers on an open same-repository PR and exact base/head SHA; later non-approval reviews supersede earlier approvals. The audit ledger is append-only through its API, idempotent for exact replay, and rejects conflicting content for the same review ID. `apply_verified_human_approval` checks repository/PR/base/head binding, delegates severity and state-transition decisions to the existing domain state machine, and records the audit before returning the approved obligation.
+Phase III implementation is **already integrated into this Phase IV branch**. GitHub commit comparison confirms Phase III PR #6 head `9611cbc6504f3844770540c9d45f87864bdfae08` is an ancestor of Phase IV head `0c9ef6056123ad3b5b9103e85d31b0a9648b8068` (72 commits ahead, 0 behind); the explicit integration commit is `8a17bd22abcfdea02111f7fa7768c5ba9b4c29a1`. Therefore, remaining Phase III work is operational smoke acceptance, not source integration.
 
-**Repository CI is green; operational acceptance is not complete.** Dispatch and review tests use mocked GitHub APIs. No real staging workflow dispatch has been performed, no staging-only authenticated operator entry point has been exercised, and no target deployment smoke test or human release approval has been completed. PR #9 remains draft. Keep production merge gating disabled.
+Human-governance code includes exact-head GitHub review verification, reviewer allowlisting, latest-review supersession, rationale validation, fail-closed API handling, append-only review audit, and an adapter into the existing obligation state machine. Dispatch governance includes explicit operator authorization, write-ahead audit, duplicate protection, a one-shot coordinator, and workflow-run exact-SHA reconciliation.
+
+**Repository implementation and CI are verified; operational acceptance is not complete.** Tests use mocked GitHub APIs. No real staging workflow dispatch has been performed, no authenticated staging-only operator entry point has been exercised, no target deployment smoke test has passed, and no human release approval has been recorded. PR #9 remains open and draft. Keep production merge gating disabled.
 
 ## Phase goals
 
@@ -56,9 +57,14 @@ Workflow dispatch is an external side effect. The new governance coordinator ver
 
 ## Remaining work
 
-- Re-run exact-head CI after any further source or documentation edits; current exact-head CI is green on `3046eeb2681e0102f4ca9b978802e008a6baa13a`.
-- Review workflow dispatch API behavior against the supported GitHub App installation permission and repository settings.
-- Wire the governance coordinator into a deliberate, authenticated staging-only operator entry point; configure a managed PostgreSQL store and operator policy.
-- Wire the dispatch coordinator into the staging-only operator entry point and follow its exact-SHA run through the already-integrated Phase III evidence reconciliation path.
-- Add exact-SHA and stale-run checks to orchestration; no dispatch result may imply verification success.
-- Complete Phase III deployment smoke acceptance and Phase IV human review at the phase ending.
+The exact-SHA and stale-run protections are implemented in the coordinator and covered by mocked adversarial tests. The remaining work is deployment/operator acceptance:
+
+1. Provision a staging-only deployment and an authenticated operator entry point that calls the coordinator; keep it unavailable to production by default.
+2. Configure the deployment-specific operator login allowlist, a least-privilege Actions-write token, GitHub App installation permissions, and managed PostgreSQL audit/evidence databases through the deployment secret manager.
+3. Configure an allowlisted staging workflow with the required `verification_dispatch_id` input and run-name correlation contract.
+4. Perform one deliberate non-production dispatch. Verify actor, workflow, dispatch ID, repository, requested ref, authorized SHA and unique run ID; exercise duplicate, timeout, ambiguous-run and stale-SHA fail-closed behavior against the real staging API.
+5. Follow that exact run through Phase III authenticated job/artifact retrieval, digest and archive validation, exact-SHA binding, evidence-ledger persistence, obligation reconciliation, freshness re-check and Check Run publication.
+6. Run `scripts/phase3_deployment_smoke.py` against the real installed App, webhook ingress/worker and same durable evidence database.
+7. Obtain human review against the same exact head, confirm that a later head invalidates the approval, and record explicit release acceptance.
+8. Only after these gates pass, remove draft status and follow the repository's normal review/merge process. Do not enable production merge gating before approval.
+
