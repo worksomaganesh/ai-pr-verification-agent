@@ -361,9 +361,12 @@ def test_audit_records_rejected_unknown_and_mismatched_states(tmp_path: Path) ->
     audit.mark_submitted(identifiers[2], now=13)
     with pytest.raises(ExactHeadMismatchError):
         audit.mark_reconciled(identifiers[2], run_id=100, observed_sha=OTHER_HEAD, now=14)
-    assert audit.get_dispatch(identifiers[0])["state"] == "rejected"
-    assert audit.get_dispatch(identifiers[1])["state"] == "dispatch_outcome_unknown"
-    assert audit.get_dispatch(identifiers[2])["state"] == "head_mismatch"
+    rejected = audit.get_dispatch(identifiers[0])
+    unknown = audit.get_dispatch(identifiers[1])
+    mismatch = audit.get_dispatch(identifiers[2])
+    assert rejected is not None and rejected["state"] == "rejected"
+    assert unknown is not None and unknown["state"] == "dispatch_outcome_unknown"
+    assert mismatch is not None and mismatch["state"] == "head_mismatch"
     audit.close()
 
 
