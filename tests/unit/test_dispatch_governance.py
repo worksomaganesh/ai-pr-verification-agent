@@ -144,7 +144,7 @@ def test_dispatch_is_write_ahead_audited_and_correlated(tmp_path: Path) -> None:
     assert fake.closed
     assert fake.requests[0]["inputs"] == {
         "dry_run": "true",
-        "verification_dispatch_id": DISPATCH_ID
+        "verification_dispatch_id": DISPATCH_ID,
     }
     audit.close()
 
