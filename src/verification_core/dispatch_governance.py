@@ -673,3 +673,4 @@ def _validate_workflow(value: str) -> None:
 def _validate_sha(value: str, field: str) -> None:
     if not isinstance(value, str) or not _SHA_RE.fullmatch(value):
         raise ValueError(f"{field} must be a lowercase 40-character Git SHA")
+
