@@ -619,7 +619,9 @@ def test_verify_review_operator_reports_no_qualifying_approval(monkeypatch, caps
     assert "No qualifying current approval" in capsys.readouterr().out
 
 
-def test_main_dispatches_selected_command_and_sanitizes_operator_errors(monkeypatch, capsys) -> None:
+def test_main_dispatches_selected_command_and_sanitizes_operator_errors(
+    monkeypatch, capsys
+) -> None:
     from verification_core import phase4_operator
 
     settings = load_staging_settings(environment())
