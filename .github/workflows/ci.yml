@@ -2,11 +2,9 @@ name: Phase II CI
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "phase-4-opt-in-dispatch"]
   pull_request:
     branches: ["main"]
-  push:
-    branches: ["phase-4-opt-in-dispatch"]
   workflow_dispatch:
 
 permissions:
@@ -64,7 +62,6 @@ jobs:
           coverage report
           --include=src/verification_core/__main__.py,src/verification_core/asgi.py,src/verification_core/delivery_store.py,src/verification_core/gemini_planner.py,src/verification_core/github_app.py,src/verification_core/phase_two.py,src/verification_core/runtime.py,src/verification_core/run_ledger.py,src/verification_core/webhook_app.py
           --fail-under=80
-
 
   evidence:
     name: Produce authenticated evidence artifact (exact PR head)
