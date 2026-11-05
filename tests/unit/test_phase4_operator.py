@@ -165,8 +165,9 @@ def test_expected_sha_is_bound_to_ref_preflight_result() -> None:
         "dry_run": "true",
         "expected_head_sha": expected,
     }
-    assert _bind_expected_head_sha({"expected_head_sha": expected}, expected)[
-        "expected_head_sha"
-    ] == expected
+    assert (
+        _bind_expected_head_sha({"expected_head_sha": expected}, expected)["expected_head_sha"]
+        == expected
+    )
     with pytest.raises(ValueError, match="match --expected-head-sha"):
         _bind_expected_head_sha({"expected_head_sha": "b" * 40}, expected)
