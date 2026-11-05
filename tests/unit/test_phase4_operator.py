@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-from typing import Any
 
 import httpx
 import pytest
@@ -106,7 +105,7 @@ def test_ref_preflight_requires_exact_expected_sha() -> None:
 
     client = httpx.Client(base_url="https://api.github.com", transport=httpx.MockTransport(handler))
     verify_ref_head(
-        token="test-token",
+        token="dummy-value",
         repository="acme/service",
         ref="phase-4/staging",
         expected_head_sha=expected,
