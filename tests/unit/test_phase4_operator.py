@@ -9,6 +9,7 @@ import httpx
 import pytest
 
 from verification_core.phase4_operator import (
+    _bind_expected_head_sha,
     _parse_input_schemas,
     load_staging_settings,
     verify_ref_head,
@@ -40,6 +41,7 @@ def environment() -> dict[str, str]:
         "PHASE4_AUDIT_DATABASE_URL": "postgresql+psycopg://operator:password@db.example/audit",
         "PHASE4_ALLOWED_WORKFLOWS": WORKFLOW,
         "PHASE4_OPERATOR_ALLOWED_LOGINS": "operator",
+        "PHASE4_ALLOWED_REVIEWERS": "maintainer",
         "PHASE4_WORKFLOW_INPUT_SCHEMAS": json.dumps(SCHEMA),
     }
 
@@ -146,3 +148,25 @@ def test_ref_preflight_rejects_unavailable_remote_state() -> None:
             http_client=client,
         )
     client.close()
+
+
+def test_reconcile_and_review_can_run_with_dispatch_disabled() -> None:
+    values = environment()
+    values["PHASE4_DISPATCH_ENABLED"] = "false"
+    settings = load_staging_settings(values, require_dispatch_enabled=False)
+    assert settings.allowed_reviewers == ("maintainer",)
+    with pytest.raises(ValueError, match="explicitly set"):
+        load_staging_settings(values, require_dispatch_enabled=True)
+
+
+def test_expected_sha_is_bound_to_ref_preflight_result() -> None:
+    expected = "a" * 40
+    assert _bind_expected_head_sha({"dry_run": "true"}, expected) == {
+        "dry_run": "true",
+        "expected_head_sha": expected,
+    }
+    assert _bind_expected_head_sha({"expected_head_sha": expected}, expected)[
+        "expected_head_sha"
+    ] == expected
+    with pytest.raises(ValueError, match="match --expected-head-sha"):
+        _bind_expected_head_sha({"expected_head_sha": "b" * 40}, expected)
