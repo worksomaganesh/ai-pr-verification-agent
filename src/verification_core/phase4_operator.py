@@ -183,10 +183,7 @@ def verify_ref_head(
             "X-GitHub-Api-Version": "2022-11-28",
         },
     )
-    path = (
-        f"/repos/{quote(repository, safe='/')}/commits/"
-        f"{quote(ref, safe='')}"
-    )
+    path = f"/repos/{quote(repository, safe='/')}/commits/{quote(ref, safe='')}"
     try:
         with client.stream("GET", path, follow_redirects=False) as response:
             if response.status_code != 200:
@@ -208,9 +205,13 @@ def verify_ref_head(
     except RuntimeError:
         raise
     except httpx.TimeoutException:
-        raise RuntimeError("GitHub staging ref verification timed out; no dispatch was sent.") from None
+        raise RuntimeError(
+            "GitHub staging ref verification timed out; no dispatch was sent."
+        ) from None
     except httpx.HTTPError:
-        raise RuntimeError("GitHub staging ref verification failed; no dispatch was sent.") from None
+        raise RuntimeError(
+            "GitHub staging ref verification failed; no dispatch was sent."
+        ) from None
     finally:
         if owns_client:
             client.close()
@@ -276,8 +277,12 @@ def _dispatch(args: argparse.Namespace, settings: Phase4Settings) -> int:
             expected_head_sha=args.expected_head_sha,
             inputs=inputs,
         )
-        print(f"Staging dispatch submitted; verification remains pending. dispatch_id={receipt.dispatch_id}")
-        print("Next command: ai-pr-verification-phase4 reconcile --dispatch-id " + receipt.dispatch_id)
+        print(
+            f"Staging dispatch submitted; verification remains pending. dispatch_id={receipt.dispatch_id}"
+        )
+        print(
+            "Next command: ai-pr-verification-phase4 reconcile --dispatch-id " + receipt.dispatch_id
+        )
         return 0
     finally:
         run_verifier.close()
@@ -307,13 +312,17 @@ def _reconcile(args: argparse.Namespace, settings: Phase4Settings) -> int:
     try:
         receipt = coordinator.reconcile(access_token=settings.token, dispatch_id=args.dispatch_id)
         if receipt is None:
-            print("The correlated workflow run is not visible yet; audit remains submitted_unreconciled.")
+            print(
+                "The correlated workflow run is not visible yet; audit remains submitted_unreconciled."
+            )
             return 3
         print(
             f"Staging dispatch reconciled to run_id={audit.get_dispatch(args.dispatch_id)['workflow_run_id']} "
             f"and exact head {receipt.expected_head_sha}."
         )
-        print("This confirms run identity/SHA only; Phase III evidence ingestion is still required.")
+        print(
+            "This confirms run identity/SHA only; Phase III evidence ingestion is still required."
+        )
         return 0
     finally:
         run_verifier.close()
@@ -368,7 +377,9 @@ def build_parser() -> argparse.ArgumentParser:
     reconcile = commands.add_parser("reconcile", help="reconcile one recorded staging dispatch")
     reconcile.add_argument("--dispatch-id", required=True)
     reconcile.add_argument("--confirm-staging", action="store_true")
-    review = commands.add_parser("verify-review", help="verify and audit current exact-head reviews")
+    review = commands.add_parser(
+        "verify-review", help="verify and audit current exact-head reviews"
+    )
     review.add_argument("--pr-number", required=True, type=int)
     review.add_argument("--expected-base-sha", required=True)
     review.add_argument("--expected-head-sha", required=True)
