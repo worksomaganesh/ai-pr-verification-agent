@@ -58,7 +58,7 @@ def _csv_setting(environment: Mapping[str, str], name: str) -> tuple[str, ...]:
     values = tuple(part.strip() for part in raw.split(",") if part.strip())
     if not values:
         raise ValueError(f"{name} must contain at least one value.")
-    if len(set(value.casefold() for value in values)) != len(values):
+    if len({value.casefold() for value in values} != len(values):
         raise ValueError(f"{name} must not contain duplicate values.")
     return values
 
@@ -278,7 +278,7 @@ def _dispatch(args: argparse.Namespace, settings: Phase4Settings) -> int:
             inputs=inputs,
         )
         print(
-            f"Staging dispatch submitted; verification remains pending. dispatch_id={receipt.dispatch_id}"
+            f"Staging dispatch submitted; verification pending. ID={receipt.dispatch_id}"
         )
         print(
             "Next command: ai-pr-verification-phase4 reconcile --dispatch-id " + receipt.dispatch_id
@@ -313,11 +313,11 @@ def _reconcile(args: argparse.Namespace, settings: Phase4Settings) -> int:
         receipt = coordinator.reconcile(access_token=settings.token, dispatch_id=args.dispatch_id)
         if receipt is None:
             print(
-                "The correlated workflow run is not visible yet; audit remains submitted_unreconciled."
+                "Correlated run is not visible yet; audit remains submitted_unreconciled."
             )
             return 3
         print(
-            f"Staging dispatch reconciled to run_id={audit.get_dispatch(args.dispatch_id)['workflow_run_id']} "
+            f"Reconciled run_id={audit.get_dispatch(args.dispatch_id)['workflow_run_id']} "
             f"and exact head {receipt.expected_head_sha}."
         )
         print(
