@@ -2,7 +2,7 @@
 
 ## Status
 
-The integrated Phase IV feature branch is at exact head `0c9ef6056123ad3b5b9103e85d31b0a9648b8068`. The latest full CI run [#41850967572](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41850967572) and focused governance run [#41850967471](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41850967471) both completed successfully on that exact SHA.
+The integrated Phase IV feature branch's latest head is `2fa034b49bda71ecf5edaf561dd537bfe7a8e25f`. Focused governance run [#42051867598](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/42051867598) passed on the preceding code head `55d4a18421e6c9ddfb8624c02d5e2a364ad1adef`. The full coverage run [#41850967572](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41850967572) passed on older head `0c9ef6056123ad3b5b9103e85d31b0a9648b8068`; a full gate on the current head is still pending. On 5 November, duplicate `push` keys in this workflow were consolidated into one trigger covering both `main` and `phase-4-opt-in-dispatch`.
 
 The full workflow passed:
 - **687 tests passed**, one non-blocking Starlette/httpx deprecation warning.
