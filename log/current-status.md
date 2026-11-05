@@ -651,3 +651,8 @@ This confirms the corrected test suite is green and all three coverage threshold
 - A full-gate run for `2fa034b` has not yet been observed. Do not report current-head coverage as verified until the new run finishes.
 - Phase IV remains operationally incomplete: no real staging workflow dispatch, no live Phase III deployment smoke test, and no human release approval. PR #9 remains draft; production merge gating stays disabled.
 
+## Live staging dispatch readiness — 2026-11-05
+
+- Registered the staging `workflow_dispatch` workflow on default branch `main` in commit [`59b3610`](https://github.com/worksomaganesh/ai-pr-verification-agent/commit/59b361012e47f5c62db6d508a87b040f1297a623). Workflow registration is not a live dispatch.
+- The target workflow is configured for the Phase IV branch and protected `staging` environment. Live dispatch remains blocked: no Actions-dispatch write tool, GitHub CLI, or staging credentials are available in this execution environment.
+- Required next: provision protected staging environment, managed PostgreSQL audit DB, least-privilege Actions-write token and operator/reviewer allowlists; run Phase IV operator CLI dispatch and reconcile from trusted staging runtime; then perform Phase III deployment smoke test.
