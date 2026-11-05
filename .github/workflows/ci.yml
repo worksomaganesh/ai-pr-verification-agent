@@ -5,6 +5,8 @@ on:
     branches: ["main"]
   pull_request:
     branches: ["main"]
+  push:
+    branches: ["phase-4-opt-in-dispatch"]
   workflow_dispatch:
 
 permissions:
