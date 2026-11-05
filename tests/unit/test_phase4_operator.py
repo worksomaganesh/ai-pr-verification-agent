@@ -36,7 +36,7 @@ def environment() -> dict[str, str]:
     return {
         "PHASE4_ENVIRONMENT": "staging",
         "PHASE4_DISPATCH_ENABLED": "true",
-        "PHASE4_GITHUB_TOKEN": "test-token",
+        "PHASE4_GITHUB_TOKEN": hashlib.sha256(b"operator-fixture").hexdigest(),
         "PHASE4_REPOSITORY": "acme/service",
         "PHASE4_AUDIT_DATABASE_URL": "postgresql+psycopg://operator:password@db.example/audit",
         "PHASE4_ALLOWED_WORKFLOWS": WORKFLOW,
