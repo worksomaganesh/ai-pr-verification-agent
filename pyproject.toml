@@ -15,6 +15,9 @@ dependencies = [
     "defusedxml>=0.7.1",
 ]
 
+[project.scripts]
+ai-pr-verification-phase4 = "verification_core.phase4_operator:main"
+
 [project.optional-dependencies]
 integration = [
     "fastapi>=0.115.0",
