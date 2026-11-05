@@ -279,7 +279,8 @@ def test_bind_expected_sha_rejects_malformed_commit_identity() -> None:
 
 
 def test_dispatch_operator_requires_confirmation_and_known_workflow(
-    tmp_path, monkeypatch
+    tmp_path,
+    monkeypatch,
 ) -> None:
     import argparse
 
