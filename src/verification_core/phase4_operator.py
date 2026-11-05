@@ -44,6 +44,7 @@ class Phase4Settings:
     allowed_workflows: tuple[str, ...]
     allowed_logins: tuple[str, ...]
     input_schemas: Mapping[str, Mapping[str, WorkflowInputRule]]
+    allowed_reviewers: tuple[str, ...]
 
 
 def _required(environment: Mapping[str, str], name: str) -> str:
@@ -131,14 +132,18 @@ def _parse_input_schemas(
 
 def load_staging_settings(
     environment: Mapping[str, str] | None = None,
+    *,
+    require_dispatch_enabled: bool = True,
 ) -> Phase4Settings:
     """Require explicit staging mode, explicit dispatch opt-in, and PostgreSQL durability."""
     source = os.environ if environment is None else environment
     if source.get("PHASE4_ENVIRONMENT", "").strip().casefold() != "staging":
         raise ValueError("PHASE4_ENVIRONMENT must be exactly 'staging'.")
-    if source.get("PHASE4_DISPATCH_ENABLED", "").strip().casefold() != "true":
+    if type(require_dispatch_enabled) is not bool:
+        raise ValueError("require_dispatch_enabled must be a boolean.")
+    if require_dispatch_enabled and source.get("PHASE4_DISPATCH_ENABLED", "").strip().casefold() != "true":
         raise ValueError(
-            "PHASE4_DISPATCH_ENABLED must be explicitly set to 'true' for an operator action."
+            "PHASE4_DISPATCH_ENABLED must be explicitly set to 'true' for a dispatch action."
         )
     token = _required(source, "PHASE4_GITHUB_TOKEN")
     repository = _required(source, "PHASE4_REPOSITORY")
@@ -147,6 +152,7 @@ def load_staging_settings(
         raise ValueError("Staging governance audits require managed PostgreSQL via psycopg.")
     allowed_workflows = _csv_setting(source, "PHASE4_ALLOWED_WORKFLOWS")
     allowed_logins = _csv_setting(source, "PHASE4_OPERATOR_ALLOWED_LOGINS")
+    allowed_reviewers = _csv_setting(source, "PHASE4_ALLOWED_REVIEWERS")
     schemas = _parse_input_schemas(
         _required(source, "PHASE4_WORKFLOW_INPUT_SCHEMAS"),
         allowed_workflows=allowed_workflows,
@@ -158,6 +164,7 @@ def load_staging_settings(
         allowed_workflows=allowed_workflows,
         allowed_logins=allowed_logins,
         input_schemas=schemas,
+        allowed_reviewers=allowed_reviewers,
     )
 
 
@@ -234,6 +241,23 @@ def _read_inputs_file(path_text: str | None) -> dict[str, str]:
     return dict(value)
 
 
+def _bind_expected_head_sha(
+    inputs: Mapping[str, str],
+    expected_head_sha: str,
+) -> dict[str, str]:
+    """Bind the workflow input to the commit verified by the ref preflight."""
+    if not _SHA_RE.fullmatch(expected_head_sha):
+        raise ValueError("expected_head_sha must be a lowercase 40-character commit SHA.")
+    normalized = dict(inputs)
+    supplied_head = normalized.get("expected_head_sha")
+    if supplied_head is not None and supplied_head != expected_head_sha:
+        raise ValueError(
+            "The inputs file expected_head_sha must match --expected-head-sha exactly."
+        )
+    normalized["expected_head_sha"] = expected_head_sha
+    return normalized
+
+
 def _dispatch(args: argparse.Namespace, settings: Phase4Settings) -> int:
     if not args.confirm_staging:
         raise ValueError("Pass --confirm-staging to authorize a real staging workflow dispatch.")
@@ -248,12 +272,7 @@ def _dispatch(args: argparse.Namespace, settings: Phase4Settings) -> int:
         expected_head_sha=args.expected_head_sha,
     )
     inputs = _read_inputs_file(args.inputs_file)
-    supplied_head = inputs.get("expected_head_sha")
-    if supplied_head is not None and supplied_head != args.expected_head_sha:
-        raise ValueError(
-            "The inputs file expected_head_sha must match --expected-head-sha exactly."
-        )
-    inputs["expected_head_sha"] = args.expected_head_sha
+    inputs = _bind_expected_head_sha(inputs, args.expected_head_sha)
     authenticator = GitHubOperatorAuthenticator(allowed_logins=settings.allowed_logins)
     audit = SQLAlchemyDispatchAuditLog(settings.audit_database_url)
     run_verifier = GitHubWorkflowRunVerifier()
@@ -318,10 +337,13 @@ def _reconcile(args: argparse.Namespace, settings: Phase4Settings) -> int:
         if receipt is None:
             print("Correlated run is not visible yet; audit remains submitted_unreconciled.")
             return 3
-        print(
-            f"Reconciled run_id={audit.get_dispatch(args.dispatch_id)['workflow_run_id']} "
-            f"and exact head {receipt.expected_head_sha}."
-        )
+        record = audit.get_dispatch(args.dispatch_id)
+        if record is None:
+            raise RuntimeError("The reconciled dispatch audit record could not be reloaded.")
+        run_id = record.get("workflow_run_id")
+        if type(run_id) is not int or run_id < 1:
+            raise RuntimeError("The reconciled dispatch does not contain a valid workflow run ID.")
+        print(f"Reconciled run_id={run_id} and exact head {receipt.expected_head_sha}.")
         print(
             "This confirms run identity/SHA only; Phase III evidence ingestion is still required."
         )
@@ -335,8 +357,7 @@ def _reconcile(args: argparse.Namespace, settings: Phase4Settings) -> int:
 def _verify_review(args: argparse.Namespace, settings: Phase4Settings) -> int:
     if not args.confirm_staging_review:
         raise ValueError("Pass --confirm-staging-review to record a real GitHub review audit.")
-    reviewers = _csv_setting(os.environ, "PHASE4_ALLOWED_REVIEWERS")
-    verifier = GitHubReviewVerifier(allowed_reviewers=reviewers)
+    verifier = GitHubReviewVerifier(allowed_reviewers=settings.allowed_reviewers)
     audit = SQLAlchemyHumanReviewAuditLog(settings.audit_database_url)
     try:
         approvals = verifier.verify_current_approvals(
@@ -392,7 +413,9 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
-        settings = load_staging_settings()
+        settings = load_staging_settings(
+            require_dispatch_enabled=args.command == "dispatch"
+        )
         if args.command == "dispatch":
             return _dispatch(args, settings)
         if args.command == "reconcile":
