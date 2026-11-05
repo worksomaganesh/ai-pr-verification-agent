@@ -1,0 +1,39 @@
+name: Phase IV staging dispatch verification
+
+run-name: verification-dispatch:${{ inputs.verification_dispatch_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      verification_dispatch_id:
+        description: Correlation ID added by the Phase IV audited coordinator
+        required: true
+        type: string
+      expected_head_sha:
+        description: Commit SHA authorized by the Phase IV operator
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  verify-staging-dispatch:
+    name: Verify staging dispatch correlation and exact SHA
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 3
+    steps:
+      - name: Verify correlation ID and exact selected commit
+        shell: bash
+        env:
+          DISPATCH_ID: ${{ inputs.verification_dispatch_id }}
+          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+        run: |
+          set -euo pipefail
+          [[ "$DISPATCH_ID" =~ ^[0-9a-f]{32}$ ]]
+          [[ "$EXPECTED_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$GITHUB_SHA" == "$EXPECTED_HEAD_SHA" ]] || {
+            echo "Selected staging ref does not match the authorized commit." >&2
+            exit 1
+          }
+          echo "Staging dispatch correlation and exact commit identity verified."
