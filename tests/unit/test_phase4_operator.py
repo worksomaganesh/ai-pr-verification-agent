@@ -114,7 +114,7 @@ def test_ref_preflight_requires_exact_expected_sha() -> None:
         expected_head_sha=expected,
         http_client=client,
     )
-    assert requests == ["/repos/acme/service/commits/phase-4%2Fstaging"]
+    assert requests == ["/repos/acme/service/commits/phase-4/staging"]
     client.close()
 
 
