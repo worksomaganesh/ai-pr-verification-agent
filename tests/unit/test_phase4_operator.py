@@ -105,7 +105,7 @@ def test_ref_preflight_requires_exact_expected_sha() -> None:
 
     client = httpx.Client(base_url="https://api.github.com", transport=httpx.MockTransport(handler))
     verify_ref_head(
-        token="dummy-value",
+        token="fixture",
         repository="acme/service",
         ref="phase-4/staging",
         expected_head_sha=expected,
@@ -122,7 +122,7 @@ def test_ref_preflight_fails_before_dispatch_on_stale_sha() -> None:
     )
     with pytest.raises(RuntimeError, match="no dispatch was sent"):
         verify_ref_head(
-            token="test-token",
+            token="fixture",
             repository="acme/service",
             ref="staging",
             expected_head_sha="a" * 40,
@@ -138,7 +138,7 @@ def test_ref_preflight_rejects_unavailable_remote_state() -> None:
     )
     with pytest.raises(RuntimeError, match="no dispatch was sent"):
         verify_ref_head(
-            token="test-token",
+            token="fixture",
             repository="acme/service",
             ref="staging",
             expected_head_sha="a" * 40,
