@@ -141,7 +141,10 @@ def load_staging_settings(
         raise ValueError("PHASE4_ENVIRONMENT must be exactly 'staging'.")
     if type(require_dispatch_enabled) is not bool:
         raise ValueError("require_dispatch_enabled must be a boolean.")
-    if require_dispatch_enabled and source.get("PHASE4_DISPATCH_ENABLED", "").strip().casefold() != "true":
+    if (
+        require_dispatch_enabled
+        and source.get("PHASE4_DISPATCH_ENABLED", "").strip().casefold() != "true"
+    ):
         raise ValueError(
             "PHASE4_DISPATCH_ENABLED must be explicitly set to 'true' for a dispatch action."
         )
@@ -413,9 +416,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
-        settings = load_staging_settings(
-            require_dispatch_enabled=args.command == "dispatch"
-        )
+        settings = load_staging_settings(require_dispatch_enabled=args.command == "dispatch")
         if args.command == "dispatch":
             return _dispatch(args, settings)
         if args.command == "reconcile":
