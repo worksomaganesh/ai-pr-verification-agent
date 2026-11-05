@@ -211,8 +211,10 @@ def parse_coverage_manifest(text: str | bytes) -> CoverageManifest:
             field,
         )
         node_id = item["node_id"]
-        if not isinstance(node_id, str) or not node_id.strip() or len(node_id) > 500:
-            raise CoverageManifestError(f"{field}.node_id must be non-empty and at most 500 chars.")
+        if not isinstance(node_id, str) or not node_id.strip() or len(node_id) > 10_000:
+            raise CoverageManifestError(
+                f"{field}.node_id must be non-empty and at most 10000 chars."
+            )
         if node_id in seen_node_ids:
             raise CoverageManifestError(f"Duplicate test node ID: {node_id!r}.")
         seen_node_ids.add(node_id)
