@@ -8,7 +8,9 @@ on:
       - "tests/unit/test_dispatch_governance.py"
       - "src/verification_core/human_governance.py"
       - "tests/unit/test_human_governance.py"
+      - "tests/unit/test_phase4_operator.py"
       - "src/verification_core/workflow_dispatch.py"
+      - "src/verification_core/phase4_operator.py"
       - "tests/unit/test_workflow_dispatch.py"
       - "pyproject.toml"
   push:
@@ -27,7 +29,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install -e ".[dev]"
-      - run: ruff format --check src/verification_core/dispatch_governance.py tests/unit/test_dispatch_governance.py src/verification_core/human_governance.py tests/unit/test_human_governance.py
+      - run: ruff format --check src/verification_core/dispatch_governance.py tests/unit/test_dispatch_governance.py src/verification_core/human_governance.py tests/unit/test_human_governance.py src/verification_core/phase4_operator.py tests/unit/test_phase4_operator.py
       - run: ruff check src/verification_core/dispatch_governance.py tests/unit/test_dispatch_governance.py src/verification_core/human_governance.py tests/unit/test_human_governance.py
       - run: mypy src/verification_core/dispatch_governance.py src/verification_core/human_governance.py
       - run: pytest -q tests/unit/test_dispatch_governance.py tests/unit/test_workflow_dispatch.py tests/unit/test_human_governance.py
