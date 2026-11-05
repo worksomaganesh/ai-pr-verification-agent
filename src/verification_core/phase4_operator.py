@@ -277,9 +277,7 @@ def _dispatch(args: argparse.Namespace, settings: Phase4Settings) -> int:
             expected_head_sha=args.expected_head_sha,
             inputs=inputs,
         )
-        print(
-            f"Staging dispatch submitted; verification pending. ID={receipt.dispatch_id}"
-        )
+        print(f"Staging dispatch submitted; verification pending. ID={receipt.dispatch_id}")
         print(
             "Next command: ai-pr-verification-phase4 reconcile --dispatch-id " + receipt.dispatch_id
         )
@@ -312,9 +310,7 @@ def _reconcile(args: argparse.Namespace, settings: Phase4Settings) -> int:
     try:
         receipt = coordinator.reconcile(access_token=settings.token, dispatch_id=args.dispatch_id)
         if receipt is None:
-            print(
-                "Correlated run is not visible yet; audit remains submitted_unreconciled."
-            )
+            print("Correlated run is not visible yet; audit remains submitted_unreconciled.")
             return 3
         print(
             f"Reconciled run_id={audit.get_dispatch(args.dispatch_id)['workflow_run_id']} "
