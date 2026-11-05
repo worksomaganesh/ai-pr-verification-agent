@@ -4,6 +4,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+from pathlib import Path
+
+from _pytest.capture import CaptureFixture
+from _pytest.monkeypatch import MonkeyPatch
 
 import httpx
 import pytest
@@ -253,7 +257,7 @@ def test_ref_preflight_rejects_bad_sha_malformed_json_and_oversized_response() -
     oversized.close()
 
 
-def test_read_inputs_file_validates_size_json_and_string_mapping(tmp_path) -> None:
+def test_read_inputs_file_validates_size_json_and_string_mapping(tmp_path: Path) -> None:
     from verification_core.phase4_operator import _read_inputs_file
 
     valid = tmp_path / "inputs.json"
@@ -278,10 +282,7 @@ def test_bind_expected_sha_rejects_malformed_commit_identity() -> None:
         _bind_expected_head_sha({}, "not-a-sha")
 
 
-def test_dispatch_operator_requires_confirmation_and_known_workflow(
-    tmp_path,
-    monkeypatch,
-) -> None:
+def test_dispatch_operator_requires_confirmation_and_known_workflow() -> None:
     import argparse
 
     from verification_core import phase4_operator
@@ -304,7 +305,11 @@ def test_dispatch_operator_requires_confirmation_and_known_workflow(
         phase4_operator._dispatch(argparse.Namespace(**invalid_sha), settings)
 
 
-def test_dispatch_operator_binds_sha_and_closes_resources(tmp_path, monkeypatch, capsys) -> None:
+def test_dispatch_operator_binds_sha_and_closes_resources(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture[str],
+) -> None:
     import argparse
 
     from verification_core import phase4_operator
@@ -314,10 +319,13 @@ def test_dispatch_operator_binds_sha_and_closes_resources(tmp_path, monkeypatch,
     inputs_path = tmp_path / "operator-inputs.json"
     inputs_path.write_text(json.dumps({"dry_run": "true"}), encoding="utf-8")
     settings = load_staging_settings(environment())
-    calls: dict[str, object] = {"preflight": 0, "closed": []}
+    calls: dict[str, object] = {}
+    closed: list[str] = []
+    preflight_count = 0
 
     def preflight(**kwargs: object) -> None:
-        calls["preflight"] = int(calls["preflight"]) + 1
+        nonlocal preflight_count
+        preflight_count += 1
         assert kwargs["expected_head_sha"] == expected
 
     class FakeAuthenticator:
@@ -325,24 +333,18 @@ def test_dispatch_operator_binds_sha_and_closes_resources(tmp_path, monkeypatch,
             pass
 
         def close(self) -> None:
-            cast_list = calls["closed"]
-            assert isinstance(cast_list, list)
-            cast_list.append("auth")
+            closed.append("auth")
 
     class FakeAudit:
         def __init__(self, _url: str) -> None:
             pass
 
         def close(self) -> None:
-            cast_list = calls["closed"]
-            assert isinstance(cast_list, list)
-            cast_list.append("audit")
+            closed.append("audit")
 
     class FakeRunVerifier:
         def close(self) -> None:
-            cast_list = calls["closed"]
-            assert isinstance(cast_list, list)
-            cast_list.append("verifier")
+            closed.append("verifier")
 
     class FakeCoordinator:
         def __init__(self, **kwargs: object) -> None:
@@ -376,14 +378,16 @@ def test_dispatch_operator_binds_sha_and_closes_resources(tmp_path, monkeypatch,
         confirm_staging=True,
     )
     assert phase4_operator._dispatch(args, settings) == 0
-    assert calls["preflight"] == 1
-    assert calls["closed"] == ["verifier", "audit", "auth"]
+    assert preflight_count == 1
+    assert closed == ["verifier", "audit", "auth"]
     output = capsys.readouterr().out
     assert "verification pending" in output
     assert "reconcile --dispatch-id" in output
 
 
-def test_dispatch_operator_rejects_conflicting_sha_from_inputs_file(tmp_path, monkeypatch) -> None:
+def test_dispatch_operator_rejects_conflicting_sha_from_inputs_file(
+    tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
     import argparse
 
     from verification_core import phase4_operator
@@ -407,7 +411,9 @@ def test_dispatch_operator_rejects_conflicting_sha_from_inputs_file(tmp_path, mo
         phase4_operator._dispatch(args, settings)
 
 
-def test_reconcile_operator_handles_pending_and_successful_run(monkeypatch, capsys) -> None:
+def test_reconcile_operator_handles_pending_and_successful_run(
+    monkeypatch: MonkeyPatch, capsys: CaptureFixture[str]
+) -> None:
     import argparse
 
     from verification_core import phase4_operator
@@ -472,7 +478,9 @@ def test_reconcile_operator_handles_pending_and_successful_run(monkeypatch, caps
     assert "Phase III evidence ingestion is still required" in output
 
 
-def test_reconcile_operator_rejects_invalid_dispatch_id_and_missing_record(monkeypatch) -> None:
+def test_reconcile_operator_rejects_invalid_dispatch_id_and_missing_record(
+    monkeypatch: MonkeyPatch,
+) -> None:
     import argparse
 
     from verification_core import phase4_operator
@@ -507,7 +515,7 @@ def test_reconcile_operator_rejects_invalid_dispatch_id_and_missing_record(monke
         def __init__(self, **_kwargs: object) -> None:
             pass
 
-        def reconcile(self, **_kwargs: object):
+        def reconcile(self, **_kwargs: object) -> DispatchReceipt:
             from verification_core.dispatch_governance import DispatchReceipt
 
             return DispatchReceipt(
@@ -529,7 +537,7 @@ def test_reconcile_operator_rejects_invalid_dispatch_id_and_missing_record(monke
 
 
 def test_verify_review_operator_requires_confirmation_and_records_approvals(
-    monkeypatch, capsys
+    monkeypatch: MonkeyPatch, capsys: CaptureFixture[str]
 ) -> None:
     import argparse
     from types import SimpleNamespace
@@ -584,7 +592,9 @@ def test_verify_review_operator_requires_confirmation_and_records_approvals(
     assert "1 new approval record" in capsys.readouterr().out
 
 
-def test_verify_review_operator_reports_no_qualifying_approval(monkeypatch, capsys) -> None:
+def test_verify_review_operator_reports_no_qualifying_approval(
+    monkeypatch: MonkeyPatch, capsys: CaptureFixture[str]
+) -> None:
     import argparse
 
     from verification_core import phase4_operator
@@ -621,7 +631,7 @@ def test_verify_review_operator_reports_no_qualifying_approval(monkeypatch, caps
 
 
 def test_main_dispatches_selected_command_and_sanitizes_operator_errors(
-    monkeypatch, capsys
+    monkeypatch: MonkeyPatch, capsys: CaptureFixture[str]
 ) -> None:
     from verification_core import phase4_operator
 
