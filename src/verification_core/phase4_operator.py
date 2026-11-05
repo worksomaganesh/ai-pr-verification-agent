@@ -58,7 +58,7 @@ def _csv_setting(environment: Mapping[str, str], name: str) -> tuple[str, ...]:
     values = tuple(part.strip() for part in raw.split(",") if part.strip())
     if not values:
         raise ValueError(f"{name} must contain at least one value.")
-    if len({value.casefold() for value in values} != len(values):
+    if len({value.casefold() for value in values}) != len(values):
         raise ValueError(f"{name} must not contain duplicate values.")
     return values
 
