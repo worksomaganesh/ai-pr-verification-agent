@@ -197,7 +197,9 @@ def verify_ref_head(
     try:
         with client.stream("GET", path, follow_redirects=False) as response:
             if response.status_code != 200:
-                raise RuntimeError("GitHub could not verify the requested staging ref.")
+                raise RuntimeError(
+                    "GitHub could not verify the requested staging ref; no dispatch was sent."
+                )
             body = bytearray()
             for chunk in response.iter_bytes():
                 if len(body) + len(chunk) > 64 * 1024:
