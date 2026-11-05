@@ -6,11 +6,10 @@ import hashlib
 import json
 from pathlib import Path
 
-from _pytest.capture import CaptureFixture
-from _pytest.monkeypatch import MonkeyPatch
-
 import httpx
 import pytest
+from _pytest.capture import CaptureFixture
+from _pytest.monkeypatch import MonkeyPatch
 
 from verification_core.phase4_operator import (
     _bind_expected_head_sha,
