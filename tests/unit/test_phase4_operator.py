@@ -484,6 +484,7 @@ def test_reconcile_operator_rejects_invalid_dispatch_id_and_missing_record(
     import argparse
 
     from verification_core import phase4_operator
+    from verification_core.dispatch_governance import DispatchReceipt
 
     settings = load_staging_settings(environment())
     args = argparse.Namespace(dispatch_id="../unsafe", confirm_staging=True)
