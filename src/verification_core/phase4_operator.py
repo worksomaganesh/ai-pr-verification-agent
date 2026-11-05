@@ -248,6 +248,12 @@ def _dispatch(args: argparse.Namespace, settings: Phase4Settings) -> int:
         expected_head_sha=args.expected_head_sha,
     )
     inputs = _read_inputs_file(args.inputs_file)
+    supplied_head = inputs.get("expected_head_sha")
+    if supplied_head is not None and supplied_head != args.expected_head_sha:
+        raise ValueError(
+            "The inputs file expected_head_sha must match --expected-head-sha exactly."
+        )
+    inputs["expected_head_sha"] = args.expected_head_sha
     authenticator = GitHubOperatorAuthenticator(allowed_logins=settings.allowed_logins)
     audit = SQLAlchemyDispatchAuditLog(settings.audit_database_url)
     run_verifier = GitHubWorkflowRunVerifier()
