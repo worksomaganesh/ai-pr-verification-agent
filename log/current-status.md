@@ -1,25 +1,20 @@
 # Current Verified Status
 
-## Latest integrated Phase III + Phase IV checkpoint — 2026-11-04
+## Latest integrated Phase III + Phase IV checkpoint — 2026-11-05
 
-- Current branch: `phase-4-opt-in-dispatch`.
-- Current exact head: `0c9ef6056123ad3b5b9103e85d31b0a9648b8068` (the last commit changes documentation/handoff records; source modules are unchanged from the previous tested source checkpoint).
-- Combined full CI: [run #41850967572](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41850967572), **success on the exact head**.
-- Main quality job: formatting, Ruff, strict mypy passed; **687 tests passed**, one non-blocking Starlette/httpx deprecation warning; overall coverage **90.23%**, Phase I core **96.39%**, Phase II integration **85.99%**. All configured coverage gates passed.
-- Exact-head evidence producer: passed; artifact `verification-evidence`, ID `13335151007`, 49,841 bytes, GitHub SHA-256 `30d2efc2f3b0b5abfd9b3882c78c6a902781f21c4f7aa247b7370738529f1bc8`. CI log confirms the artifact was uploaded for head `0c9ef6056123ad3b5b9103e85d31b0a9648b8068`; this latest archive has not been independently downloaded and parsed.
-- Focused Phase IV governance CI: [run #41850967471](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41850967471), success. Its job passed formatting, Ruff, strict mypy, dispatch governance, workflow-dispatch and human-governance tests.
-- Previous source-bearing exact-head checkpoint: `3046eeb2681e0102f4ca9b978802e008a6baa13a`; full run #41850039278 and focused run #41850039261 passed. Artifact `13334261929` was independently downloaded and inspected: 687 matching passing JUnit/manifest records, zero failures/errors/skips; all behavioral assertion flags false.
-- Phase III integration is confirmed by commit graph: PR #6 head `9611cbc6504f3844770540c9d45f87864bdfae08` is an ancestor of Phase IV head (72 commits ahead, 0 behind). The explicit two-parent integration commit is `8a17bd22abcfdea02111f7fa7768c5ba9b4c29a1`.
-- Phase IV source implementation includes guarded dispatch, workflow/input allowlists, operator identity/permission checks, write-ahead dispatch audit, duplicate prevention, exact-SHA run reconciliation, human-review verification/audit and state-machine integration.
-- **Still not operationally accepted:** no staging operator entry point exercised, no real workflow dispatched, no live Phase III deployment smoke test, and no human release approval. PR #9 is still draft; PR #6 remains open/draft as a separate review surface even though its head is already in PR #9's branch history. Keep production merge gating disabled.
-
----
+- Current branch: `phase-4-opt-in-dispatch`; integrated PR: #9 (open, draft).
+- Exact current PR head: `9ca28e185c586ec3b05549635baca2482fda35b6`.
+- Full CI run [#42055438789](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/42055438789): **success on exact head**. Ruff format, Ruff lint, strict mypy, all tests and all coverage gates passed; exact-head evidence producer succeeded.
+- Focused Phase IV governance run [#42055438742](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/42055438742): **success on the same exact head**.
+- Test result: **710 passed**, 1 non-blocking warning. Coverage: overall **90.28%**, Phase I core **96.39%**, Phase II integration **85.99%**.
+- Exact-head artifact: `verification-evidence`, ID `13429121701`, size 51,738 bytes, digest `sha256:679cae107d2488a39c9396d95231a651b12bbe28bfa4863b4d6cb6710b1dfc6e`. Downloaded bytes independently match the digest. ZIP contains exactly `junit.xml` and `coverage-manifest.json`; both contain 710 unique matching test IDs, all pass, and the manifest head SHA equals the exact PR head. All behavioral assertion flags remain false.
+- The staging workflow is registered on `main` in commit [`59b3610`](https://github.com/worksomaganesh/ai-pr-verification-agent/commit/59b361012e47f5c62db6d508a87b040f1297a623) and present on the Phase IV branch. This is registration only, not a live dispatch.
+- Phase III integration is present in the Phase IV branch via merge commit `8a17bd22abcfdea02111f7fa7768c5ba9b4c29a1`.
+- **Operational gates still open:** no live operator-mediated staging dispatch/reconciliation; no deployed Phase III App/webhook/worker/database/Check Run smoke test; no human/faculty review or release acceptance. The GitHub `staging` environment protection rules and credentials have not been verified in this execution context. PR #9 remains draft and production merge gating must remain disabled.
 
 ---
 
-# Current Verified Status
-
-## Authoritative Phase III snapshot — 2026-10-27
+# Historical Verification Records (retained for traceability)Authoritative Phase III snapshot — 2026-10-27
 
 - Latest code + documentation head: `64700d7ed575296e6874a185938ef585e0f7c5de`.
 - Exact-head GitHub Actions run [#40464702014](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/40464702014): **success**; both quality and exact-PR-head evidence-producer jobs passed on this SHA.
