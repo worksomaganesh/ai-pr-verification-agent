@@ -639,3 +639,15 @@ This confirms the corrected test suite is green and all three coverage threshold
 - Do not make any further commits while the next exact-head full CI is running.
 - Wait for the complete Phase II CI and dependent evidence job; inspect the artifact and only then update this journal.
 - Focused governance success remains supplementary; it does not substitute for full CI.
+
+---
+
+## Phase IV checkpoint — 2026-11-05
+
+- Latest branch head: `2fa034b49bda71ecf5edaf561dd537bfe7a8e25f`.
+- Fixed the CI workflow's duplicate YAML `push` key. The full workflow now has one push trigger covering both `main` and `phase-4-opt-in-dispatch`, retains pull-request validation for PRs targeting `main`, and keeps manual dispatch.
+- Focused Phase IV governance run [#42051867598](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/42051867598) passed on the prior code head `55d4a18421e6c9ddfb8624c02d5e2a364ad1adef`: Ruff format, Ruff lint, strict mypy, and the dispatch/workflow/human-governance/operator test suites.
+- The latest full coverage run remains [#41850967572](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/41850967572) on `0c9ef6056123ad3b5b9103e85d31b0a9648b8068`: 687 tests passed; overall 90.23%, Phase I 96.39%, Phase II 85.99%. It is not an exact-head full-gate result for the current head.
+- A full-gate run for `2fa034b` has not yet been observed. Do not report current-head coverage as verified until the new run finishes.
+- Phase IV remains operationally incomplete: no real staging workflow dispatch, no live Phase III deployment smoke test, and no human release approval. PR #9 remains draft; production merge gating stays disabled.
+
