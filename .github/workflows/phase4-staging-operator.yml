@@ -1,0 +1,137 @@
+name: Phase IV staging operator
+
+run-name: Phase IV staging dispatch — ${{ inputs.expected_head_sha }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_head_sha:
+        description: Exact current head SHA of phase-4-opt-in-dispatch
+        required: true
+        type: string
+      confirmation:
+        description: Explicitly authorize one non-production staging dispatch
+        required: true
+        type: choice
+        options:
+          - NO
+          - I_AUTHORIZE_ONE_STAGING_DISPATCH
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase4-staging-operator
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    if: ${{ github.actor == 'worksomaganesh' && inputs.confirmation == 'I_AUTHORIZE_ONE_STAGING_DISPATCH' }}
+    name: Audited staging dispatch and reconciliation
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    environment:
+      name: staging
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: phase4
+          POSTGRES_PASSWORD: phase4-${{ github.run_id }}-${{ github.run_attempt }}
+          POSTGRES_DB: phase4_audit
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U phase4 -d phase4_audit"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      PHASE4_ENVIRONMENT: staging
+      PHASE4_DISPATCH_ENABLED: "true"
+      PHASE4_GITHUB_TOKEN: ${{ secrets.PHASE4_GITHUB_TOKEN }}
+      PHASE4_REPOSITORY: worksomaganesh/ai-pr-verification-agent
+      PHASE4_AUDIT_DATABASE_URL: postgresql+psycopg://phase4:phase4-${{ github.run_id }}-${{ github.run_attempt }}@localhost:5432/phase4_audit
+      PHASE4_ALLOWED_WORKFLOWS: phase4-staging-dispatch.yml
+      PHASE4_OPERATOR_ALLOWED_LOGINS: worksomaganesh
+      PHASE4_ALLOWED_REVIEWERS: worksomaganesh
+      PHASE4_WORKFLOW_INPUT_SCHEMAS: >-
+        {"phase4-staging-dispatch.yml":{"verification_dispatch_id":{"required":true,"max_length":32,"pattern":"[0-9a-f]{32}"},"expected_head_sha":{"required":true,"max_length":40,"pattern":"[0-9a-f]{40}"}}}
+    steps:
+      - name: Reject missing token and unauthorized confirmation
+        shell: bash
+        env:
+          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          test -n "$PHASE4_GITHUB_TOKEN" || {
+            echo "Missing staging Environment secret PHASE4_GITHUB_TOKEN." >&2
+            exit 1
+          }
+          [[ "$EXPECTED_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$CONFIRMATION" == "I_AUTHORIZE_ONE_STAGING_DISPATCH" ]]
+          [[ "$GITHUB_ACTOR" == "worksomaganesh" ]]
+
+      - name: Check out the exact Phase IV head being dispatched
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ inputs.expected_head_sha }}
+          persist-credentials: false
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install the operator runtime
+        run: |
+          python -m pip install --disable-pip-version-check -e ".[integration]"
+
+      - name: Dispatch exactly one allowlisted staging workflow
+        id: dispatch
+        shell: bash
+        env:
+          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+        run: |
+          set -euo pipefail
+          log_file="$(mktemp)"
+          python -m verification_core.phase4_operator dispatch \
+            --workflow phase4-staging-dispatch.yml \
+            --ref phase-4-opt-in-dispatch \
+            --expected-head-sha "$EXPECTED_HEAD_SHA" \
+            --confirm-staging | tee "$log_file"
+
+          dispatch_id="$(sed -nE 's/^Staging dispatch submitted; verification pending\. ID=([0-9a-f]{32})$/\1/p' "$log_file" | tail -n 1)"
+          rm -f "$log_file"
+          [[ "$dispatch_id" =~ ^[0-9a-f]{32}$ ]] || {
+            echo "The operator CLI did not return a valid dispatch identifier." >&2
+            exit 1
+          }
+          echo "dispatch_id=$dispatch_id" >> "$GITHUB_OUTPUT"
+
+      - name: Reconcile the unique workflow run against the authorized SHA
+        shell: bash
+        env:
+          DISPATCH_ID: ${{ steps.dispatch.outputs.dispatch_id }}
+        run: |
+          set -euo pipefail
+          [[ "$DISPATCH_ID" =~ ^[0-9a-f]{32}$ ]]
+          for attempt in $(seq 1 20); do
+            set +e
+            output="$(python -m verification_core.phase4_operator reconcile \
+              --dispatch-id "$DISPATCH_ID" --confirm-staging 2>&1)"
+            result=$?
+            set -e
+            printf '%s\n' "$output"
+            if [[ "$result" -eq 0 ]]; then
+              exit 0
+            fi
+            if [[ "$result" -ne 3 ]]; then
+              exit "$result"
+            fi
+            sleep 5
+          done
+          echo "No unique correlated workflow run was visible before the reconciliation deadline." >&2
+          exit 1
