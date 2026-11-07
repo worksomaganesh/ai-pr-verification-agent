@@ -191,6 +191,17 @@ def test_dispatch_reconciles_exact_sha(tmp_path: Path) -> None:
     audit.close()
 
 
+def test_dispatch_reconciles_github_run_id_above_32_bit_range(tmp_path: Path) -> None:
+    large_run_id = 42_365_086_398
+    coordinator, audit, _ = setup(tmp_path, runs=[payload(run_id=large_run_id)])
+    dispatch(coordinator)
+    receipt = coordinator.reconcile(access_token=ACCESS, dispatch_id=DISPATCH_ID, now=1_001)
+    record = audit.get_dispatch(DISPATCH_ID)
+    assert receipt is not None and receipt.state == "reconciled"
+    assert record is not None and record["workflow_run_id"] == large_run_id
+    audit.close()
+
+
 def test_dispatch_mismatched_sha_fails_closed(tmp_path: Path) -> None:
     coordinator, audit, _ = setup(tmp_path, runs=[payload(sha=OTHER_HEAD)])
     dispatch(coordinator)
