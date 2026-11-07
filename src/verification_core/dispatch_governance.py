@@ -15,15 +15,16 @@ from urllib.parse import quote
 
 import httpx
 from sqlalchemy import (
+    BigInteger,
     Column,
     Float,
-    BigInteger,
     MetaData,
     String,
     Table,
     create_engine,
     insert,
     select,
+    text,
     update,
 )
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -236,6 +237,14 @@ class SQLAlchemyDispatchAuditLog:
                     max_overflow=max_overflow,
                 )
             _METADATA.create_all(self._engine)
+            if self._engine.dialect.name == "postgresql":
+                with self._engine.begin() as connection:
+                    connection.execute(
+                        text(
+                            "ALTER TABLE workflow_dispatch_audit "
+                            "ALTER COLUMN workflow_run_id TYPE BIGINT"
+                        )
+                    )
         except SQLAlchemyError:
             raise DispatchAuditError("Could not initialize the dispatch audit database.") from None
 
