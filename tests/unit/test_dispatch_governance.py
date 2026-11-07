@@ -8,6 +8,7 @@ from typing import Any
 
 import httpx
 import pytest
+from sqlalchemy import BigInteger
 
 from verification_core.dispatch_governance import (
     DispatchAuditError,
@@ -20,6 +21,7 @@ from verification_core.dispatch_governance import (
     GitHubWorkflowRunVerifier,
     SQLAlchemyDispatchAuditLog,
     WorkflowDispatchCoordinator,
+    _DISPATCHES,
 )
 
 REPOSITORY = "acme/service"
@@ -200,6 +202,10 @@ def test_dispatch_reconciles_github_run_id_above_32_bit_range(tmp_path: Path) ->
     assert receipt is not None and receipt.state == "reconciled"
     assert record is not None and record["workflow_run_id"] == large_run_id
     audit.close()
+
+
+def test_dispatch_audit_schema_uses_64_bit_run_id() -> None:
+    assert isinstance(_DISPATCHES.c.workflow_run_id.type, BigInteger)
 
 
 def test_dispatch_mismatched_sha_fails_closed(tmp_path: Path) -> None:
