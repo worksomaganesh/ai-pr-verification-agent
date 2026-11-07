@@ -1,16 +1,32 @@
 # Current Verified Status
 
-## Latest integrated Phase III + Phase IV checkpoint — 2026-11-05
+## Current Phase IV checkpoint — 7 November 2026
 
-- Current branch: `phase-4-opt-in-dispatch`; integrated PR: #9 (open, draft).
-- Exact current PR head: `9ca28e185c586ec3b05549635baca2482fda35b6`.
-- Full CI run [#42055438789](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/42055438789): **success on exact head**. Ruff format, Ruff lint, strict mypy, all tests and all coverage gates passed; exact-head evidence producer succeeded.
-- Focused Phase IV governance run [#42055438742](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/42055438742): **success on the same exact head**.
-- Test result: **710 passed**, 1 non-blocking warning. Coverage: overall **90.28%**, Phase I core **96.39%**, Phase II integration **85.99%**.
-- Exact-head artifact: `verification-evidence`, ID `13429121701`, size 51,738 bytes, digest `sha256:679cae107d2488a39c9396d95231a651b12bbe28bfa4863b4d6cb6710b1dfc6e`. Downloaded bytes independently match the digest. ZIP contains exactly `junit.xml` and `coverage-manifest.json`; both contain 710 unique matching test IDs, all pass, and the manifest head SHA equals the exact PR head. All behavioral assertion flags remain false.
-- The staging workflow is registered on `main` in commit [`59b3610`](https://github.com/worksomaganesh/ai-pr-verification-agent/commit/59b361012e47f5c62db6d508a87b040f1297a623) and present on the Phase IV branch. This is registration only, not a live dispatch.
-- Phase III integration is present in the Phase IV branch via merge commit `8a17bd22abcfdea02111f7fa7768c5ba9b4c29a1`.
-- **Operational gates still open:** no live operator-mediated staging dispatch/reconciliation; no deployed Phase III App/webhook/worker/database/Check Run smoke test; no human/faculty review or release acceptance. The GitHub `staging` environment protection rules and credentials have not been verified in this execution context. PR #9 remains draft and production merge gating must remain disabled.
+- Current branch: `phase-4-opt-in-dispatch`; integrated PR #9 remains open and draft.
+- Latest source head after the 64-bit audit-ID remediation: `a898506fef046b453d3a04d14b03a5772138600e`.
+- Previous exact-head checkpoint `851d94369cccb17c0fce2bb084332afaa097f656` passed full CI run [#42065231885](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/42065231885) and focused Phase IV governance run [#42065232420](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/42065232420). The new remediation head still requires its own exact-head CI verification.
+- Owner configured the repository Environment secret `staging` → `PHASE4_GITHUB_TOKEN`. The secret value is intentionally not recorded in source or project logs.
+- First owner-authorized staging operator attempt: [run #42365086398](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/42365086398), targeting exact Phase IV head `851d94369cccb17c0fce2bb084332afaa097f656`.
+  - Token-presence/owner/confirmation checks, exact-SHA checkout, Python setup, and operator-runtime installation passed.
+  - The operator successfully submitted one `phase4-staging-dispatch.yml` workflow dispatch; correlation ID: `0c8383a3e0b6426793ab4c556144a021`.
+  - Reconciliation subsequently failed while updating PostgreSQL `workflow_dispatch_audit.workflow_run_id`: PostgreSQL reported `integer out of range`. The column was declared as a 32-bit SQL `INTEGER`, while GitHub Actions run IDs exceed that range.
+  - Therefore the dispatch request was accepted, but the audit record was not successfully reconciled/persisted. Do not count this as completed staging acceptance, and do not blindly rerun the failed operator job because it would issue another external dispatch.
+  - Node.js 20 action deprecation and `ubuntu-latest` migration notices were non-blocking and unrelated to the exit code.
+- Remediation committed on the Phase IV branch:
+  - `workflow_dispatch_audit.workflow_run_id` now uses SQLAlchemy `BigInteger`; PostgreSQL startup migration widens an existing column to `BIGINT`.
+  - `human_review_approvals.review_id` now also uses `BigInteger`, with an idempotent PostgreSQL widening migration, because GitHub review IDs have the same large-integer property.
+  - Regression tests cover large identifiers (including `42_365_086_398`) and assert the audit schema uses 64-bit types.
+  - Relevant commits: [`89c0893`](https://github.com/worksomaganesh/ai-pr-verification-agent/commit/89c089305d7c84a0c5b49902efb2315d6411bfd6), [`f0e64e6`](https://github.com/worksomaganesh/ai-pr-verification-agent/commit/f0e64e6701f4ba031e20cbca10f1abc333c648cc), [`a898506`](https://github.com/worksomaganesh/ai-pr-verification-agent/commit/a898506fef046b453d3a04d14b03a5772138600e).
+- **Next gates:** verify CI on exact head `a898506fef046b453d3a04d14b03a5772138600e`; inspect the child staging run with correlation marker above to verify its exact SHA and conclusion; then launch a fresh, explicitly authorized staging operator run against the corrected code and confirm durable reconciliation. The Phase III deployed smoke test and human/faculty review remain outstanding.
+- PR #9 remains draft. Keep production merge gating disabled.
+
+## Previous integrated Phase III + Phase IV checkpoint — 5 November 2026
+
+- Previous exact PR head: `851d94369cccb17c0fce2bb084332afaa097f656`.
+- Full CI run [#42065231885](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/42065231885) and focused governance run [#42065232420](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/42065232420) passed on that exact SHA.
+- Test result: **710 passed**, one non-blocking warning. Coverage: overall **90.28%**, Phase I core **96.39%**, Phase II integration **85.99%**.
+- The exact-head evidence artifact for that checkpoint was independently downloaded and its checksum matched GitHub's reported digest.
+
 
 ---
 
