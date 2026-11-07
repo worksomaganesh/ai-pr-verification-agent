@@ -11,7 +11,7 @@ The agent evaluates what behavior could change in a pull request, derives verifi
 <details>
 <summary><strong>Latest integrated verification: passed</strong> — 4 November 2026</summary>
 
-The latest integrated Phase III + IV branch head is `9ca28e185c586ec3b05549635baca2482fda35b6` on `phase-4-opt-in-dispatch` (PR #9). Exact-head GitHub Actions verification completed successfully on 5 November 2026.
+The previous integrated source checkpoint `851d94369cccb17c0fce2bb084332afaa097f656` on `phase-4-opt-in-dispatch` (PR #9) passed exact-head CI on 5 November 2026. The latest audit-ID remediation source commit is `a898506fef046b453d3a04d14b03a5772138600e`; its new CI verification is pending.
 
 | Verification | Result | Required |
 | --- | ---: | ---: |
@@ -25,11 +25,12 @@ The latest integrated Phase III + IV branch head is `9ca28e185c586ec3b05549635ba
 | Exact-head evidence producer | Passed | Pass |
 | Phase IV governance suite | Passed | Pass |
 
-- Full CI run [#42055438789](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/42055438789) passed on the exact PR head `9ca28e185c586ec3b05549635baca2482fda35b6`; both quality and evidence jobs succeeded.
-- Focused Phase IV governance run [#42055438742](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/42055438742) passed on the same SHA.
-- Evidence artifact `verification-evidence`, ID `13429121701`, size 51,738 bytes, GitHub SHA-256 `679cae107d2488a39c9396d95231a651b12bbe28bfa4863b4d6cb6710b1dfc6e`. Downloaded ZIP SHA-256 independently matches.
-- Archive contains exactly `junit.xml` and `coverage-manifest.json`; each contains 710 unique test IDs, the inventories match exactly, all outcomes passed, and the manifest head SHA matches `9ca28e185c586ec3b05549635baca2482fda35b6`. All `behavioral_assertion_verified` flags are false: this proves test execution/coverage and exact-head binding, not semantic adequacy of every assertion.
+- Full CI run [#42065231885](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/42065231885) passed on previous exact head `851d94369cccb17c0fce2bb084332afaa097f656`; both quality and evidence jobs succeeded.
+- Focused Phase IV governance run [#42065232420](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/42065232420) passed on that same SHA.
+- Evidence artifact for the previous checkpoint `verification-evidence`, ID `13433002745`, has GitHub SHA-256 `f548ab23efc090fc32d5be21da697da8b486129f8735d8a0f64bf85bcda74520`; its downloaded ZIP digest matched. The artifact was bound to the then-current exact head. All `behavioral_assertion_verified` flags were false: this proves test execution/coverage and exact-head binding, not semantic adequacy of every assertion.
 - The staging `workflow_dispatch` workflow is registered on `main` in commit [`59b3610`](https://github.com/worksomaganesh/ai-pr-verification-agent/commit/59b361012e47f5c62db6d508a87b040f1297a623), and exists on the Phase IV branch. This registers the workflow but does not mean it has been dispatched.
+- On 7 November 2026, operator run [#42365086398](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/42365086398) passed authentication, exact-SHA checkout, installation, and dispatch. GitHub accepted one staging dispatch, but reconciliation failed when PostgreSQL rejected the 32-bit `workflow_run_id` column (`integer out of range`). The dispatch is not counted as accepted staging completion; the child run's final outcome/SHA still needs independent confirmation.
+- The remediation changes `workflow_run_id` and GitHub human `review_id` fields to 64-bit `BIGINT`, with PostgreSQL widening migrations and regression tests. Latest source fix commit: [`a898506`](https://github.com/worksomaganesh/ai-pr-verification-agent/commit/a898506fef046b453d3a04d14b03a5772138600e). Fresh exact-head CI is pending.
 - Phase III source integration remains present in the Phase IV branch through merge commit `8a17bd22abcfdea02111f7fa7768c5ba9b4c29a1`.
 
 
@@ -39,8 +40,8 @@ The latest integrated Phase III + IV branch head is `9ca28e185c586ec3b05549635ba
 
 The integrated implementation is **CI-verified on the exact current feature-branch head**, but operational/release acceptance is not complete:
 
-- No real Phase IV operator-mediated staging workflow dispatch/reconciliation has been recorded.
-- The staging workflow references the GitHub `staging` environment, but its protection rules and deployment secrets have not been verified from this execution context.
+- One owner-authorized Phase IV staging dispatch was accepted by GitHub, but audit reconciliation failed due the PostgreSQL 32-bit run-ID column. A corrected 64-bit schema is now committed; a successful fresh dispatch/reconciliation is still outstanding.
+- The repository owner has configured the `staging` Environment secret `PHASE4_GITHUB_TOKEN`. The secret value is not stored in source. The old failed operator job must not be blindly rerun because its dispatch step would issue another external dispatch.
 - No live Phase III deployment smoke test has been run against an installed GitHub App, webhook ingress/worker, durable evidence database, and Check Run publication.
 - Human review and release approval remain outstanding. PR #9 remains open and draft; PR #6 also remains open/draft as a historical review surface, even though its code is integrated into PR #9's branch lineage.
 - The Phase IV staging workflow is a bounded dispatch-correlation/exact-SHA check. It is not itself a deployment of the application or a substitute for the Phase III smoke test.
