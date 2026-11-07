@@ -8,6 +8,7 @@ from typing import Any
 
 import httpx
 import pytest
+from sqlalchemy import BigInteger
 
 from verification_core.domain.enums import ObligationSource, ObligationStatus, Severity
 from verification_core.domain.models import CommitIdentity, VerificationObligation
@@ -18,6 +19,7 @@ from verification_core.human_governance import (
     HumanReviewAuditError,
     HumanReviewVerificationError,
     SQLAlchemyHumanReviewAuditLog,
+    _APPROVALS,
     apply_verified_human_approval,
 )
 
@@ -207,6 +209,17 @@ def test_audit_is_append_only_idempotent_and_digest_bound(tmp_path: Path) -> Non
     assert record["recorded_at"] == 100
     assert len(log.list_approvals(REPO, PR, HEAD)) == 1
     assert log.list_approvals(REPO, PR, OTHER) == ()
+    log.close()
+
+
+def test_human_review_audit_stores_large_github_review_ids(tmp_path: Path) -> None:
+    large_review_id = 42_365_086_398
+    log = SQLAlchemyHumanReviewAuditLog(f"sqlite:///{tmp_path / 'large-reviews.sqlite3'}")
+    approval = make_approval(review_id=large_review_id)
+    assert isinstance(_APPROVALS.c.review_id.type, BigInteger)
+    assert log.record_approval(approval, now=100)
+    record = log.get_approval(REPO, PR, large_review_id)
+    assert record is not None and record["review_id"] == large_review_id
     log.close()
 
 
