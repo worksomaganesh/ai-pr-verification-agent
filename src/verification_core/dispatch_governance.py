@@ -17,7 +17,7 @@ import httpx
 from sqlalchemy import (
     Column,
     Float,
-    Integer,
+    BigInteger,
     MetaData,
     String,
     Table,
@@ -58,7 +58,7 @@ _DISPATCHES = Table(
     Column("state", String(40), nullable=False),
     Column("created_at", Float, nullable=False),
     Column("updated_at", Float, nullable=False),
-    Column("workflow_run_id", Integer, nullable=True),
+    Column("workflow_run_id", BigInteger, nullable=True),
     Column("observed_head_sha", String(40), nullable=True),
     Column("failure_code", String(80), nullable=True),
 )
