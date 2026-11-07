@@ -19,6 +19,7 @@ from urllib.parse import quote
 
 import httpx
 from sqlalchemy import (
+    BigInteger,
     Column,
     Float,
     Integer,
@@ -29,6 +30,7 @@ from sqlalchemy import (
     create_engine,
     insert,
     select,
+    text,
 )
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -57,7 +59,7 @@ _APPROVALS = Table(
     _METADATA,
     Column("repository", String(200), primary_key=True),
     Column("pr_number", Integer, primary_key=True),
-    Column("review_id", Integer, primary_key=True),
+    Column("review_id", BigInteger, primary_key=True),
     Column("reviewer_login", String(39), nullable=False),
     Column("base_sha", String(40), nullable=False),
     Column("head_sha", String(40), nullable=False),
@@ -408,6 +410,14 @@ class SQLAlchemyHumanReviewAuditLog:
                     max_overflow=max_overflow,
                 )
             _METADATA.create_all(self._engine)
+            if self._engine.dialect.name == "postgresql":
+                with self._engine.begin() as connection:
+                    connection.execute(
+                        text(
+                            "ALTER TABLE human_review_approvals "
+                            "ALTER COLUMN review_id TYPE BIGINT"
+                        )
+                    )
         except SQLAlchemyError:
             raise HumanReviewAuditError(
                 "Could not initialize the human-review audit database."
