@@ -12,6 +12,8 @@ from coverage import Coverage, CoverageData
 from verification_core.manifest_export import (
     ManifestExportError,
     _junit_node_id,
+    _repository_path,
+    _split_pytest_node_id,
     build_coverage_manifest,
 )
 
@@ -204,3 +206,79 @@ def test_exporter_rejects_coverage_without_branch_data(tmp_path: Path) -> None:
 def test_exporter_rejects_unsafe_context_path(tmp_path: Path) -> None:
     with pytest.raises(ManifestExportError, match="unsafe or non-Python test path"):
         _junit_node_id("tests/../escape.py::test_evil", tmp_path)
+
+
+@pytest.mark.parametrize(
+    "node_id",
+    [
+        "not-a-pytest-node",
+        "tests/test_sample.py::",
+        "tests/test_sample.py::::test_case",
+    ],
+)
+def test_split_pytest_node_id_rejects_missing_or_empty_scopes(node_id: str) -> None:
+    with pytest.raises(ManifestExportError, match="invalid pytest node ID"):
+        _split_pytest_node_id(node_id)
+
+
+@pytest.mark.parametrize(
+    "node_id",
+    [
+        "/outside/test_sample.py::test_case",
+        "tests\\\\test_sample.py::test_case",
+        "tests/../escape.py::test_case",
+    ],
+)
+def test_junit_node_id_rejects_unsafe_or_non_python_paths(node_id: str, tmp_path: Path) -> None:
+    with pytest.raises(ManifestExportError, match=r"invalid pytest node ID|unsafe or non-Python"):
+        _junit_node_id(node_id, tmp_path)
+
+
+def test_repository_path_excludes_external_and_non_python_files(tmp_path: Path) -> None:
+    assert _repository_path(str(tmp_path / "tests" / "test_sample.py"), tmp_path) == (
+        "tests/test_sample.py"
+    )
+    assert _repository_path(str(tmp_path / "tests" / "data.json"), tmp_path) is None
+    assert _repository_path("/outside/test_external.py", tmp_path) is None
+
+
+def test_exporter_rejects_duplicate_junit_node_ids(tmp_path: Path) -> None:
+    coverage_path, junit = _prepare_run(tmp_path)
+    junit.write_text(
+        '<testsuite tests="2">'
+        '<testcase classname="tests.test_sample" name="test_choose[true]"/>'
+        '<testcase classname="tests.test_sample" name="test_choose[true]"/>'
+        "</testsuite>",
+        encoding="utf-8",
+    )
+    with pytest.raises(ManifestExportError, match="duplicate testcase"):
+        build_coverage_manifest(
+            coverage_data_path=coverage_path,
+            junit_xml_path=junit,
+            head_sha=HEAD,
+            repository_root=tmp_path,
+        )
+
+
+def test_exporter_rejects_coverage_context_without_run_phase(tmp_path: Path) -> None:
+    tests_dir = tmp_path / "tests"
+    tests_dir.mkdir()
+    source = tests_dir / "sample.py"
+    source.write_text("def choose(flag):\n    return flag\n", encoding="utf-8")
+    junit = tmp_path / "junit.xml"
+    junit.write_text(
+        '<testsuite tests="1"><testcase classname="tests.sample" name="test_choose"/></testsuite>',
+        encoding="utf-8",
+    )
+    coverage_path = tmp_path / ".coverage-no-run"
+    data = CoverageData(basename=str(coverage_path))
+    data.set_context("tests/sample.py::test_choose|setup")
+    data.add_arcs({str(source): [(-1, 1), (1, 2), (2, -1)]})
+    data.write()
+    with pytest.raises(ManifestExportError, match="no run-phase contexts"):
+        build_coverage_manifest(
+            coverage_data_path=coverage_path,
+            junit_xml_path=junit,
+            head_sha=HEAD,
+            repository_root=tmp_path,
+        )

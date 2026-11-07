@@ -15,6 +15,9 @@ dependencies = [
     "defusedxml>=0.7.1",
 ]
 
+[project.scripts]
+ai-pr-verification-phase4 = "verification_core.phase4_operator:main"
+
 [project.optional-dependencies]
 integration = [
     "fastapi>=0.115.0",
@@ -37,6 +40,7 @@ dev = [
     "mypy>=1.10.0",
     "pytest>=8.2.0",
     "pytest-cov>=5.0.0",
+    "coverage>=7.7.0",
     "ruff>=0.5.0",
     "types-PyYAML>=6.0.12",
 ]
@@ -55,6 +59,7 @@ source = ["src/verification_core"]
 
 [tool.coverage.report]
 fail_under = 90
+precision = 2
 show_missing = true
 
 [tool.ruff]

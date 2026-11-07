@@ -90,7 +90,7 @@ def test_junit_rejects_types_empty_nul_and_oversize() -> None:
 def test_junit_rejects_invalid_unicode_and_overlong_fields() -> None:
     with pytest.raises(EvidenceParseError, match="UTF-8"):
         parse_junit("\ud800")
-    long_name = "x" * 2001
+    long_name = "x" * 10001
     with pytest.raises(EvidenceParseError, match="name exceeds"):
         parse_junit(f'<testsuite><testcase name="{long_name}"/></testsuite>')
 
