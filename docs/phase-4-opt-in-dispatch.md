@@ -1,18 +1,31 @@
 # Phase IV — Opt-in Dispatch and Human Governance
 
-## Status
+## Status — updated 7 November 2026
 
-Latest integrated branch head: `9ca28e185c586ec3b05549635baca2482fda35b6` on `phase-4-opt-in-dispatch` (PR #9).
+Current branch: `phase-4-opt-in-dispatch`; integrated PR #9 remains open and draft. The latest code changes are recorded in commits `89c089305d7c84a0c5b49902efb2315d6411bfd6` and `f0e64e6701f4ba031e20cbca10f1abc333c648cc`; large-ID regression coverage is in `a898506fef046b453d3a04d14b03a5772138600e`. The current documentation/log checkpoint may be newer than that source commit.
 
-Exact-head verification on 5 November 2026:
-- Full CI [#42055438789](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/42055438789): success on `9ca28e185c586ec3b05549635baca2482fda35b6`; formatting, Ruff, strict mypy, all tests, all coverage gates, and exact-head evidence producer passed.
-- Focused Phase IV governance [#42055438742](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/42055438742): success on the same head.
-- 710 tests passed; one non-blocking warning.
-- Overall coverage 90.28%; Phase I core 96.39%; Phase II integration 85.99%.
-- Artifact `verification-evidence`, ID `13429121701`, 51,738 bytes, digest `sha256:679cae107d2488a39c9396d95231a651b12bbe28bfa4863b4d6cb6710b1dfc6e`. Downloaded ZIP digest independently matched. The archive contains `junit.xml` and `coverage-manifest.json`; both inventories contain 710 unique matching test IDs, all passed, and manifest head binding matches `9ca28e185c586ec3b05549635baca2482fda35b6`. All `behavioral_assertion_verified` flags are false.
-- The staging workflow was registered on the default branch in commit [`59b3610`](https://github.com/worksomaganesh/ai-pr-verification-agent/commit/59b361012e47f5c62db6d508a87b040f1297a623) and is also present on this feature branch.
+The previous integrated source head `851d94369cccb17c0fce2bb084332afaa097f656` passed full CI [#42065231885](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/42065231885) and Phase IV governance [#42065232420](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/42065232420): 710 tests passed, 0 failures/errors/skips; coverage was 90.28% overall, 96.39% Phase I core, and 85.99% Phase II integration. These results predate the 64-bit identifier fix; the new head requires fresh exact-head CI evidence.
 
-**Implementation/CI status: complete for the current integrated source checkpoint. Operational acceptance is still open.** No operator-mediated live dispatch/reconciliation or Phase III deployed smoke test has been recorded. The workflow references the GitHub `staging` environment, but environment protection rules and credentials are not verified here. PR #9 remains draft. No review is recorded yet. Keep production merge gating disabled.
+### First owner-authorized staging dispatch attempt
+
+The owner configured `staging` → `PHASE4_GITHUB_TOKEN` as an Environment secret. No secret value is stored in the repository.
+
+Operator run [#42365086398](https://github.com/worksomaganesh/ai-pr-verification-agent/actions/runs/42365086398) targeted `851d94369cccb17c0fce2bb084332afaa097f656`. Token validation, owner/confirmation checks, exact-SHA checkout, Python setup, dependency installation, and the dispatch step passed. The operator submitted one `phase4-staging-dispatch.yml` request with correlation ID `0c8383a3e0b6426793ab4c556144a021`.
+
+The reconciliation step failed while persisting the GitHub Actions run ID. PostgreSQL reported `integer out of range` for `workflow_dispatch_audit.workflow_run_id`, because that column used a 32-bit `INTEGER` but GitHub run IDs exceed that range. The API dispatch was accepted, but the audit update did not complete. The child's final conclusion and exact SHA have not yet been independently confirmed, so this attempt is not an accepted staging result.
+
+The Node.js 20 deprecation warning for pinned actions and the `ubuntu-latest` migration notice were non-blocking notices, unrelated to the database failure.
+
+### Remediation now present on the Phase IV branch
+
+- `workflow_dispatch_audit.workflow_run_id` now uses SQLAlchemy `BigInteger`; an idempotent PostgreSQL startup migration widens an existing `INTEGER` column to `BIGINT`.
+- `human_review_approvals.review_id` now also uses `BigInteger`, with its own PostgreSQL widening migration, because GitHub review IDs can exceed 32-bit range too.
+- Regression coverage includes IDs above the 32-bit boundary and explicit assertions that both audit schemas use 64-bit types.
+- The incident and remediation are recorded in [`log/current-status.md`](../log/current-status.md).
+
+Do not use **Re-run jobs** on failed operator run #42365086398: rerunning that job would execute its dispatch step again and create another external workflow. First verify CI on the corrected exact head and inspect the existing child run by its correlation marker. Then start a fresh, explicitly authorized operator run only when ready for one additional staging dispatch.
+
+**Operational acceptance remains open.** The staging dispatch/reconciliation has not yet completed successfully on the corrected schema; the Phase III deployed smoke test has not run against an installed GitHub App/webhook/worker/durable evidence database; human/faculty review and release acceptance remain outstanding. Keep PR #9 draft and production merge gating disabled.
 
 ## Phase goals
 
